@@ -68,7 +68,7 @@ async def on_message_create(msg: di.Message):
             dcuser = await obj.dcuser(bot=bot, dc_id=msg.author.id._snowflake)
             streak_count = f_json.upgrade_user(user_id=dcuser.dc_id)
             if streak_count:
-                dcuser.update_xp_role(streak_count)
+                await dcuser.update_xp_role(streak_count)
 
 
 @bot.command(
