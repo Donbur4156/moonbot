@@ -4,7 +4,6 @@ import json
 import config as c
 
 def write_msg(msg: di.Message):
-    newdata = {"id": msg.id._snowflake, "timestamp": msg.timestamp.timestamp()}
     json_filename = c.jsondir + "xp_cur.json"
     user_id = str(msg.author.id)
     file = open(json_filename, "r+")
@@ -14,10 +13,10 @@ def write_msg(msg: di.Message):
         last_timestamp = user_data["msgs"][-1]["timestamp"]
         if (last_timestamp + 5) > msg.timestamp.timestamp():
             file.close()
-            return
-    
-    if not user_id in data["users"]:
+            return False
+    else:
         data["users"].update({user_id:{"msgs":[]}})
+    newdata = {"id": msg.id._snowflake, "timestamp": msg.timestamp.timestamp()}
     data["users"][user_id]["msgs"].append(newdata)
     file.seek(0)
     json.dump(data, file, indent=4)

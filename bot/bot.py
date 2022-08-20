@@ -62,6 +62,7 @@ async def on_message_create(msg: di.Message):
         return
     elif int(msg.channel_id) in c.channel:
         user_data = f_json.write_msg(msg=msg)
+        if not user_data: return
         logging.info(f"Nr.{len(user_data)} * {msg.author.username}: {msg.content}")
         if len(user_data) == 2:
             dcuser = await obj.dcuser(bot=bot, dc_id=msg.author.id._snowflake)
