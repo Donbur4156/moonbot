@@ -1,10 +1,11 @@
 from datetime import datetime
 import interactions as di
 import json
+import config as c
 
 def write_msg(msg: di.Message):
     newdata = {"id": msg.id._snowflake, "timestamp": msg.timestamp.timestamp()}
-    json_filename = "bot/jsons/xp_cur.json"
+    json_filename = c.jsondir + "xp_cur.json"
     user_id = str(msg.author.id)
     file = open(json_filename, "r+")
     data = json.load(file)
@@ -25,7 +26,7 @@ def write_msg(msg: di.Message):
     return user_data["msgs"]
 
 def upgrade_user(user_id: str):
-    json_filename = "bot/jsons/xp_streak.json"
+    json_filename = c.jsondir + "xp_streak.json"
     file = open(json_filename, "r+")
     data: json = json.load(file)
     user_data = data["users"].get(user_id)
@@ -56,13 +57,13 @@ def upgrade_user(user_id: str):
     return streak_data
 
 def get_streak(counter: int):
-    with open("bot/jsons/roles.json", "r") as json_roles:
+    with open(c.jsondir + "roles.json", "r") as json_roles:
         roles_data = json.load(json_roles)
         streak_data = roles_data["streaks"].get(str(counter))
     return streak_data
 
 def get_role(role_nr: int):
-    json_filename = "bot/jsons/roles.json"
+    json_filename = c.jsondir + "roles.json"
     file = open(json_filename, "r")
     data = json.load(file)
     role_id = data["xp_roles"].get(str(role_nr))
@@ -70,7 +71,7 @@ def get_role(role_nr: int):
     return role_id
 
 def get_msgs(user_id: str):
-    json_filename = "bot/jsons/xp_cur.json"
+    json_filename = c.jsondir + "xp_cur.json"
     with open(json_filename, "r+") as file:
         data = json.load(file)
         user_data = data["users"].get(user_id)
@@ -79,7 +80,7 @@ def get_msgs(user_id: str):
     return None
 
 def get_userstreak(user_id: str):
-    json_filename = "bot/jsons/xp_streak.json"
+    json_filename = c.jsondir + "xp_streak.json"
     with open(json_filename, "r+") as file:
         data = json.load(file)
         user_data = data["users"].get(user_id)
@@ -88,7 +89,7 @@ def get_userstreak(user_id: str):
     return None
 
 def clean_xpcur():
-    json_filename = "bot/jsons/xp_cur.json"
+    json_filename = c.jsondir + "xp_cur.json"
     open(json_filename, 'w').close()
     
     with open(json_filename, "r+") as file:
@@ -97,7 +98,7 @@ def clean_xpcur():
         json.dump(data, file, indent=4)
 
 def clean_streak():
-    json_filename = "bot/jsons/xp_streak.json"
+    json_filename = c.jsondir + "xp_streak.json"
     today = datetime.now().date()
     user_out = []
     with open(json_filename, "r+") as file:
