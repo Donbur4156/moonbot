@@ -76,7 +76,7 @@ def get_msgs(user_id: str):
         user_data = data["users"].get(user_id)
     if user_data:
         return user_data["msgs"]
-    return None
+    return []
 
 def get_userstreak(user_id: str):
     json_filename = c.jsondir + "xp_streak.json"
