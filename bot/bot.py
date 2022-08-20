@@ -76,11 +76,11 @@ async def on_message_create(msg: di.Message):
     description="Persönlicher Status der Message Streak", 
     scope=c.serverid)
 @di.option()
-async def test(ctx: di.CommandContext, user: di.User = None):
+async def status(ctx: di.CommandContext, user: di.User = None):
     dcuser = await obj.dcuser(bot=bot, dc_id=user.id if user else ctx.author.id)
     mention_text = f"{dcuser.member.name if user else 'Du'} {'hat' if user else 'hast'}"
     msg_count = len(f_json.get_msgs(dcuser.dc_id))
-    channel: di.Channel = await di.get(client=bot, obj=di.Channel, parent_id=c.serverid, object_id=1009495382255996988)
+    channel: di.Channel = await di.get(client=bot, obj=di.Channel, object_id=c.channel[0])
     if msg_count >= 2:
         success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
     else:
