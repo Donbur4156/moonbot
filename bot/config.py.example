@@ -1,0 +1,19 @@
+# File has to be named to "config.py"
+import logging
+
+logginglevel = logging.DEBUG
+sync = False # disable_sync: # False: it sync # True: it don´t sync
+
+token = "TOKEN"  # String: Discord Bot Token (interactions)
+serverid = 1009456838615512345 # Int: Discord Server ID
+channel = [1010502622924512345]
+
+bot = 1009457161216123456 # Bot ID für die Logs
+logdir = "bot/logs/"
+logfilename = "Moon_Bot_LOGS.log"
+
+donbur = 290948271566880768
+
+
+# Link zum Einladen des Bots auf den Discord Server:
+# https://discord.com/oauth2/authorize?client_id={bot-id}&scope=bot&permissions=76864
