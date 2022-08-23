@@ -9,6 +9,7 @@ from interactions.api.models.flags import Intents
 import functions_gets as f_get
 import objects as obj
 import functions_json as f_json
+from modmail import Modmail
 
 #imports intern
 import config as c
@@ -30,9 +31,11 @@ pres = di.PresenceActivity(
 )
 bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
+mail = Modmail(client=bot)
 
 @bot.event
 async def on_ready():
+    await mail.onready(guild_id=c.serverid, def_channel_id=1011558679465697300, log_channel_id=1011559754935566336)
     logging.info("Interactions are online!")
 
 @bot.event
@@ -40,26 +43,9 @@ async def on_message_create(msg: di.Message):
     if msg.author.bot:
         return
     if not msg.guild_id and msg.author.id._snowflake != bot.me.id._snowflake:
-        author_name = msg.author.username
-        author_mention = msg.author.mention
-        author_id = msg.author.id._snowflake
-        message:str = msg.content
-        tz = timezone(offset=timedelta(hours=2))
-        time = msg.timestamp.astimezone(tz=tz).strftime("%d.%m.%Y %H:%M:%S")
-        descr_text = f"**User:**\n{author_mention} ({author_name} / {author_id})\n\n**Message:**\n{message}"
-        embed = di.Embed(
-            title="direct Message from User",
-            color=di.Color.yellow(),
-            description=descr_text,
-            footer=di.EmbedFooter(text=time)
-        )
-        channel = await di.get(client=bot, obj=di.Channel, object_id=1009463638932856893)
-        await channel.send(embeds=embed)
-        if msg.embeds:
-            await channel.send(
-                "The Message contains embeds:",
-                embeds=msg.embeds,)
-        return
+        await mail.dm_bot(msg=msg)
+    elif mail.check_channel(channel_id=int(msg.channel_id)):
+        await mail.mod_react(msg=msg)
     elif int(msg.channel_id) in c.channel:
         user_data = f_json.write_msg(msg=msg)
         if not user_data: return
@@ -99,6 +85,13 @@ async def status(ctx: di.CommandContext, user: di.User = None):
         color=di.Color.black()
     )
     await ctx.send(embeds=emb)
+
+
+@bot.command(
+    name="close_ticket", 
+    description="Schließt dieses Ticket")
+async def close_ticket(ctx: di.CommandContext):
+    await mail.close_mail(ctx=ctx)
 
 
 @aiocron.crontab('0 0 * * *')

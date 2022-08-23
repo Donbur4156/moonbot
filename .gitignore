@@ -1,6 +1,7 @@
 # self ignores
 *.json
 *config.py
+*.db
 
 
 
