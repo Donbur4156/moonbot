@@ -1,7 +1,7 @@
 #imports extern
 import aiocron
 import logging
-from datetime import timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import interactions as di
 from interactions.api.models.flags import Intents
@@ -10,6 +10,7 @@ import functions_gets as f_get
 import objects as obj
 import functions_json as f_json
 from modmail import Modmail
+from statusreward import StatusReward
 
 #imports intern
 import config as c
@@ -32,6 +33,7 @@ pres = di.PresenceActivity(
 bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 mail = Modmail(client=bot)
+stat_rew = StatusReward(client=bot)
 
 @bot.event
 async def on_ready():
@@ -55,6 +57,12 @@ async def on_message_create(msg: di.Message):
             streak_count = f_json.upgrade_user(user_id=dcuser.dc_id)
             if streak_count:
                 await dcuser.update_xp_role(streak_count)
+
+
+@bot.event
+async def on_raw_presence_update(data: di.Presence):
+    if data.status in ['online', 'idle', 'dnd']:
+        await stat_rew.check_pres(data=data)
 
 
 @bot.command(
