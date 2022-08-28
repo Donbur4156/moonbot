@@ -79,17 +79,17 @@ async def status(ctx: di.CommandContext, user: di.User = None):
     if msg_count >= 30:
         success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
     else:
-        success_text = f"\n{mention_text} das tägliche Mindestziel __noch__ __nicht__ erreicht! :laden:"
+        success_text = f"\n{mention_text} das tägliche Mindestziel __noch__ __nicht__ erreicht! <:laden:1012813008759693335>"
     streak = f_json.get_userstreak(dcuser.dc_id)
     if streak and not streak["expired"]:
         count = streak["counter"]
-        streak_text = f":cutehearts: {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über 30 Nachrichten geschrieben. :cutehearts:"
+        streak_text = f"<:cutehearts:1012812833198702642> {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über 30 Nachrichten geschrieben. <:cutehearts:1012812833198702642>"
     else:
         streak_text = ""
     description = f"{mention_text} heute {msg_count}`/`30 *gezählte* Nachrichten in {channel.mention} geschrieben!\n" \
         f"{success_text}\n\n{streak_text}"
     emb = di.Embed(
-        title=f":DailyReward: Tägliche Belohnung :DailyReward:",
+        title=f"<:DailyReward:1013485006137610350> Tägliche Belohnung <:DailyReward:1013485006137610350>",
         description=description,
         color=0xFF00DD
     )
