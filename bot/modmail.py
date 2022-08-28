@@ -1,8 +1,7 @@
-from email import message
-from typing import List
 import interactions as di
-import sqlite3
 import config as c
+import objects as obj
+from functions_sql import SQL
 
 
 class Modmail:
@@ -11,10 +10,11 @@ class Modmail:
         self._sql_database = c.database
         self._get_storage()
 
-    async def onready(self, guild_id, def_channel_id, log_channel_id):
+    async def onready(self, guild_id, def_channel_id, log_channel_id, mod_roleid):
         self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=guild_id)
         self._channel_def: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=def_channel_id)
         self._channel_log: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=log_channel_id)
+        self._mod_role: di.Role = await di.get(client=self._client, obj=di.Role, object_id=mod_roleid)
 
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
@@ -38,7 +38,9 @@ class Modmail:
         return user
 
     async def _create_channel(self, msg: di.Message) -> di.Channel:
-        name = f"{msg.author.username}-{msg.author.discriminator}"
+        dcuser = await obj.dcuser(bot=self._client, dc_id=int(msg.author.id))
+        member = dcuser.member
+        name = f"{member.name}-{member.user.discriminator}"
         channel = await self._guild.create_channel(
             name=name, type=di.ChannelType.GUILD_TEXT,
             topic=f"Ticket Channel von {msg.author.username}",
@@ -47,11 +49,11 @@ class Modmail:
         )
         SQL(database=self._sql_database,
             stmt="INSERT INTO tickets(user_ID, channel_ID) VALUES (?, ?)",
-            var=(int(msg.author.id), int(channel.id),))
+            var=(dcuser.dc_id, int(channel.id),))
         self._get_storage()
         embed = di.Embed(
-            title=f"Ticket von {msg.author.username}",
-            description=f"User: {msg.author.mention}\nUser ID: {msg.author.id}"
+            title=f"Ticket von {member.name}{f' (Nickname: {member.nick})' if member.nick else ''}",
+            description=f"**User:** {dcuser.mention}\n**User ID:** {dcuser.dc_id}\n**Account created:** {member.id.timestamp.strftime('%d.%m.%Y %H:%M:%S')}\n**User joined at:** {member.joined_at.strftime('%d.%m.%Y %H:%M:%S')}\n"
         )
 
         tickets = SQL(database=self._sql_database, stmt="SELECT * FROM tickets_closed WHERE user_ID=?", var=(int(msg.author.id),)).data_all
@@ -69,8 +71,13 @@ class Modmail:
             if tickets_lost:
                 embed.add_field(name="Keine Logdatei gefunden zu diesen Ticket IDs:", value=", ".join(tickets_lost))
 
-        msg: di.Message = await channel.send(embeds=embed, files=files)
-        await msg.pin()
+        await channel.send(content=f"{self._mod_role.mention}, ein neues Ticket wurde erstellt:",embeds=embed, files=files)
+        embed_user = di.Embed(
+            title=":scroll: Ticket geöffnet :scroll:",
+            description="Es wurde ein Ticket für dich angelegt.\nEin Moderator wird sich zeitnah um dein Anliegen kümmern.",
+            color=0x0B27F4
+        )
+        await msg.reply(embeds=embed_user)
         return channel
 
     async def dm_bot(self, msg: di.Message):
@@ -93,7 +100,8 @@ class Modmail:
         user = await self._get_userbychannel(channel_id=int(msg.channel_id))
         embed = di.Embed(
             description=msg.content,
-            author=di.EmbedAuthor(name=msg.author.username)
+            author=di.EmbedAuthor(name=msg.author.username),
+            color=0x0B27F4
         )
         await user.send(embeds=embed)
 
@@ -106,10 +114,10 @@ class Modmail:
             return True
         return False
 
-    async def close_mail(self, ctx: di.CommandContext):
+    async def close_mail(self, ctx: di.CommandContext, reason: str = None):
         #Schließt Ticket und Speichert Inhalt als Log
         if not self.check_channel(channel_id=int(ctx.channel_id)):
-            await ctx.send("Dieser Channel ist kein Ticket!", ephemeral=True)
+            await ctx.send("Dieser Channel ist kein aktives Ticket!", ephemeral=True)
             return
         user: di.Member = await self._get_userbychannel(channel_id=ctx.channel_id)
         ticket_id = SQL(database=self._sql_database,
@@ -122,7 +130,7 @@ class Modmail:
         msg_text = "\n\n"
         head_text = f"(ID: {ticket_id}) Ticket Log für {user.name}\nUser ID: {user.id}\n"
         mods = []
-        for msg in messages[2::]:
+        for msg in messages[1::]:
             time = msg.timestamp.strftime("%d.%m.%Y %H:%M:%S")
             content = msg.content
             author = msg.author.username
@@ -135,47 +143,19 @@ class Modmail:
             msg_text += f"{time}: {author}\n{content}\n\n"
         mods = [f"{mod[1]} ({mod[0]})" for mod in mods]
         head_text += "\nBeteiligte Moderatoren:\n" + "\n".join(mods)
+        head_text += f"\n\nGeschlossen durch {ctx.user.username}\n"
+        if reason: head_text += f"Begründung:\n{reason}\n"
         filename = f"{c.logdir}ticket_{ticket_id}_{user.id}.txt"
         with open(filename, "w", newline='') as logfile:
             text = head_text + msg_text
             logfile.write(text)
         file = di.File(filename=filename)
         await self._channel_log.send(files=file)
+        reason_text = f'**Grund:** {reason}\n' if reason else ''
         embed = di.Embed(
             title=":scroll: Ticket geschlossen :scroll:",
-            description="Dein aktuelles Ticket wurde durch einen Moderator geschlossen.\nDu kannst mit einer neuen Nachricht jederzeit ein neues eröffnen.",
+            description=f"Dein aktuelles Ticket wurde durch den Moderator **{ctx.user.username}** geschlossen.\n{reason_text}\nDu kannst mit einer neuen Nachricht jederzeit ein neues eröffnen.",
             color=di.Color.red()
         )
         await user.send(embeds=embed)
         await ctx.channel.delete()
-
-
-class SQL:
-    def __init__(self, database, stmt: str, var: tuple = None) -> None:
-        self._stmt = stmt
-        self._var = var
-        self._database = database
-        self.execute()
-
-    def execute(self):
-        self._connect()
-        self._exec()
-        self._fetch()
-        self._close()
-
-    def _connect(self):
-        self._connection = sqlite3.connect(self._database)
-        self._cursor = self._connection.cursor()
-
-    def _close(self):
-        self._connection.commit()
-        self._connection.close()
-    
-    def _exec(self):
-        if self._var: self._cursor.execute(self._stmt, self._var)
-        else: self._cursor.execute(self._stmt)
-
-    def _fetch(self):
-        self.data_all = self._cursor.fetchall()
-        self.data_single = self.data_all[0] if self.data_all else None
-        self.lastrowid = self._cursor.lastrowid

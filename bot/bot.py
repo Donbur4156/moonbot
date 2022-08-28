@@ -37,7 +37,8 @@ stat_rew = StatusReward(client=bot)
 
 @bot.event
 async def on_ready():
-    await mail.onready(guild_id=c.serverid, def_channel_id=1011558679465697300, log_channel_id=1011559754935566336)
+    await mail.onready(guild_id=c.serverid, def_channel_id=c.channel_def, log_channel_id=c.channel_log, mod_roleid=c.mod_roleid)
+    await stat_rew.onready(guild_id=c.serverid, moon_roleid=c.moon_roleid)
     logging.info("Interactions are online!")
 
 @bot.event
@@ -52,7 +53,7 @@ async def on_message_create(msg: di.Message):
         user_data = f_json.write_msg(msg=msg)
         if not user_data: return
         logging.info(f"Nr.{len(user_data)} * {msg.author.username}: {msg.content}")
-        if len(user_data) == 2:
+        if len(user_data) == 30:
             dcuser = await obj.dcuser(bot=bot, dc_id=msg.author.id._snowflake)
             streak_count = f_json.upgrade_user(user_id=dcuser.dc_id)
             if streak_count:
@@ -75,31 +76,40 @@ async def status(ctx: di.CommandContext, user: di.User = None):
     mention_text = f"{dcuser.member.name if user else 'Du'} {'hat' if user else 'hast'}"
     msg_count = len(f_json.get_msgs(dcuser.dc_id))
     channel: di.Channel = await di.get(client=bot, obj=di.Channel, object_id=c.channel[0])
-    if msg_count >= 2:
+    if msg_count >= 30:
         success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
     else:
-        success_text = f"{mention_text} das tägliche Mindestziel __noch nicht__ erreicht! :fire:"
+        success_text = f"\n{mention_text} das tägliche Mindestziel __noch__ __nicht__ erreicht! :laden:"
     streak = f_json.get_userstreak(dcuser.dc_id)
     if streak:
         count = streak["counter"]
-        streak_text = f"{mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über 30 Nachrichten geschrieben."
+        streak_text = f":cutehearts: {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über 30 Nachrichten geschrieben. :cutehearts:"
     else:
         streak_text = ""
-    description = f"{mention_text} heute {msg_count}`/`2 *gezählte* Nachrichten in {channel.mention} geschrieben!\n" \
+    description = f"{mention_text} heute {msg_count}`/`30 *gezählte* Nachrichten in {channel.mention} geschrieben!\n" \
         f"{success_text}\n\n{streak_text}"
     emb = di.Embed(
-        title=f":zap: Tägliche Belohnung :zap:",
+        title=f":DailyReward: Tägliche Belohnung :DailyReward:",
         description=description,
-        color=di.Color.black()
+        color=0xFF00DD
     )
     await ctx.send(embeds=emb)
 
 
 @bot.command(
     name="close_ticket", 
-    description="Schließt dieses Ticket")
-async def close_ticket(ctx: di.CommandContext):
-    await mail.close_mail(ctx=ctx)
+    description="Schließt dieses Ticket",
+    scope=c.serverid,
+    options=[
+        di.Option(
+            name="reason",
+            description="Grund für Schließen des Tickets. (Optional)",
+            type=di.OptionType.STRING,
+            required=False
+        )
+    ])
+async def close_ticket(ctx: di.CommandContext, reason: str = None):
+    await mail.close_mail(ctx=ctx, reason=reason)
 
 
 @aiocron.crontab('0 0 * * *')
