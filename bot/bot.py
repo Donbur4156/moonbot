@@ -27,8 +27,8 @@ Abkürzungen:
 # Bot Konstruktor
 TOKEN = c.token
 pres = di.PresenceActivity(
-    type=di.PresenceActivityType.GAME,
-    name="moonfamily"
+    type=di.PresenceActivityType.CUSTOM,
+    name="discord.gg/moonfamily",
 )
 bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
