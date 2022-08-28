@@ -44,7 +44,6 @@ class StatusReward:
     def _check_moonpres(self, data: di.Presence):
         activities = data.activities
         for a in activities:
-            if a.type == 4 and a.name == "Custom Status":
-                if "discord.gg/moonfamily" in a.state:
-                    return True
+            if a.type == 4 and a.name == "Custom Status" and a.state and "discord.gg/moonfamily" in a.state:
+                return True
         return False
