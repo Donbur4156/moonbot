@@ -27,7 +27,7 @@ Abkürzungen:
 # Bot Konstruktor
 TOKEN = c.token
 pres = di.PresenceActivity(
-    type=di.PresenceActivityType.CUSTOM,
+    type=di.PresenceActivityType.GAME,
     name="discord.gg/moonfamily",
 )
 bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
