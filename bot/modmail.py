@@ -2,6 +2,7 @@ import interactions as di
 import config as c
 import objects as obj
 from functions_sql import SQL
+from io import BytesIO
 
 
 class Modmail:
@@ -91,8 +92,8 @@ class Modmail:
             description=msg.content,
             author=di.EmbedAuthor(name=msg.author.username)
         )
-        #title=f"{msg.author.username}#{msg.author.discriminator} ({msg.author.id})",
-        await channel.send(embeds=embed)
+        files = await self.gen_files(msg)
+        await channel.send(embeds=embed, files=files)
 
 
     async def mod_react(self, msg: di.Message):
@@ -103,7 +104,8 @@ class Modmail:
             author=di.EmbedAuthor(name=msg.author.username),
             color=0x0B27F4
         )
-        await user.send(embeds=embed)
+        files = await self.gen_files(msg)
+        await user.send(embeds=embed, files=files)
 
     def active_mails(self):
         #Liste aktiver Vorgänge
@@ -159,3 +161,24 @@ class Modmail:
         )
         await user.send(embeds=embed)
         await ctx.channel.delete()
+
+    async def gen_files(self, msg: di.Message):
+        files = []
+        for att in msg.attachments:
+            att_b = await download(msg, att)
+            file = di.File(filename=att.filename, fp=att_b)
+            files.append(file)
+        return files
+
+
+async def download(msg: di.Message, att: di.Attachment) -> BytesIO:
+    """
+    Downloads the attachment.
+    :returns: The attachment's bytes as BytesIO object
+    :rtype: BytesIO
+    """
+
+    async with msg._client._req._session.get(att.url) as response:
+        _bytes: bytes = await response.content.read()
+
+    return BytesIO(_bytes)
