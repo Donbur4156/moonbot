@@ -38,13 +38,13 @@ class Modmail:
         user: di.Member = await self._guild.get_member(member_id=user_id)
         return user
 
-    async def _create_channel(self, msg: di.Message) -> di.Channel:
+    async def _create_channel(self, msg: di.Message) -> di.Channel: #TODO: Möglicher Error, wenn kein Servermember.
         dcuser = await obj.dcuser(bot=self._client, dc_id=int(msg.author.id))
         member = dcuser.member
-        name = f"{member.name}-{member.user.discriminator}"
+        name = f"{member.user.username}-{member.user.discriminator}"
         channel = await self._guild.create_channel(
             name=name, type=di.ChannelType.GUILD_TEXT,
-            topic=f"Ticket Channel von {msg.author.username}",
+            topic=f"Ticket Channel von {member.user.username}",
             parent_id=self._channel_def.parent_id,
             permission_overwrites=self._channel_def.permission_overwrites
         )
@@ -53,8 +53,8 @@ class Modmail:
             var=(dcuser.dc_id, int(channel.id),))
         self._get_storage()
         embed = di.Embed(
-            title=f"Ticket von {member.name}{f' (Nickname: {member.nick})' if member.nick else ''}",
-            description=f"**User:** {dcuser.mention}\n**User ID:** {dcuser.dc_id}\n**Account created:** {member.id.timestamp.strftime('%d.%m.%Y %H:%M:%S')}\n**User joined at:** {member.joined_at.strftime('%d.%m.%Y %H:%M:%S')}\n"
+            title=f"Ticket von {member.user.username}{f' (Nickname: {member.nick})' if member.nick else ''}",
+            description=f"**User:** {dcuser.mention}\n**User ID:** {dcuser.dc_id}\n**Account erstellt:** {member.id.timestamp.strftime('%d.%m.%Y %H:%M:%S')}\n**Server beigetreten am:** {member.joined_at.strftime('%d.%m.%Y %H:%M:%S')}\n"
         )
 
         tickets = SQL(database=self._sql_database, stmt="SELECT * FROM tickets_closed WHERE user_ID=?", var=(int(msg.author.id),)).data_all
@@ -93,8 +93,9 @@ class Modmail:
             author=di.EmbedAuthor(name=msg.author.username)
         )
         files = await self.gen_files(msg)
+        if files:
+            embed.add_field(name="Anhang:", value=f"Anzahl angehangener Bilder: **{len(files)}**")
         await channel.send(embeds=embed, files=files)
-
 
     async def mod_react(self, msg: di.Message):
         #Mod antwortet in Channel

@@ -2,6 +2,7 @@
 *.json
 *config.py
 *.db
+bot/logs/*
 
 
 
