@@ -34,8 +34,12 @@ def upgrade_user(user_id: str):
     streak_data = None
     if user_data:
         last_day = datetime.strptime(user_data["last_day"], "%Y-%m-%d").date()
-        if (today - last_day).days == 1:
+        date_dif = (today - last_day).days
+        if date_dif == 1:
             counter = user_data["counter"] + 1
+        elif date_dif == 0:
+            file.close()
+            return False
         else:
             counter = 1
         streak_data = get_streak(counter)

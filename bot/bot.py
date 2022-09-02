@@ -52,8 +52,12 @@ async def on_message_create(msg: di.Message):
     elif int(msg.channel_id) in c.channel:
         user_data = f_json.write_msg(msg=msg)
         if not user_data: return
-        logging.info(f"Nr.{len(user_data)} * {msg.author.username}: {msg.content}")
-        if len(user_data) == 30:
+        print(len(user_data))
+        if c.bost_roleid in msg.member.roles:
+            req_msgs = [15, 30]
+        else:
+            req_msgs = [30]
+        if len(user_data) in req_msgs:
             dcuser = await obj.dcuser(bot=bot, dc_id=msg.author.id._snowflake)
             streak_count = f_json.upgrade_user(user_id=dcuser.dc_id)
             if streak_count:
@@ -72,11 +76,22 @@ async def on_raw_presence_update(data: di.Presence):
     scope=c.serverid)
 @di.option()
 async def status(ctx: di.CommandContext, user: di.User = None):
-    dcuser = await obj.dcuser(bot=bot, dc_id=user.id if user else ctx.author.id)
-    mention_text = f"{dcuser.member.name if user else 'Du'} {'hat' if user else 'hast'}"
+    if user:
+        dcuser = await obj.dcuser(bot=bot, dc_id=user.id)
+    else:
+        dcuser = await obj.dcuser(bot=bot, ctx=ctx)
+    if c.bost_roleid in dcuser.member.roles:
+        req_msgs = 15
+    else:
+        req_msgs = 30
     msg_count = len(f_json.get_msgs(dcuser.dc_id))
+    if msg_count >= req_msgs:
+        streak_count = f_json.upgrade_user(user_id=dcuser.dc_id)
+        if streak_count:
+            await dcuser.update_xp_role(streak_count)
+    mention_text = f"{dcuser.member.name if user else 'Du'} {'hat' if user else 'hast'}"
     channel: di.Channel = await di.get(client=bot, obj=di.Channel, object_id=c.channel[0])
-    if msg_count >= 30:
+    if msg_count >= req_msgs:
         success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
     else:
         success_text = f"\n{mention_text} das tägliche Mindestziel __noch__ __nicht__ erreicht! <a:laden:913488789303853056>"
@@ -84,10 +99,10 @@ async def status(ctx: di.CommandContext, user: di.User = None):
     expired = streak.get("expired")
     if streak and not expired:
         count = streak["counter"]
-        streak_text = f"<a:cutehearts:985295531700023326> {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über 30 Nachrichten geschrieben. <a:cutehearts:985295531700023326>"
+        streak_text = f"<a:cutehearts:985295531700023326> {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über {req_msgs} Nachrichten geschrieben. <a:cutehearts:985295531700023326>"
     else:
         streak_text = ""
-    description = f"{mention_text} heute {msg_count}`/`30 *gezählte* Nachrichten in {channel.mention} geschrieben!\n" \
+    description = f"{mention_text} heute {msg_count}`/`{req_msgs} *gezählte* Nachrichten in {channel.mention} geschrieben!\n" \
         f"{success_text}\n\n{streak_text}"
     emb = di.Embed(
         title=f"<:DailyReward:990693035543265290> Tägliche Belohnung <:DailyReward:990693035543265290>",
