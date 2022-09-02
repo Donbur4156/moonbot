@@ -94,7 +94,7 @@ class Modmail:
         )
         files = await self.gen_files(msg)
         if files:
-            embed.add_field(name="Anhang:", value=f"Anzahl angehangener Bilder: **{len(files)}**")
+            embed.add_field(name="Anhang:", value=f"Anzahl angehängter Bilder: **{len(files)}**")
         await channel.send(embeds=embed, files=files)
 
     async def mod_react(self, msg: di.Message):
