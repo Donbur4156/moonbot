@@ -96,7 +96,7 @@ async def status(ctx: di.CommandContext, user: di.User = None):
     else:
         success_text = f"\n{mention_text} das tägliche Mindestziel __noch__ __nicht__ erreicht! <a:laden:913488789303853056>"
     streak:dict = f_json.get_userstreak(dcuser.dc_id)
-    expired = streak.get("expired")
+    expired = streak.get("expired") if streak else False
     if streak and not expired:
         count = streak["counter"]
         streak_text = f"<a:cutehearts:985295531700023326> {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über {req_msgs} Nachrichten geschrieben. <a:cutehearts:985295531700023326>"
