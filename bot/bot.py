@@ -46,13 +46,14 @@ async def on_message_create(msg: di.Message):
     if msg.author.bot:
         return
     if not msg.guild_id and msg.author.id._snowflake != bot.me.id._snowflake:
+        logging.info(f"MSG to Bot: {msg.author.username} ({msg.author.id}):'{msg.content}'")
         await mail.dm_bot(msg=msg)
     elif mail.check_channel(channel_id=int(msg.channel_id)):
+        logging.info(f"MSG of Mod: {msg.author.username} ({msg.author.id}):'{msg.content}'")
         await mail.mod_react(msg=msg)
     elif int(msg.channel_id) in c.channel:
         user_data = f_json.write_msg(msg=msg)
         if not user_data: return
-        print(len(user_data))
         if c.bost_roleid in msg.member.roles:
             req_msgs = [15, 30]
         else:
@@ -61,6 +62,7 @@ async def on_message_create(msg: di.Message):
             dcuser = await obj.dcuser(bot=bot, dc_id=msg.author.id._snowflake)
             streak_count = f_json.upgrade_user(user_id=dcuser.dc_id)
             if streak_count:
+                logging.info(f"{dcuser.member.user.username} reached new streak: {streak_count}")
                 await dcuser.update_xp_role(streak_count)
 
 
@@ -80,6 +82,7 @@ async def status(ctx: di.CommandContext, user: di.User = None):
         dcuser = await obj.dcuser(bot=bot, dc_id=user.id)
     else:
         dcuser = await obj.dcuser(bot=bot, ctx=ctx)
+    logging.info(f"show status for {dcuser.member.user.username} by {ctx.member.user.username}")
     if c.bost_roleid in dcuser.member.roles:
         req_msgs = 15
     else:
@@ -125,6 +128,7 @@ async def status(ctx: di.CommandContext, user: di.User = None):
         )
     ])
 async def close_ticket(ctx: di.CommandContext, reason: str = None):
+    logging.info(f"{ctx.user.username} close ticket of channel '{ctx.channel.name}' with reason: '{reason}'")
     await mail.close_mail(ctx=ctx, reason=reason)
 
 
