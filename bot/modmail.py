@@ -1,3 +1,4 @@
+import logging
 import interactions as di
 import config as c
 import objects as obj
@@ -48,6 +49,7 @@ class Modmail:
             parent_id=self._channel_def.parent_id,
             permission_overwrites=self._channel_def.permission_overwrites
         )
+        logging.info(f"created ticketchannel for {member.user.username}: '{name}'")
         SQL(database=self._sql_database,
             stmt="INSERT INTO tickets(user_ID, channel_ID) VALUES (?, ?)",
             var=(dcuser.dc_id, int(channel.id),))
