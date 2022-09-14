@@ -1,17 +1,16 @@
 import sqlite3
 
 class SQL:
-    def __init__(self, database, stmt: str, var: tuple = None) -> None:
-        self._stmt = stmt
-        self._var = var
+    def __init__(self, database) -> None:
         self._database = database
-        self.execute()
+        #self.execute()
 
-    def execute(self):
+    def execute(self, stmt: str, var: tuple = None):
         self._connect()
-        self._exec()
+        self._exec(stmt, var)
         self._fetch()
         self._close()
+        return self
 
     def _connect(self):
         self._connection = sqlite3.connect(self._database)
@@ -21,9 +20,9 @@ class SQL:
         self._connection.commit()
         self._connection.close()
     
-    def _exec(self):
-        if self._var: self._cursor.execute(self._stmt, self._var)
-        else: self._cursor.execute(self._stmt)
+    def _exec(self, stmt: str, var: tuple = None):
+        if var: self._cursor.execute(stmt, var)
+        else: self._cursor.execute(stmt)
 
     def _fetch(self):
         self.data_all = self._cursor.fetchall()
