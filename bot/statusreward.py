@@ -8,7 +8,7 @@ from functions_sql import SQL
 class StatusReward:
     def __init__(self, client: di.Client) -> None:
         self._client = client
-        self._sql_database = c.database
+        self._SQL = SQL(database=c.database)
 
     async def onstart(self, guild_id, moon_roleid):
         self._get_storage()
@@ -17,10 +17,7 @@ class StatusReward:
 
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
-        self._storage = SQL(
-            database=self._sql_database,
-            stmt="SELECT * FROM statusrewards"
-        ).data_all
+        self._storage = self._SQL.execute(stmt="SELECT * FROM statusrewards").data_all
         self._storage_user = [stor[0] for stor in self._storage]
     
     async def check_pres(self, data: di.Presence):
@@ -34,14 +31,14 @@ class StatusReward:
         dcuser = await obj.dcuser(bot=self._client, dc_id=user_id)
         await dcuser.member.add_role(role=self._moon_role, guild_id=c.serverid)
         logging.info(f"add Role '{self._moon_role.name}' to {dcuser.member.user.username}")
-        SQL(database=c.database, stmt="INSERT INTO statusrewards(user_ID) VALUES(?)", var=(dcuser.dc_id,))
+        self._SQL.execute(stmt="INSERT INTO statusrewards(user_ID) VALUES(?)", var=(dcuser.dc_id,))
         self._get_storage()
 
     async def remove_moonrole(self, user_id: int):
         dcuser = await obj.dcuser(bot=self._client, dc_id=user_id)
         await dcuser.member.remove_role(role=self._moon_role, guild_id=c.serverid)
         logging.info(f"remove Role '{self._moon_role.name}' from {dcuser.member.user.username}")
-        SQL(database=c.database, stmt="DELETE FROM statusrewards WHERE user_ID=?", var=(dcuser.dc_id,))
+        self._SQL.execute(stmt="DELETE FROM statusrewards WHERE user_ID=?", var=(dcuser.dc_id,))
         self._get_storage()
 
     def _check_moonpres(self, data: di.Presence):

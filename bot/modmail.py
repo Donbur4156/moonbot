@@ -9,7 +9,7 @@ from io import BytesIO
 class Modmail:
     def __init__(self, client: di.Client) -> None:
         self._client = client
-        self._sql_database = c.database
+        self._SQL = SQL(database=c.database)
 
     async def onstart(self, guild_id, def_channel_id, log_channel_id, mod_roleid):
         self._get_storage()
@@ -20,10 +20,7 @@ class Modmail:
 
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
-        self._storage = SQL(
-            database=self._sql_database,
-            stmt="SELECT * FROM tickets"
-        ).data_all
+        self._storage = self._SQL.execute(stmt="SELECT * FROM tickets").data_all
         self._storage_user = [stor[1] for stor in self._storage]
         self._storage_channel = [stor[2] for stor in self._storage]
     
@@ -50,7 +47,7 @@ class Modmail:
             permission_overwrites=self._channel_def.permission_overwrites
         )
         logging.info(f"created ticketchannel for {member.user.username}: '{name}'")
-        SQL(database=self._sql_database,
+        self._SQL.execute(
             stmt="INSERT INTO tickets(user_ID, channel_ID) VALUES (?, ?)",
             var=(dcuser.dc_id, int(channel.id),))
         self._get_storage()
@@ -59,7 +56,7 @@ class Modmail:
             description=f"**User:** {dcuser.mention}\n**User ID:** {dcuser.dc_id}\n**Account erstellt:** {member.id.timestamp.strftime('%d.%m.%Y %H:%M:%S')}\n**Server beigetreten am:** {member.joined_at.strftime('%d.%m.%Y %H:%M:%S')}\n"
         )
 
-        tickets = SQL(database=self._sql_database, stmt="SELECT * FROM tickets_closed WHERE user_ID=?", var=(int(msg.author.id),)).data_all
+        tickets = self._SQL.execute(stmt="SELECT * FROM tickets_closed WHERE user_ID=?", var=(int(msg.author.id),)).data_all
         files = []
         if tickets:
             ticket_ids = [str(t[0]) for t in tickets]
@@ -125,10 +122,10 @@ class Modmail:
             await ctx.send("Dieser Channel ist kein aktives Ticket!", ephemeral=True)
             return
         user: di.Member = await self._get_userbychannel(channel_id=ctx.channel_id)
-        ticket_id = SQL(database=self._sql_database,
+        ticket_id = self._SQL.execute(
             stmt="INSERT INTO tickets_closed(user_ID) VALUES (?)",
             var=(int(user.id),)).lastrowid
-        SQL(database=self._sql_database, stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
+        self._SQL.execute(stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
         self._get_storage()
         messages = await ctx.channel.get_history(limit=100000)
         messages = messages[::-1]

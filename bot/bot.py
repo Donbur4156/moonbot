@@ -11,6 +11,7 @@ import objects as obj
 import functions_json as f_json
 from modmail import Modmail
 from statusreward import StatusReward
+from msgreward import MsgXP, User
 from drops import DropsHandler
 
 #imports intern
@@ -35,6 +36,7 @@ bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 mail = Modmail(client=bot)
 stat_rew = StatusReward(client=bot)
+msgxp = MsgXP(client=bot)
 drops = DropsHandler(client=bot)
 
 @bot.event
@@ -42,6 +44,7 @@ async def on_start():
     await mail.onstart(guild_id=c.serverid, def_channel_id=c.channel_def, log_channel_id=c.channel_log, mod_roleid=c.mod_roleid)
     await stat_rew.onstart(guild_id=c.serverid, moon_roleid=c.moon_roleid)
     await drops.onstart(chat_channel_id=c.channel[0], drop_channel_id=c.channel_drop)
+    msgxp.onready()
     logging.info("Interactions are online!")
 
 @bot.event
@@ -56,18 +59,14 @@ async def on_message_create(msg: di.Message):
         await mail.mod_react(msg=msg)
     elif int(msg.channel_id) in c.channel:
         await drops.new_msg()
-        user_data = f_json.write_msg(msg=msg)
+        user_data = msgxp.add_msg(msg=msg)
         if not user_data: return
         if c.bost_roleid in msg.member.roles:
             req_msgs = [15, 30]
         else:
             req_msgs = [30]
-        if len(user_data) in req_msgs:
-            dcuser = await obj.dcuser(bot=bot, dc_id=msg.author.id._snowflake)
-            streak_count = f_json.upgrade_user(user_id=dcuser.dc_id)
-            if streak_count:
-                logging.info(f"{dcuser.member.user.username} reached new streak: {streak_count}")
-                await dcuser.update_xp_role(streak_count)
+        if user_data.counter_msgs in req_msgs:
+            await msgxp.upgrade_user(user_id=int(msg.author.id))
 
 
 @bot.event
@@ -91,21 +90,25 @@ async def status(ctx: di.CommandContext, user: di.User = None):
         req_msgs = 15
     else:
         req_msgs = 30
-    msg_count = len(f_json.get_msgs(dcuser.dc_id))
+    user_data:User = msgxp.get_user(user_id=int(dcuser.dc_id))
+    if not user_data:
+        embed = di.Embed(
+            description="Der angefragte User war wohl noch nicht im Chat aktiv.",
+            color=di.Color.red()
+        )
+        await ctx.send(embeds=embed, ephemeral=True)
+        return
+    msg_count = user_data.counter_msgs
     if msg_count >= req_msgs:
-        streak_count = f_json.upgrade_user(user_id=dcuser.dc_id)
-        if streak_count:
-            await dcuser.update_xp_role(streak_count)
+        await msgxp.upgrade_user(user_id=int(dcuser.dc_id))
     mention_text = f"{dcuser.member.name if user else 'Du'} {'hat' if user else 'hast'}"
     channel: di.Channel = await di.get(client=bot, obj=di.Channel, object_id=c.channel[0])
     if msg_count >= req_msgs:
         success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
     else:
         success_text = f"\n{mention_text} das tägliche Mindestziel __noch__ __nicht__ erreicht! <a:laden:913488789303853056>"
-    streak:dict = f_json.get_userstreak(dcuser.dc_id)
-    expired = streak.get("expired") if streak else False
-    if streak and not expired:
-        count = streak["counter"]
+    if user_data and not user_data.expired:
+        count = user_data.counter_days
         streak_text = f"<a:cutehearts:985295531700023326> {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über {req_msgs} Nachrichten geschrieben. <a:cutehearts:985295531700023326>"
     else:
         streak_text = ""
@@ -138,12 +141,7 @@ async def close_ticket(ctx: di.CommandContext, reason: str = None):
 
 @aiocron.crontab('0 0 * * *')
 async def cron_streak_check():
-    f_json.clean_xpcur()
-    user_out = f_json.clean_streak()
-    for user in user_out:
-        member: di.Member = await di.get(client=bot, obj=di.Member, parent_id=c.serverid, object_id=user[0])
-        await member.remove_role(role=f_json.get_role(role_nr=user[1]), guild_id=c.serverid)
-
+    await msgxp._reset()
 
 if __name__ == "__main__":
     bot.start()
