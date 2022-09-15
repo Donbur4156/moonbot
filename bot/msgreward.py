@@ -70,16 +70,19 @@ class MsgXP:
 
     async def _reset(self):
         async def remove_roles(user):
-            member: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=user[0])
-            await self._remove_roles(member)
             self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user[0],))
+            member: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=user[0])
+            if not member: return False
+            await self._remove_roles(member)
 
         self._SQL.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
         
         today = datetime.now().date()
         user_data = self._SQL.execute(stmt="SELECT * FROM msgrewards WHERE expired=0").data_all
         for user in user_data:
-            if not user[4]: await remove_roles(user)
+            if not user[4]: 
+                await remove_roles(user)
+                continue
             last_day = datetime.strptime(user[4], "%Y-%m-%d").date()
             if (today - last_day).days > 1:
                 await remove_roles(user)
