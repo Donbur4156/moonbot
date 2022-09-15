@@ -31,7 +31,7 @@ class dcuser:
 
     async def get_member_obj(self) -> None:
         try:
-            self.member = await di.get(client=self.bot, obj=di.Member, parent_id=c.serverid, object_id=self.dc_id)
+            self.member = await di.get(client=self.bot, obj=di.Member, parent_id=c.serverid, object_id=self.dc_id, force="http")
             if not self.member.user:
                 self.member = None
         except:

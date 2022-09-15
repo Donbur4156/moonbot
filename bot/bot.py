@@ -11,6 +11,7 @@ import objects as obj
 import functions_json as f_json
 from modmail import Modmail
 from statusreward import StatusReward
+from drops import DropsHandler
 
 #imports intern
 import config as c
@@ -34,11 +35,13 @@ bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 mail = Modmail(client=bot)
 stat_rew = StatusReward(client=bot)
+drops = DropsHandler(client=bot)
 
 @bot.event
-async def on_ready():
-    await mail.onready(guild_id=c.serverid, def_channel_id=c.channel_def, log_channel_id=c.channel_log, mod_roleid=c.mod_roleid)
-    await stat_rew.onready(guild_id=c.serverid, moon_roleid=c.moon_roleid)
+async def on_start():
+    await mail.onstart(guild_id=c.serverid, def_channel_id=c.channel_def, log_channel_id=c.channel_log, mod_roleid=c.mod_roleid)
+    await stat_rew.onstart(guild_id=c.serverid, moon_roleid=c.moon_roleid)
+    await drops.onstart(chat_channel_id=c.channel[0], drop_channel_id=c.channel_drop)
     logging.info("Interactions are online!")
 
 @bot.event
@@ -52,6 +55,7 @@ async def on_message_create(msg: di.Message):
         logging.info(f"MSG of Mod: {msg.author.username} ({msg.author.id}):'{msg.content}'")
         await mail.mod_react(msg=msg)
     elif int(msg.channel_id) in c.channel:
+        await drops.new_msg()
         user_data = f_json.write_msg(msg=msg)
         if not user_data: return
         if c.bost_roleid in msg.member.roles:

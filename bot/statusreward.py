@@ -9,9 +9,9 @@ class StatusReward:
     def __init__(self, client: di.Client) -> None:
         self._client = client
         self._sql_database = c.database
-        self._get_storage()
 
-    async def onready(self, guild_id, moon_roleid):
+    async def onstart(self, guild_id, moon_roleid):
+        self._get_storage()
         self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=guild_id)
         self._moon_role: di.Role = await di.get(client=self._client, obj=di.Role, object_id=moon_roleid)
 

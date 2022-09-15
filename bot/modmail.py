@@ -10,9 +10,9 @@ class Modmail:
     def __init__(self, client: di.Client) -> None:
         self._client = client
         self._sql_database = c.database
-        self._get_storage()
 
-    async def onready(self, guild_id, def_channel_id, log_channel_id, mod_roleid):
+    async def onstart(self, guild_id, def_channel_id, log_channel_id, mod_roleid):
+        self._get_storage()
         self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=guild_id)
         self._channel_def: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=def_channel_id)
         self._channel_log: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=log_channel_id)
