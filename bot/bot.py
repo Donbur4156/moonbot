@@ -138,6 +138,9 @@ async def close_ticket(ctx: di.CommandContext, reason: str = None):
     logging.info(f"{ctx.user.username} close ticket of channel '{ctx.channel.name}' with reason: '{reason}'")
     await mail.close_mail(ctx=ctx, reason=reason)
 
+@aiocron.crontab('*/5 * * * *')
+async def reduce_dropcount():
+    drops.reduce_count(amount=1)
 
 @aiocron.crontab('0 0 * * *')
 async def cron_streak_check():
