@@ -69,18 +69,20 @@ class MsgXP:
         self._userlist[user_id] = User(data=[user_id,0,0,0,"",0])
 
     async def _reset(self):
+        async def remove_roles(user):
+            member: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=user[0])
+            await self._remove_roles(member)
+            self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user[0],))
+
         self._SQL.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
         
         today = datetime.now().date()
-        user_out = []
         user_data = self._SQL.execute(stmt="SELECT * FROM msgrewards WHERE expired=0").data_all
         for user in user_data:
+            if not user[4]: await remove_roles(user)
             last_day = datetime.strptime(user[4], "%Y-%m-%d").date()
             if (today - last_day).days > 1:
-                member: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=user[0])
-                await self._remove_roles(member)
-                self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user[0],))
-        return user_out
+                await remove_roles(user)
 
     async def _remove_roles(self, member:di.Member):
         for role in self._streak_roles.values():
