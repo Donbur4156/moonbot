@@ -1,9 +1,9 @@
 import asyncio
-from email.errors import MessageError
 import logging
 import random
 import interactions as di
 from interactions.ext.wait_for import wait_for, setup
+from interactions.ext.persistence import *
 import uuid
 import config as c
 from functions_sql import SQL
@@ -12,7 +12,7 @@ from functions_sql import SQL
 class DropsHandler:
     def __init__(self, client: di.Client) -> None:
         self._client:di.Client = client
-        setup(self._client)
+        UniqueRole(client=self._client)
 
     async def onstart(self, chat_channel_id: int, drop_channel_id: int):
         self._reset()
@@ -108,7 +108,6 @@ class DropsHandler:
         if has_method(drop, "execute_last"):
             await drop.execute_last(self._client, but_ctx)
 
-
     def _gen_drop(self):
         drops = Drops()
         return random.choices(population=drops.droplist, weights=drops.weights, k=1)[0]
@@ -147,7 +146,7 @@ class Drops:
     class BoostCol:
         def __init__(self) -> None:
             self.text = "Booster Farbe"
-            self.weight:float = 10.15
+            self.weight:float = 0.15
             self.support = False
 
         async def execute(self, but_ctx: di.ComponentContext):
@@ -195,8 +194,6 @@ class Drops:
             except TimeoutError:
                 return
 
-
-
     class StarPowder:
         def __init__(self) -> None:
             self.text = "Sternenstaub"
@@ -204,18 +201,28 @@ class Drops:
             self.support = False
 
         async def execute(self, but_ctx: di.ComponentContext):
-            amount = random.randint(a=10, b=50)
-            self.text += f" ({amount})"
+            self.amount = random.randint(a=10, b=50)
+            self.text += f" ({self.amount})"
             sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(int(but_ctx.user.id),)).data_single
             if sql_amount:
-                amount += sql_amount[0]
-                SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, int(but_ctx.member.id),))
+                self.amount += sql_amount[0]
+                SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(self.amount, int(but_ctx.member.id),))
             else:
-                SQL(database=c.database).execute(stmt="INSERT INTO starpowder(user_ID, amount) VALUES (?, ?)", var=(int(but_ctx.member.id), amount,))
-            if amount > 2000:
-                await but_ctx.member.send("") #TODO: In Klärung
-                return None
-            return f"Du hast jetzt insgesamt {amount} Sternenstaub gesammelt.\n"
+                SQL(database=c.database).execute(stmt="INSERT INTO starpowder(user_ID, amount) VALUES (?, ?)", var=(int(but_ctx.member.id), self.amount,))
+            return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
+
+        async def execute_last(self, client:di.Client, but_ctx:di.ComponentContext):
+            if self.amount >= 2000:
+                button = di.Button(
+                    style=di.ButtonStyle.SUCCESS,
+                    label="Rolle erstellen",
+                    custom_id="customrole_create"
+                )
+                description = "Mit 2000 Sternenstaub kannst du eine benutzerdefinerte Rolle für dich erstellen.\n" \
+                    "Benutze dazu den Button `Rolle erstellen`\nEs öffnet sich ein Formular, in welchem du den Namen und die Farbe angibst.\n" \
+                    "Die Farbe ist als HEX Zahl anzugeben (ohne #). Bsp.: E67E22 für Orange.\nHier der Color Picker von Google: https://g.co/kgs/CFpKnZ\n"
+                embed = di.Embed(description=description, color=0x43FA00)
+                await but_ctx.member.send(embeds=embed, components=button)
 
     class Minecraft:
         def __init__(self) -> None:
@@ -228,3 +235,85 @@ class Drops:
         async def execute(self, but_ctx: di.ComponentContext):
             self.text = random.choices(population=self.text_variants, weights=self.text_weights, k=1)[0]
             return None
+
+class UniqueRole:
+    def __init__(self, client:di.Client) -> None:
+        self.client=client        
+
+        @client.component("customrole_create")
+        async def create_button(ctx:di.ComponentContext):
+            sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(int(ctx.user.id),)).data_single
+            if sql_amount[0] < 2000:
+                components = ctx.message.components
+                components[0].components[0].disabled = True
+                await ctx.message.edit(components=components)
+                embed = di.Embed(description="Du hast leider zu wenig Sternenstaub für eine individuelle Rolle.", color=di.Color.red())
+                await ctx.send(embeds=embed)
+            modal = di.Modal(
+                title="Erstelle deine individuelle Rolle",
+                custom_id="customrole_modal",
+                components=[
+                    di.TextInput(
+                        style=di.TextStyleType.SHORT,
+                        label="Name der neuen Rolle",
+                        custom_id="name",
+                    ),
+                    di.TextInput(
+                        style=di.TextStyleType.SHORT,
+                        label="Farbe als Hex Zahl. bsp.: E67E22",
+                        custom_id="color",
+                        min_length=6,
+                        max_length=6
+                    )
+                ]
+            )
+            await ctx.popup(modal=modal)
+
+        @client.modal("customrole_modal")
+        async def modal_response(ctx:di.CommandContext, name=str, color=str):
+            color_int = int(color, 16)
+            guild: di.Guild = await di.get(client=self.client, obj=di.Guild, object_id=c.serverid)
+            new_role: di.Role = await guild.create_role(name=name, color=color_int)
+            components = ctx.message.components
+            components[0].components[0].disabled = True
+            await ctx.message.edit(components=components)
+            await ctx.send(embeds=di.Embed(description=f"Die Rolle `{name}` wird geprüft.\nNach der Prüfung erhältst du weitere Infos.", color=0xFAE500))
+            
+            team_channel: di.Channel = await di.get(client=self.client, obj=di.Channel, object_id=c.channel_team)
+            pers_custom_id_allow = PersistentCustomID(cipher=self.client, tag="allow_role", package=[int(new_role.id), int(ctx.user.id)])
+            pers_custom_id_deny = PersistentCustomID(cipher=self.client, tag="deny_role", package=[int(new_role.id), int(ctx.user.id)])
+            but_allow = di.Button(
+                style=di.ButtonStyle.SUCCESS,
+                label="Annehmen",
+                custom_id=str(pers_custom_id_allow)
+            )
+            but_deny = di.Button(
+                style=di.ButtonStyle.DANGER,
+                label="Ablehnen",
+                custom_id=str(pers_custom_id_deny)
+            )
+            owner_role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=c.owner_roleid)
+            content = f"{owner_role.mention}, der User {ctx.user.mention} hat mit Sternenstaub die Rolle {new_role.mention} erstellt und zur Überprüfung eingereicht.\n"
+            await team_channel.send(content=content, components=di.ActionRow(components=[but_allow, but_deny]))
+
+            sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(int(ctx.user.id),)).data_single
+            amount = sql_amount[0] - 2000
+            SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, int(ctx.user.id),))
+
+        @client.persistent_component("allow_role")
+        async def allow_role(ctx: di.ComponentContext, package: list):
+            member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=package[1])
+            role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=package[0])
+            await member.add_role(role=role, guild_id=c.serverid, reason="benutzerdefinierte Rolle")
+            await ctx.edit(components=None)
+            await ctx.send(f"Dem User {member.mention} wurde die Rolle {role.mention} zugewiesen.")
+            await member.send(embeds=di.Embed(description=f"Die Rolle `{role.name}` wurde genehmigt und dir erfolgreich zugewiesen.", color=0x43FA00))
+
+        @client.persistent_component("deny_role")
+        async def deny_role(ctx: di.ComponentContext, package: list):
+            member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=package[1])
+            role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=package[0])
+            await ctx.edit(components=None)
+            await ctx.send(f"Die Rolle `{role.name}` wurde gelöscht.\nDer User erhält seine 2000 Sternenstaub zurück und bekommt die Info sich bei weiteren Fragen an den Support zu wenden.")
+            await member.send(embeds=di.Embed(f"Die Rolle `{role.name}` wurde **nicht** genehmigt.\nDu erhältst die 2000 Sternenstaub zurück.\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.red()))
+            await role.delete(guild_id=c.serverid)
