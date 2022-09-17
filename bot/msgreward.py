@@ -71,7 +71,15 @@ class MsgXP:
     async def _reset(self):
         async def remove_roles(user):
             self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user[0],))
-            member: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=user[0])
+            try:
+                member: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=user[0])
+            except di.api.error.LibraryException as err:
+                logging.warning(err.__str__())
+                logging.warning(f"User: {user}")
+                return False
+            except:
+                logging.warning(f"Unknown Error for User: {user}")
+                return False
             if not member: return False
             await self._remove_roles(member)
 
