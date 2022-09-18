@@ -42,6 +42,7 @@ class DropsHandler:
 
     async def drop(self):
         drop = self._gen_drop()
+        logging.info(f"Drop generated: {drop.text}")
         embed = di.Embed(
             title="Neuer Chat Drop",
             description=f"Drop: {drop.text}",
@@ -60,6 +61,7 @@ class DropsHandler:
     
         try:
             but_ctx: di.ComponentContext = await self._client.wait_for_component(components=button, check=check, timeout=600)
+            logging.info(f"Drop eingesammelt von: {but_ctx.user.username} ({but_ctx.user.id})")
             embed = msg.embeds[0]
             embed.title = "Drop eingesammelt"
             embed.description = f"Drop wurde von {but_ctx.user.mention} eingesammelt."
@@ -69,6 +71,7 @@ class DropsHandler:
 
 
         except asyncio.TimeoutError:
+            logging.info("Drop abgelaufen")
             embed = msg.embeds[0]
             embed.title = "Drop abgelaufen"
             embed.description = "Drop ist nicht mehr verfügbar."
@@ -154,7 +157,7 @@ class Drops:
             return "Du kannst dir deine Farbe im folgenden Post holen:\n"
 
         async def execute_last(self, client:di.Client, but_ctx: di.ComponentContext):
-            content = "**Booster Farbe:**\n\n:arrow_right: Wähle eine Farbe aus, mit welcher du im Chat angezeigt werden willst:\n" \
+            content = "**Booster Farbe:**\n\n:arrow_right: Wähle eine neue Farbe aus, mit welcher du im Chat angezeigt werden willst:\n" \
                 "\n`-` Blau: :blue_circle:" \
                 "\n`-` Pink: :heartpulse:" \
                 "\n`-` Lila: :purple_circle:" \
@@ -165,16 +168,17 @@ class Drops:
                 "\n`-` Türkis: :small_blue_diamond:" \
                 "\n`-` Rot: :red_circle:"
             msg = await but_ctx.member.send(content=content)
+            role_ids = c.bost_col_roleids
             reactions = {
-                "🔵": 1020074465750679593,
-                "💗": 1,
-                "🟣": 1,
-                "🟡": 1,
-                "🟢": 1,
-                "⚫": 1,
-                "⚪": 1,
-                "🔹": 1,
-                "🔴": 1020074346905088011}
+                "🔵": role_ids[0],
+                "💗": role_ids[1],
+                "🟣": role_ids[2],
+                "🟡": role_ids[3],
+                "🟢": role_ids[4],
+                "⚫": role_ids[5],
+                "⚪": role_ids[6],
+                "🔹": role_ids[7],
+                "🔴": role_ids[8]}
             for e, r in reactions.items():
                 if r in but_ctx.member.roles:
                     continue
