@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+import traceback
 import interactions as di
 import config as c
 from functions_sql import SQL
@@ -70,18 +71,20 @@ class MsgXP:
 
     async def _reset(self):
         async def remove_roles(user):
-            self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user[0],))
-            try:
+            try: #TODO: ref for new interactions release
                 member: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=user[0])
+                if not member: raise Exception("Missing Member")
+                await self._remove_roles(member)
             except di.api.error.LibraryException as err:
-                logging.warning(err.__str__())
+                logging.warning(err)
+                logging.warning(traceback.print_tb(tb=err.__traceback__))
                 logging.warning(f"User: {user}")
-                return False
-            except:
-                logging.warning(f"Unknown Error for User: {user}")
-                return False
-            if not member: return False
-            await self._remove_roles(member)
+            except Exception as err:
+                logging.warning(err.__str__())
+                logging.warning(traceback.print_tb(tb=err.__traceback__))
+                logging.warning(f"General Error for User: {user}")
+            finally:
+                self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user[0],))
 
         self._SQL.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
         
@@ -94,6 +97,7 @@ class MsgXP:
             last_day = datetime.strptime(user[4], "%Y-%m-%d").date()
             if (today - last_day).days > 1:
                 await remove_roles(user)
+        self._get_storage()
 
     async def _remove_roles(self, member:di.Member):
         for role in self._streak_roles.values():
