@@ -10,13 +10,13 @@ class dcuser:
         self.bot = bot
         self.member = None
         if dc_id: 
-            self.dc_id = dc_id
+            self.dc_id = int(dc_id)
         elif ctx: 
             self.member = ctx.member
-            self.dc_id = ctx.member.id._snowflake
+            self.dc_id = int(ctx.member.id._snowflake)
         elif member: 
             self.member = member
-            self.dc_id = member.id._snowflake
+            self.dc_id = int(member.id._snowflake)
         else: raise Exception("dcuser needs dc_id or a ctx Object for id!")
         self.mention = f_get.get_dc_mention(dc_id=self.dc_id)
 
@@ -31,7 +31,7 @@ class dcuser:
 
     async def get_member_obj(self) -> None:
         try:
-            self.member = await di.get(client=self.bot, obj=di.Member, parent_id=c.serverid, object_id=self.dc_id)
+            self.member = await di.get(client=self.bot, obj=di.Member, parent_id=c.serverid, object_id=self.dc_id, force="http")
             if not self.member.user:
                 self.member = None
         except:

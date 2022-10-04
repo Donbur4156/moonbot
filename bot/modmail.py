@@ -6,23 +6,40 @@ from functions_sql import SQL
 from io import BytesIO
 
 
-class Modmail:
+class Modmail(di.Extension):
     def __init__(self, client: di.Client) -> None:
         self._client = client
         self._SQL = SQL(database=c.database)
         self._get_storage()
 
-    async def onready(self, guild_id, def_channel_id, log_channel_id, mod_roleid):
-        self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=guild_id)
-        self._channel_def: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=def_channel_id)
-        self._channel_log: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=log_channel_id)
-        self._mod_role: di.Role = await di.get(client=self._client, obj=di.Role, object_id=mod_roleid)
+    @di.extension_listener()
+    async def on_start(self):
+        self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=c.serverid)
+        self._channel_def: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_def)
+        self._channel_log: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_log)
+        self._mod_role: di.Role = await self._guild.get_role(role_id=c.mod_roleid)
+
+    @di.extension_listener()
+    async def on_message_create(self, msg: di.Message):
+        if msg.author.bot: return
+        if not msg.guild_id and msg.author.id._snowflake != self._client.me.id._snowflake:
+            logging.info(f"MSG to Bot: {msg.author.username} ({msg.author.id}):'{msg.content}'")
+            await self.dm_bot(msg=msg)
+        elif self._check_channel(channel_id=int(msg.channel_id)):
+            logging.info(f"MSG of Mod: {msg.author.username} ({msg.author.id}):'{msg.content}'")
+            await self.mod_react(msg=msg)
+
+    @di.extension_command(description="Schließt dieses Ticket", scope=c.serverid)
+    @di.option(description="Grund für Schließen des Tickets. (optional)")
+    async def close_ticket(self, ctx: di.CommandContext, reason: str = None):
+        logging.info(f"{ctx.user.username} close ticket of channel '{ctx.channel.name}' with reason: '{reason}'")
+        await self.close_mail(ctx=ctx, reason=reason)
 
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
         self._storage = self._SQL.execute(stmt="SELECT * FROM tickets").data_all
-        self._storage_user = [stor[1] for stor in self._storage]
-        self._storage_channel = [stor[2] for stor in self._storage]
+        self._storage_user: list[int] = [stor[1] for stor in self._storage]
+        self._storage_channel: list[int] = [stor[2] for stor in self._storage]
     
     async def _get_channelbyuser(self, user_id: int) -> di.Channel:
         index = self._storage_user.index(user_id)
@@ -71,7 +88,7 @@ class Modmail:
             if tickets_lost:
                 embed.add_field(name="Keine Logdatei gefunden zu diesen Ticket IDs:", value=", ".join(tickets_lost))
 
-        await channel.send(content=f"{self._mod_role.mention}, ein neues Ticket wurde erstellt:",embeds=embed, files=files)
+        await channel.send(content=f"{self._mod_role.mention}, ein neues Ticket wurde erstellt:",embeds=embed, files=files[-10:])
         embed_user = di.Embed(
             title=":scroll: Ticket geöffnet :scroll:",
             description="Es wurde ein Ticket für dich angelegt.\nEin Moderator wird sich zeitnah um dein Anliegen kümmern.",
@@ -91,7 +108,7 @@ class Modmail:
             description=msg.content,
             author=di.EmbedAuthor(name=msg.author.username)
         )
-        files = await self.gen_files(msg)
+        files = await self._gen_files(msg)
         if files:
             embed.add_field(name="Anhang:", value=f"Anzahl angehängter Bilder: **{len(files)}**")
         await channel.send(embeds=embed, files=files)
@@ -104,21 +121,17 @@ class Modmail:
             author=di.EmbedAuthor(name=msg.author.username),
             color=0x0B27F4
         )
-        files = await self.gen_files(msg)
+        files = await self._gen_files(msg)
         await user.send(embeds=embed, files=files)
 
-    def active_mails(self):
-        #Liste aktiver Vorgänge
-        pass
-
-    def check_channel(self, channel_id: int):
+    def _check_channel(self, channel_id: int):
         if channel_id in self._storage_channel:
             return True
         return False
 
     async def close_mail(self, ctx: di.CommandContext, reason: str = None):
         #Schließt Ticket und Speichert Inhalt als Log
-        if not self.check_channel(channel_id=int(ctx.channel_id)):
+        if not self._check_channel(channel_id=int(ctx.channel_id)):
             await ctx.send("Dieser Channel ist kein aktives Ticket!", ephemeral=True)
             return
         user: di.Member = await self._get_userbychannel(channel_id=ctx.channel_id)
@@ -148,11 +161,12 @@ class Modmail:
         head_text += f"\n\nGeschlossen durch {ctx.user.username}\n"
         if reason: head_text += f"Begründung:\n{reason}\n"
         filename = f"{c.logdir}ticket_{ticket_id}_{user.id}.txt"
-        with open(filename, "w", newline='') as logfile:
+        with open(filename, "w", newline='', encoding="utf-8") as logfile:
             text = head_text + msg_text
             logfile.write(text)
-        file = di.File(filename=filename)
-        await self._channel_log.send(files=file)
+        with open(filename, "r", encoding="utf-8") as fp:
+            file = di.File(filename=filename, fp=fp)
+            await self._channel_log.send(files=file)
         reason_text = f'**Grund:** {reason}\n' if reason else ''
         embed = di.Embed(
             title=":scroll: Ticket geschlossen :scroll:",
@@ -162,13 +176,8 @@ class Modmail:
         await user.send(embeds=embed)
         await ctx.channel.delete()
 
-    async def gen_files(self, msg: di.Message):
-        files = []
-        for att in msg.attachments:
-            att_b = await download(msg, att)
-            file = di.File(filename=att.filename, fp=att_b)
-            files.append(file)
-        return files
+    async def _gen_files(self, msg: di.Message):
+        return [di.File(filename=att.filename, fp=await download(msg, att)) for att in msg.attachments]
 
 
 async def download(msg: di.Message, att: di.Attachment) -> BytesIO:
@@ -182,3 +191,6 @@ async def download(msg: di.Message, att: di.Attachment) -> BytesIO:
         _bytes: bytes = await response.content.read()
 
     return BytesIO(_bytes)
+
+def setup(client: di.Client):
+    Modmail(client)
