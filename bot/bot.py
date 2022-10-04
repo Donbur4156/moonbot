@@ -14,7 +14,6 @@ import functions_json as f_json
 from modmail import Modmail
 from statusreward import StatusReward
 from msgreward import MsgXP, User
-from drops import DropsHandler
 
 #imports intern
 import config as c
@@ -38,16 +37,15 @@ bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 setup(bot)
 bot.load("interactions.ext.persistence", cipher_key=c.cipher_key)
+bot.load("drops")
 mail = Modmail(client=bot)
 stat_rew = StatusReward(client=bot)
 msgxp = MsgXP(client=bot)
-drops = DropsHandler(client=bot)
 
 @bot.event
 async def on_start():
     await mail.onstart(guild_id=c.serverid, def_channel_id=c.channel_def, log_channel_id=c.channel_log, mod_roleid=c.mod_roleid)
     await stat_rew.onstart(guild_id=c.serverid, moon_roleid=c.moon_roleid)
-    await drops.onstart(chat_channel_id=c.channel[0], drop_channel_id=c.channel_drop)
     msgxp.onready()
     logging.info("Interactions are online!")
 
@@ -62,7 +60,6 @@ async def on_message_create(msg: di.Message):
         logging.info(f"MSG of Mod: {msg.author.username} ({msg.author.id}):'{msg.content}'")
         await mail.mod_react(msg=msg)
     elif int(msg.channel_id) in c.channel:
-        await drops.new_msg()
         user_data = msgxp.add_msg(msg=msg)
         if not user_data: return
         if c.bost_roleid in msg.member.roles:
@@ -142,9 +139,6 @@ async def close_ticket(ctx: di.CommandContext, reason: str = None):
     logging.info(f"{ctx.user.username} close ticket of channel '{ctx.channel.name}' with reason: '{reason}'")
     await mail.close_mail(ctx=ctx, reason=reason)
 
-@aiocron.crontab('*/5 * * * *')
-async def reduce_dropcount():
-    drops.reduce_count(amount=1)
 
 @aiocron.crontab('0 0 * * *')
 async def cron_streak_check():
