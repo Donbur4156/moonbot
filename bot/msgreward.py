@@ -73,9 +73,6 @@ class MsgXP(di.Extension):
         )
         await ctx.send(embeds=emb)
 
-    @aiocron.crontab('0 0 * * *')
-    async def cron_streak_check(self):
-        await self._reset()
 
     def _get_storage(self):
         self._storage = self._SQL.execute(stmt="SELECT * FROM msgrewards").data_all
