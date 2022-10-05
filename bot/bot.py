@@ -42,10 +42,10 @@ async def on_start():
     logging.info("Interactions are online!")
 
 
-@aiocron.crontab('02 22 * * *')
+@aiocron.crontab('0 0 * * *')
 async def cron_streak_check():
-    print("cron")
     await bot._extensions['MsgXP']._reset()
+
 
 if __name__ == "__main__":
     bot.start()
