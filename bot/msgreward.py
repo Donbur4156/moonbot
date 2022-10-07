@@ -18,7 +18,7 @@ class MsgXP(di.Extension):
 
     @di.extension_listener()
     async def on_ready(self):
-        print(self)
+        logging.info(self)
 
     @di.extension_listener()
     async def on_message_create(self, msg: di.Message):
