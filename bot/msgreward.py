@@ -17,6 +17,10 @@ class MsgXP(di.Extension):
         self._get_storage()
 
     @di.extension_listener()
+    async def on_ready(self):
+        print(self)
+
+    @di.extension_listener()
     async def on_message_create(self, msg: di.Message):
         if msg.author.bot:
             return
@@ -129,21 +133,12 @@ class MsgXP(di.Extension):
 
     async def _reset(self):
         async def remove_roles(user: User):
-            try:
-                dcuser = await obj.dcuser(bot=self._client, dc_id=user.user_id)
-                if not dcuser.member: raise Exception("Missing Member")
+            dcuser = await obj.dcuser(bot=self._client, dc_id=user.user_id)
+            if dcuser.member:
                 await self._remove_roles(dcuser.member)
-            except di.api.error.LibraryException as err:
-                logging.warning(err)
-                logging.warning(traceback.print_tb(tb=err.__traceback__))
-                logging.warning(f"User: {user}")
-            except Exception as err:
-                logging.warning(err.__str__())
-                logging.warning(traceback.print_tb(tb=err.__traceback__))
-                logging.warning(f"General Error for User: {user}")
-            finally:
-                self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user[0],))
+            self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user.user_id,))
 
+        logging.info(self)
         self._SQL.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
         
         today = datetime.now().date()

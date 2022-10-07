@@ -1,5 +1,6 @@
 import interactions as di
 import functions_gets as f_get
+import logging, traceback
 
 import config as c
 import functions_json as f_json
@@ -34,8 +35,11 @@ class dcuser:
             self.member = await di.get(client=self.bot, obj=di.Member, parent_id=c.serverid, object_id=self.dc_id, force="http")
             if not self.member.user:
                 self.member = None
-        except:
+        except Exception as err:
             self.member = None
+            logging.warning(err.__str__())
+            logging.warning(traceback.print_tb(tb=err.__traceback__))
+            logging.warning(f"User: {self.dc_id}")
 
     def initialize(self) -> bool:
         if not self.member:
