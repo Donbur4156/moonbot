@@ -1,5 +1,6 @@
 import interactions as di
 import functions_gets as f_get
+import logging, traceback
 
 import config as c
 import functions_json as f_json
@@ -10,13 +11,13 @@ class dcuser:
         self.bot = bot
         self.member = None
         if dc_id: 
-            self.dc_id = dc_id
+            self.dc_id = int(dc_id)
         elif ctx: 
             self.member = ctx.member
-            self.dc_id = ctx.member.id._snowflake
+            self.dc_id = int(ctx.member.id._snowflake)
         elif member: 
             self.member = member
-            self.dc_id = member.id._snowflake
+            self.dc_id = int(member.id._snowflake)
         else: raise Exception("dcuser needs dc_id or a ctx Object for id!")
         self.mention = f_get.get_dc_mention(dc_id=self.dc_id)
 
@@ -34,8 +35,11 @@ class dcuser:
             self.member = await di.get(client=self.bot, obj=di.Member, parent_id=c.serverid, object_id=self.dc_id, force="http")
             if not self.member.user:
                 self.member = None
-        except:
+        except Exception as err:
             self.member = None
+            logging.warning(err.__str__())
+            logging.warning(traceback.print_tb(tb=err.__traceback__))
+            logging.warning(f"User: {self.dc_id}")
 
     def initialize(self) -> bool:
         if not self.member:
