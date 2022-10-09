@@ -132,47 +132,23 @@ class MsgXP(di.Extension):
         self._userlist[user_id] = User(data=[user_id,0,0,0,"",0])
 
     async def _reset(self):
-<<<<<<< HEAD
-        async def remove_roles(user):
-            self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user[0],))
-            try:
-                member: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=user[0])
-            except di.api.error.LibraryException as err:
-                logging.warning(err.__str__())
-                logging.warning(f"User: {user}")
-                return False
-            except:
-                logging.warning(f"Unknown Error for User: {user}")
-                return False
-            if not member: return False
-            await self._remove_roles(member)
-=======
         async def remove_roles(user: User):
             dcuser = await obj.dcuser(bot=self._client, dc_id=user.user_id)
             if dcuser.member:
                 await self._remove_roles(dcuser.member)
             self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user.user_id,))
->>>>>>> main
 
         logging.info(self)
         self._SQL.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
         
         today = datetime.now().date()
         user_data = self._SQL.execute(stmt="SELECT * FROM msgrewards WHERE expired=0").data_all
-<<<<<<< HEAD
-        for user in user_data:
-            if not user[4]: 
-                await remove_roles(user)
-                continue
-            last_day = datetime.strptime(user[4], "%Y-%m-%d").date()
-=======
         user_list = [User(u) for u in user_data]
         for user in user_list:
             if not user.last_day: 
                 await remove_roles(user)
                 continue
             last_day = datetime.strptime(user.last_day, "%Y-%m-%d").date()
->>>>>>> main
             if (today - last_day).days > 1:
                 await remove_roles(user)
         self._get_storage()
