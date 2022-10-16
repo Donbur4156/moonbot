@@ -7,14 +7,16 @@ from functions_sql import SQL
 import functions_json as f_json
 import aiocron
 import objects as obj
+from whistle import EventDispatcher, Event
 
 
 class MsgXP(di.Extension):
-    def __init__(self, client:di.Client) -> None:
+    def __init__(self, client:di.Client, dispatcher: EventDispatcher) -> None:
         self._SQL = SQL(database=c.database)
         self._client = client
         self._streak_roles:dict[str] = f_json.get_roles()
         self._get_storage()
+        self._dispatcher = dispatcher
 
     @di.extension_listener()
     async def on_ready(self):
@@ -120,6 +122,10 @@ class MsgXP(di.Extension):
             logging.info(f"{dcuser.member.user.username} reached new streak: {streak_data}")
             await dcuser.member.add_role(guild_id=c.serverid, role=self._streak_roles.get(str(streak_data)))
 
+        event = Event()
+        event.id: int = user_id
+        self._dispatcher.dispatch("msgxp_upgrade", event)
+
     def _get_user(self, user_id:int):
         user:User = self._userlist.get(user_id)
         return user
@@ -170,5 +176,5 @@ class User:
         self.last_msg:float = 0.0
 
 
-def setup(client: di.Client):
-    MsgXP(client)
+def setup(client: di.Client, dispatcher):
+    MsgXP(client, dispatcher)

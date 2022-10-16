@@ -12,10 +12,12 @@ import functions_json as f_json
 from modmail import Modmail
 from statusreward import StatusReward
 from msgreward import MsgXP, User
+from whistle import EventDispatcher
 
 #imports intern
 import config as c
-
+import nest_asyncio
+nest_asyncio.apply()
 
 '''
 Abkürzungen:
@@ -31,11 +33,13 @@ pres = di.PresenceActivity(
     type=di.PresenceActivityType.GAME,
     name="discord.gg/moonfamily",
 )
+dispatcher = EventDispatcher()
 bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 bot.load("statusreward")
 bot.load("modmail")
-bot.load("msgreward")
+bot.load("msgreward", dispatcher=dispatcher)
+bot.load("halloween", dispatcher=dispatcher)
 
 @bot.event
 async def on_start():
