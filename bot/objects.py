@@ -37,9 +37,7 @@ class dcuser:
                 self.member = None
         except Exception as err:
             self.member = None
-            logging.warning(err.__str__())
-            logging.warning(traceback.print_tb(tb=err.__traceback__))
-            logging.warning(f"User: {self.dc_id}")
+            logging.info(f"{err.__str__()}: {self.dc_id}")
 
     def initialize(self) -> bool:
         if not self.member:
