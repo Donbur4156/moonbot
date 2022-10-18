@@ -48,7 +48,6 @@ class DropsHandler(di.Extension):
         logging.info(f"Drop generated: {drop.text}")
         embed = di.Embed(
             title="Neuer Chat Drop",
-            description=f"Drop: 'Drop GIF'",
             color=0xFAE500,
         )
         button = di.Button(
