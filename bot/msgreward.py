@@ -18,9 +18,6 @@ class MsgXP(di.Extension):
         self._get_storage()
         self._dispatcher = dispatcher
 
-    @di.extension_listener()
-    async def on_ready(self):
-        logging.info(self)
 
     @di.extension_listener()
     async def on_message_create(self, msg: di.Message):
@@ -151,9 +148,7 @@ class MsgXP(di.Extension):
         user_data = self._SQL.execute(stmt="SELECT * FROM msgrewards WHERE expired=0").data_all
         user_list = [User(u) for u in user_data]
         for user in user_list:
-            if not user.last_day: 
-                await remove_roles(user)
-                continue
+            if not user.last_day: continue
             last_day = datetime.strptime(user.last_day, "%Y-%m-%d").date()
             if (today - last_day).days > 1:
                 await remove_roles(user)
