@@ -13,6 +13,7 @@ class Modmail(di.Extension):
 
     @di.extension_listener()
     async def on_start(self):
+        self._get_storage()
         self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=c.serverid)
         self._channel_def: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_def)
         self._channel_log: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_log)

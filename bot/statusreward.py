@@ -12,6 +12,7 @@ class StatusReward(di.Extension):
 
     @di.extension_listener()
     async def on_start(self):
+        self._get_storage()
         self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=c.serverid)
         self._moon_role: di.Role = await self._guild.get_role(role_id=c.moon_roleid)
 
