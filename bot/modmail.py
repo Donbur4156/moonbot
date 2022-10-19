@@ -41,17 +41,15 @@ class Modmail(di.Extension):
         self._storage_user: list[int] = [stor[1] for stor in self._storage]
         self._storage_channel: list[int] = [stor[2] for stor in self._storage]
     
-    async def _get_channelbyuser(self, user_id: int) -> di.Channel:
+    async def _get_channel_byuser(self, user_id: int) -> di.Channel:
         index = self._storage_user.index(user_id)
         channel_id = self._storage_channel[index]
         channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=channel_id)
         return channel
 
-    async def _get_userbychannel(self, channel_id: int) -> di.Member:
+    def _get_userid_bychannel(self, channel_id: int) -> di.Member:
         index = self._storage_channel.index(channel_id)
-        user_id = self._storage_user[index]
-        user: di.Member = await self._guild.get_member(member_id=user_id)
-        return user
+        return self._storage_user[index]
 
     async def _create_channel(self, msg: di.Message) -> di.Channel: #TODO: Möglicher Error, wenn kein Servermember.
         dcuser = await obj.dcuser(bot=self._client, dc_id=int(msg.author.id))
@@ -101,7 +99,7 @@ class Modmail(di.Extension):
         #User schreibt an Bot. Prüfung ob Thread läuft, sonst Neuanlage
         user_id = int(msg.author.id)
         if user_id in self._storage_user:
-            channel = await self._get_channelbyuser(user_id=user_id)
+            channel = await self._get_channel_byuser(user_id=user_id)
         else:
             channel = await self._create_channel(msg=msg)
         embed = di.Embed(
@@ -115,14 +113,18 @@ class Modmail(di.Extension):
 
     async def mod_react(self, msg: di.Message):
         #Mod antwortet in Channel
-        user = await self._get_userbychannel(channel_id=int(msg.channel_id))
+        user_id = self._get_userid_bychannel(channel_id=int(msg.channel_id))
+        dcuser = await obj.dcuser(bot=self._client, dc_id=int(user_id))
+        if not dcuser.member:
+            await msg.reply(f"{msg.member.mention}, der User zu diesem Ticket ist nicht mehr auf diesem Server. Deine Nachricht wurde nicht zugestellt.")
+            return False
         embed = di.Embed(
             description=msg.content,
             author=di.EmbedAuthor(name=msg.author.username),
             color=0x0B27F4
         )
         files = await self._gen_files(msg)
-        await user.send(embeds=embed, files=files)
+        await dcuser.member.send(embeds=embed, files=files)
 
     def _check_channel(self, channel_id: int):
         if channel_id in self._storage_channel:
@@ -134,17 +136,17 @@ class Modmail(di.Extension):
         if not self._check_channel(channel_id=int(ctx.channel_id)):
             await ctx.send("Dieser Channel ist kein aktives Ticket!", ephemeral=True)
             return
-        user: di.Member = await self._get_userbychannel(channel_id=ctx.channel_id)
+        user_id = self._get_userid_bychannel(channel_id=ctx.channel_id)
+        dcuser = await obj.dcuser(bot=self._client, dc_id=int(user_id))
         ticket_id = self._SQL.execute(
             stmt="INSERT INTO tickets_closed(user_ID) VALUES (?)",
-            var=(int(user.id),)).lastrowid
+            var=(dcuser.dc_id,)).lastrowid
         self._SQL.execute(stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
         self._get_storage()
         messages = await ctx.channel.get_history(limit=100000)
         messages = messages[::-1]
-        msg_text = "\n\n"
-        head_text = f"(ID: {ticket_id}) Ticket Log für {user.name}\nUser ID: {user.id}\n"
         mods = []
+        msg_text = "\n\n"
         for msg in messages[1::]:
             time = msg.timestamp.strftime("%d.%m.%Y %H:%M:%S")
             content = msg.content
@@ -157,10 +159,12 @@ class Modmail(di.Extension):
                     content += f"{embed.description}"
             msg_text += f"{time}: {author}\n{content}\n\n"
         mods = [f"{mod[1]} ({mod[0]})" for mod in mods]
+        username = dcuser.member.name if dcuser.member else "------"
+        head_text = f"(ID: {ticket_id}) Ticket Log für {username}\nUser ID: {dcuser.dc_id}\n"
         head_text += "\nBeteiligte Moderatoren:\n" + "\n".join(mods)
         head_text += f"\n\nGeschlossen durch {ctx.user.username}\n"
         if reason: head_text += f"Begründung:\n{reason}\n"
-        filename = f"{c.logdir}ticket_{ticket_id}_{user.id}.txt"
+        filename = f"{c.logdir}ticket_{ticket_id}_{dcuser.dc_id}.txt"
         with open(filename, "w", newline='', encoding="utf-8") as logfile:
             text = head_text + msg_text
             logfile.write(text)
@@ -173,7 +177,7 @@ class Modmail(di.Extension):
             description=f"Dein aktuelles Ticket wurde durch den Moderator **{ctx.user.username}** geschlossen.\n{reason_text}\nDu kannst mit einer neuen Nachricht jederzeit ein neues eröffnen.",
             color=di.Color.red()
         )
-        await user.send(embeds=embed)
+        if dcuser.member: await dcuser.member.send(embeds=embed)
         await ctx.channel.delete()
 
     async def _gen_files(self, msg: di.Message):
