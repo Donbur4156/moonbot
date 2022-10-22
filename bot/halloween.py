@@ -112,7 +112,7 @@ class Halloween(di.Extension):
             color=0xFFFF00,
         )
         embed.add_field(
-            name="**Event Ende: 31.10.2022 00:00 Uhr**",
+            name="**Event Ende: 31.10.2022 24:00 Uhr**",
             value=f"> **- 1. Platz:** 10€ Nitro + {self.role_mvp.mention} Rolle\n> **- 2. Platz:** 5€ Nitro + {self.role_premium.mention} Rolle\n> **- 3. Platz:** {self.role_vip.mention} Rolle"
         )
         await ctx.send(embeds=embed)
