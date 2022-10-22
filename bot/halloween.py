@@ -18,6 +18,9 @@ class Halloween(di.Extension):
     async def on_start(self):
         self.guild = await di.get(self._client, obj=di.Guild, object_id=c.serverid)
         self.channel:di.Channel = await di.get(self._client, obj=di.Channel, object_id=c.channel[0])
+        self.role_vip = await self.guild.get_role(role_id=c.vip_roleid)
+        self.role_mvp = await self.guild.get_role(role_id=c.mvp_roleid)
+        self.role_premium = await self.guild.get_role(role_id=c.premium_roleid)
         await self._update_invites()
 
     @di.extension_listener()
@@ -107,6 +110,10 @@ class Halloween(di.Extension):
             title=":jack_o_lantern: Halloween Event Bestenliste :jack_o_lantern:",
             description=board_user,
             color=0xFFFF00,
+        )
+        embed.add_field(
+            name="**Event Ende: 31.10.2022 00:00 Uhr**",
+            value=f"> **- 1. Platz:** 10€ Nitro + {self.role_mvp.mention} Rolle\n> **- 2. Platz:** 5€ Nitro + {self.role_premium.mention} Rolle\n> **- 3. Platz:** {self.role_vip.mention} Rolle"
         )
         await ctx.send(embeds=embed)
 
