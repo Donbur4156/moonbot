@@ -25,9 +25,9 @@ class StatusReward(di.Extension):
     async def on_raw_presence_update(self, data: di.Presence):
         if data.status in ['online', 'idle', 'dnd']:
             check_moon = self._check_moonpres(data=data)
+            logging.info(f"Status_state: {data.status}")
+            logging.info(f"Statuscheck:\n{data.activities}")
             if int(data.user.id) in self._storage_user and not check_moon:
-                logging.info(f"Status_state: {data.status}")
-                logging.info(f"Statuscheck:\n{data.activities}")
                 await self.remove_moonrole(user_id=int(data.user.id))
             elif int(data.user.id) not in self._storage_user and check_moon:
                 await self.add_moonrole(user_id=int(data.user.id))
