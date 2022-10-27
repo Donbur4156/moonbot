@@ -49,7 +49,7 @@ class DropsHandler(di.Extension):
         await ctx.send(embeds=embed)
 
     def _get_rnd_msg_goal(self):
-        self._msg_goal = random.randint(a=50, b=70) #50-70
+        self._msg_goal = random.randint(a=c.drop_timing[0], b=c.drop_timing[1])
 
     def _check_goal(self):
         return self.count >= self._msg_goal
