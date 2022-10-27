@@ -5,6 +5,8 @@ from datetime import date, datetime, timedelta, timezone
 
 import interactions as di
 from interactions.api.models.flags import Intents
+from interactions.ext.persistence import *
+from interactions.ext.wait_for import wait_for, setup
 
 import functions_gets as f_get
 import objects as obj
@@ -36,6 +38,9 @@ pres = di.PresenceActivity(
 dispatcher = EventDispatcher()
 bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
+setup(bot)
+bot.load("interactions.ext.persistence", cipher_key=c.cipher_key)
+bot.load("drops")
 bot.load("statusreward")
 bot.load("modmail")
 bot.load("msgreward", dispatcher=dispatcher)
@@ -50,6 +55,10 @@ async def on_start():
 async def cron_streak_check():
     await bot._extensions['MsgXP']._reset()
 
+
+@aiocron.crontab('*/1 * * * *')
+async def reduce_dropscount():
+    bot._extensions['DropsHandler'].reduce_count()
 
 if __name__ == "__main__":
     bot.start()
