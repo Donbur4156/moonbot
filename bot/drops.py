@@ -17,8 +17,8 @@ class DropsHandler(di.Extension):
     @di.extension_listener
     async def on_start(self):
         self._reset()
-        self._channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel[1])
-        self._log_channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_drop)
+        self._channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_drop_chat)
+        self._log_channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_drop_log)
     
     def _reset(self):
         self.count = 0
@@ -26,7 +26,7 @@ class DropsHandler(di.Extension):
 
     @di.extension_listener
     async def on_message_create(self, msg: di.Message):
-        if msg.author.bot or int(msg.channel_id) not in c.channel:
+        if msg.author.bot or int(msg.channel_id) != c.channel_drop_chat:
             return
         self.count += 1
         if self._check_goal():
