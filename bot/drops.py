@@ -38,6 +38,10 @@ class DropsHandler(di.Extension):
 
     @di.extension_command(name="droptest", description="Test Command für Drop System")
     async def droptest(self, ctx: di.CommandContext):
+        pass
+
+    @droptest.subcommand(name="emojis")
+    async def get_emoji_embed(self, ctx: di.CommandContext):
         drops = Drops()
         droplist = drops.droplist
         drop_text = "\n".join([f'{drop.text}: {drop.emoji}, {drop.weight}' for drop in droplist])
@@ -46,7 +50,11 @@ class DropsHandler(di.Extension):
             title=f"Drop Test {supply_emoji}",
             description=drop_text
         )
-        await ctx.send(embeds=embed)
+        await ctx.send(embeds=embed, ephemeral=True)
+
+    @droptest.subcommand(name="get_count")
+    async def get_count(self, ctx: di.CommandContext):
+        await ctx.send(f"Counter: {self.count}\nGoal: {self._msg_goal}", ephemeral=True)
 
     def _get_rnd_msg_goal(self):
         self._msg_goal = random.randint(a=c.drop_timing[0], b=c.drop_timing[1])
