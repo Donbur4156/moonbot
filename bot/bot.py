@@ -52,5 +52,9 @@ async def cron_streak_check():
     await bot._extensions['MsgXP']._reset()
 
 
+@aiocron.crontab('*/1 * * * *')
+async def reduce_dropscount():
+    bot._extensions['DropsHandler'].reduce_count()
+
 if __name__ == "__main__":
     bot.start()
