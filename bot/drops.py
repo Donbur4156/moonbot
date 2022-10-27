@@ -17,7 +17,7 @@ class DropsHandler(di.Extension):
     @di.extension_listener
     async def on_start(self):
         self._reset()
-        self._channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel[0])
+        self._channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel[1])
         self._log_channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_drop)
     
     def _reset(self):
