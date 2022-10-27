@@ -135,7 +135,7 @@ class Drops:
     class XP_Booster:
         def __init__(self) -> None:
             self.text = "XP Booster"
-            self.emoji = di.Emoji(name=":XP:", id=971778030047477791)
+            self.emoji = di.Emoji(name="XP", id=971778030047477791)
             self.weight:float = 0.2
             self.support = True
             self.text_variants = ["Chat XP Booster", "Voice XP Booster", "Chat/Voice XP Booster"]
@@ -160,7 +160,7 @@ class Drops:
     class VIP_Rank:
         def __init__(self) -> None:
             self.text = "VIP Rank"
-            self.emoji = di.Emoji(name=":vip_rank:", id=1021054499231633469)
+            self.emoji = di.Emoji(name="vip_rank", id=1021054499231633469)
             self.weight:float = 0.1
             self.support = False
 
@@ -171,7 +171,7 @@ class Drops:
     class BoostCol:
         def __init__(self) -> None:
             self.text = "Booster Farbe"
-            self.emoji = di.Emoji(name=":pinsel:", id=1021054535248134215)
+            self.emoji = di.Emoji(name="pinsel", id=1021054535248134215)
             self.weight:float = 0.15
             self.support = False
 
@@ -215,7 +215,7 @@ class Drops:
     class StarPowder:
         def __init__(self) -> None:
             self.text = "Sternenstaub"
-            self.emoji = di.Emoji(name=":sternenstaub:", id=1021054585080655882)
+            self.emoji = di.Emoji(name="sternenstaub", id=1021054585080655882)
             self.weight:float = 0.5
             self.support = False
 
@@ -248,7 +248,7 @@ class Drops:
     class Emoji:
         def __init__(self) -> None:
             self.text = "Emoji"
-            self.emoji = di.Emoji(name=":emojis:", id=1035178714687864843)
+            self.emoji = di.Emoji(name="emojis", id=1035178714687864843)
 
 class BoostColResponse(PersistenceExtension):
     def __init__(self, client: di.Client) -> None:
@@ -342,8 +342,15 @@ class UniqueRole(PersistenceExtension):
         amount = sql_amount[0] - 2000
         SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, int(ctx.user.id),))
 
+    async def _check_perm(self, ctx: di.CommandContext):
+        owner_role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=c.owner_roleid)
+        return owner_role.id in ctx.member.roles
+
     @extension_persistent_component("allow_role")
     async def allow_role(self, ctx: di.ComponentContext, package: list):
+        if not await self._check_perm(ctx=ctx): 
+            await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
+            return False
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=package[1])
         role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=package[0])
         await member.add_role(role=role, guild_id=c.serverid, reason="benutzerdefinierte Rolle")
@@ -353,6 +360,9 @@ class UniqueRole(PersistenceExtension):
 
     @extension_persistent_component("deny_role")
     async def deny_role(self, ctx: di.ComponentContext, package: list):
+        if not await self._check_perm(ctx=ctx): 
+            await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
+            return False
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=package[1])
         role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=package[0])
         await ctx.edit(components=None)
