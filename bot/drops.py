@@ -33,12 +33,23 @@ class DropsHandler(di.Extension):
             self._reset()
             await self.drop()
 
-    @aiocron.crontab('*/5 * * * *')
     def reduce_count(self):
         self.count = max(self.count-1, 0)
 
+    @di.extension_command(name="droptest", description="Test Command für Drop System")
+    async def droptest(self, ctx: di.CommandContext):
+        drops = Drops()
+        droplist = drops.droplist
+        drop_text = "\n".join([f'{drop.text}: {drop.emoji}, {drop.weight}' for drop in droplist])
+        supply_emoji = di.Emoji(name="supplydrop", id=1023956853983563889)
+        embed = di.Embed(
+            title=f"Drop Test {supply_emoji}",
+            description=drop_text
+        )
+        await ctx.send(embeds=embed)
+
     def _get_rnd_msg_goal(self):
-        self._msg_goal = random.randint(a=1, b=2) #50-70
+        self._msg_goal = 2 #random.randint(a=1, b=2) #50-70
 
     def _check_goal(self):
         return self.count >= self._msg_goal
@@ -46,9 +57,12 @@ class DropsHandler(di.Extension):
     async def drop(self):
         drop = self._gen_drop()
         logging.info(f"Drop generated: {drop.text}")
+        supply_emoji = di.Emoji(name="supplydrop", id=1023956853983563889)
         embed = di.Embed(
-            title="Neuer Chat Drop",
-            color=0xFAE500,
+            title=f"{supply_emoji} Drop gelandet {supply_emoji}",
+            description="Hey! Es ist soeben ein Drop gelandet! Wer ihn aufsammelt bekommt ihn! ",
+            color=0xa6ff00,
+            footer=di.EmbedFooter(text="Drops ~ made with 💖 by Moon Family "),
         )
         button = di.Button(
             label="Drop beanspruchen",
@@ -66,7 +80,7 @@ class DropsHandler(di.Extension):
             logging.info(f"Drop eingesammelt von: {but_ctx.user.username} ({but_ctx.user.id})")
             embed = msg.embeds[0]
             embed.title = "Drop eingesammelt"
-            embed.description = f"Drop `{drop.text}` wurde von {but_ctx.user.mention} eingesammelt."
+            embed.description = f"Drop  {drop.emoji}`{drop.text}` wurde von {but_ctx.user.mention} eingesammelt."
             embed.color = 0x43FA00
             await msg.edit(embeds=embed, components=None)
             await self._execute(drop=drop, but_ctx=but_ctx)
@@ -83,11 +97,12 @@ class DropsHandler(di.Extension):
         drop_text = await drop.execute(but_ctx)
         ref_id = str(uuid.uuid4().hex)[:8]
 
-        description = f"{but_ctx.user.username}, du hast den Drop `{drop.text}` eingesammelt.\n{drop_text}"
+        description = f"{but_ctx.user.username}, du hast den Drop  {drop.emoji}`{drop.text}` eingesammelt.\n{drop_text}"
         embed_user = di.Embed(
             title="Drop eingesammelt",
             description=description,
-            color=0x43FA00
+            color=0x43FA00,
+            footer=di.EmbedFooter(text="Drops ~ made with 💖 by Moon Family "),
         )
         await but_ctx.send(embeds=embed_user, ephemeral=True)
 
@@ -114,12 +129,13 @@ def has_method(o, name):
 
 class Drops:
     def __init__(self) -> None:
-        self.droplist = [self.XP_Booster(), self.VIP_Rank(), self.BoostCol(), self.StarPowder(), self.Minecraft()]
+        self.droplist = [self.XP_Booster(), self.VIP_Rank(), self.BoostCol(), self.StarPowder()]
         self.weights = [d.weight for d in self.droplist]
 
     class XP_Booster:
         def __init__(self) -> None:
             self.text = "XP Booster"
+            self.emoji = di.Emoji(name=":XP:", id=971778030047477791)
             self.weight:float = 0.2
             self.support = True
             self.text_variants = ["Chat XP Booster", "Voice XP Booster", "Chat/Voice XP Booster"]
@@ -144,7 +160,8 @@ class Drops:
     class VIP_Rank:
         def __init__(self) -> None:
             self.text = "VIP Rank"
-            self.weight:float = 0.05
+            self.emoji = di.Emoji(name=":vip_rank:", id=1021054499231633469)
+            self.weight:float = 0.1
             self.support = False
 
         async def execute(self, but_ctx: di.ComponentContext):
@@ -154,6 +171,7 @@ class Drops:
     class BoostCol:
         def __init__(self) -> None:
             self.text = "Booster Farbe"
+            self.emoji = di.Emoji(name=":pinsel:", id=1021054535248134215)
             self.weight:float = 0.15
             self.support = False
 
@@ -197,6 +215,7 @@ class Drops:
     class StarPowder:
         def __init__(self) -> None:
             self.text = "Sternenstaub"
+            self.emoji = di.Emoji(name=":sternenstaub:", id=1021054585080655882)
             self.weight:float = 0.5
             self.support = False
 
@@ -226,30 +245,10 @@ class Drops:
                 embed = di.Embed(description=description, color=0x43FA00)
                 await ctx.member.send(embeds=embed, components=button)
 
-    class Minecraft:
+    class Emoji:
         def __init__(self) -> None:
-            self.text = "zufällige Minecraft Items"
-            self.weight:float = 0.1
-            self.support = True
-            self.text_variants = ["64x Cooked Cod", "1x Iron Chestplate"]
-            self.text_weights = [1,1]
-
-        async def execute(self, but_ctx: di.ComponentContext):
-            self.text = random.choices(population=self.text_variants, weights=self.text_weights, k=1)[0]
-            return f"In deinen DMs erfährst du, wie du die Minecraft Items erhältst."
-
-        async def execute_last(self, **kwargs):
-            ref_id = kwargs.pop("ref_id", None)
-            ctx: di.ComponentContext = kwargs.pop("ctx", None)
-            description = "Damit du deine Belohnung bekommst, antworte hier mit folgendem Text:\n\n"
-            description += f"Drop {self.text} beanspruchen\nCode: {ref_id}"
-            embed_user = di.Embed(
-                title="Drop eingesammelt",
-                description=description,
-                color=0x43FA00
-            )
-            await ctx.member.send(embeds=embed_user)
-
+            self.text = "Emoji"
+            self.emoji = di.Emoji(name=":emojis:", id=1035178714687864843)
 
 class BoostColResponse(PersistenceExtension):
     def __init__(self, client: di.Client) -> None:
