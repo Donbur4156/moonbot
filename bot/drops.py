@@ -137,7 +137,7 @@ def has_method(o, name):
 
 class Drops:
     def __init__(self) -> None:
-        self.droplist = [self.XP_Booster(), self.VIP_Rank(), self.BoostCol(), self.StarPowder()]
+        self.droplist = [self.VIP_Rank(), self.BoostCol(), self.StarPowder()] #self.XP_Booster(), 
         self.weights = [d.weight for d in self.droplist]
 
     class XP_Booster:
