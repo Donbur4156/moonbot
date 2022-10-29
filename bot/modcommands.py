@@ -44,7 +44,7 @@ class AdminCmds(di.Extension):
         emoji_dance = di.Emoji(name="DANCE", id=913380327228059658)
         emoji_sleepy = di.Emoji(name="SleepyMoon", id=913418101440249886)
         await ctx.member.add_role(role=c.jub_roleid)
-        text = f"{emoji_dance} - Du hast dir erfolgreich die {self.jub_role.mention} Rolle für dein Profil gegeben!\nViel Spaß! {emoji_sleepy} :tada:"
+        text = f"Du hast dir erfolgreich die {self.jub_role.mention} Rolle für dein Profil gegeben!\nViel Spaß! {emoji_sleepy} :tada:" #{emoji_dance} - 
         await ctx.send(text, ephemeral=True)
 
 
