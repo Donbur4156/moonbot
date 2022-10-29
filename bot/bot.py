@@ -45,6 +45,7 @@ bot.load("statusreward")
 bot.load("modmail")
 bot.load("msgreward", dispatcher=dispatcher)
 bot.load("halloween", dispatcher=dispatcher)
+bot.load("modcommands")
 
 @bot.event
 async def on_start():
