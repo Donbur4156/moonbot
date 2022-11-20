@@ -17,7 +17,7 @@ class Halloween(di.Extension):
     @di.extension_listener()
     async def on_start(self):
         self.guild = await di.get(self._client, obj=di.Guild, object_id=c.serverid)
-        self.channel:di.Channel = await di.get(self._client, obj=di.Channel, object_id=c.channel[0])
+        self.channel:di.Channel = await di.get(self._client, obj=di.Channel, object_id=c.channel)
         self.role_vip = await self.guild.get_role(role_id=c.vip_roleid)
         self.role_mvp = await self.guild.get_role(role_id=c.mvp_roleid)
         self.role_premium = await self.guild.get_role(role_id=c.premium_roleid)

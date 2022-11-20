@@ -21,9 +21,7 @@ class MsgXP(di.Extension):
 
     @di.extension_listener()
     async def on_message_create(self, msg: di.Message):
-        if msg.author.bot:
-            return
-        if int(msg.channel_id) in c.channel:
+        if int(msg.channel_id) == c.channel and not msg.author.bot:
             user_data = self.add_msg(msg=msg)
             if not user_data: return
             if c.bost_roleid in msg.member.roles:
@@ -57,7 +55,7 @@ class MsgXP(di.Extension):
         if msg_count >= req_msgs:
             await self.upgrade_user(user_id=int(dcuser.dc_id))
         mention_text = f"{dcuser.member.name if user else 'Du'} {'hat' if user else 'hast'}"
-        channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel[0])
+        channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel)
         if msg_count >= req_msgs:
             success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
         else:
