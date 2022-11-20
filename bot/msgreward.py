@@ -36,7 +36,7 @@ class MsgXP(di.Extension):
                 req_msgs = [30]
             if user_data.counter_msgs in req_msgs:
                 await self.upgrade_user(user_id=int(msg.author.id))
-        if msg.type in self._msgtypes_subs or msg.content == "gen_boost":
+        if msg.type in self._msgtypes_subs:
             member = msg.member
             member_iconurl = member.user.avatar_url
             guild = await msg.get_guild()
