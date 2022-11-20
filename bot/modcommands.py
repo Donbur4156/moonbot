@@ -11,6 +11,13 @@ class AdminCmds(di.Extension):
     async def on_start(self):
         pass
 
+    @di.extension_command(description="vergibt die Engelchen Rolle an einen User")
+    @di.option(description="@User")
+    async def engel(self, ctx: di.CommandContext, user: di.Member):
+        await user.add_role(guild_id=ctx.guild_id, role=c.engel_roleid)
+        text = f":check: {user.mention} ist nun ein Engelchen! :aquabutterfly:"
+        await ctx.send(text)
+
     @di.extension_command(name="admin", description="Commands für Admins")
     async def admin(self, ctx: di.CommandContext):
         pass
