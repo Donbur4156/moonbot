@@ -46,7 +46,7 @@ class ModCmds(di.Extension):
         emoji_wlc = di.Emoji(name="Willkommen", id=913417971219709993, animated=True)
         emoji_dan = di.Emoji(name="DANCE", id=913380327228059658, animated=True)
         emoji_cro = di.Emoji(name="Krone", id=913415374278656100, animated=True)
-        text = f"Herzlich Willkommen auf **Moon Family 🌙** {ctx.member.mention}! {emoji_wlc}{emoji_dan}{emoji_cro}"
+        text = f"Herzlich Willkommen auf **Moon Family 🌙** {ctx.member.mention}! {emoji_wlc} {emoji_dan} {emoji_cro}"
         await ctx.send(text)
         
 
