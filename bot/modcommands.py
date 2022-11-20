@@ -15,7 +15,9 @@ class AdminCmds(di.Extension):
     @di.option(description="@User")
     async def engel(self, ctx: di.CommandContext, user: di.Member):
         await user.add_role(guild_id=ctx.guild_id, role=c.engel_roleid)
-        text = f":check: {user.mention} ist nun ein Engelchen! :aquabutterfly:"
+        emoji_check = di.Emoji(name="check", id=913416366470602753, animated=True)
+        emoji_bfly = di.Emoji(name="aquabutterfly", id=971514781972455525, animated=True)
+        text = f"{emoji_check} {user.mention} ist nun ein Engelchen! {emoji_bfly}"
         await ctx.send(text)
 
     @di.extension_command(name="admin", description="Commands für Admins")
