@@ -68,7 +68,7 @@ class MsgXP(di.Extension):
         boost_sql = self._SQL.execute(stmt="SELECT amount FROM booster WHERE user_ID=?", var=(int(member.id),)).data_single
         if boost_sql:
             boost_amount = boost_sql[0] + 1
-            self._SQL.execute(stmt="UPDATE booster amount=? WHERE user_ID=?", var=(boost_amount, int(member.id),))
+            self._SQL.execute(stmt="UPDATE booster SET amount=? WHERE user_ID=?", var=(boost_amount, int(member.id),))
         else:
             boost_amount = 1
             self._SQL.execute(stmt="INSERT INTO booster (user_ID, amount) VALUES (?, ?)", var=(int(member.id), boost_amount,))
