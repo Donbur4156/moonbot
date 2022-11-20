@@ -61,7 +61,7 @@ class MsgXP(di.Extension):
                 footer=di.EmbedFooter(text="Booste jetzt auch, um alle Boostervorteile zu nutzen!"),
                 thumbnail=di.EmbedImageStruct(url=member_iconurl)
             )
-            channel = msg.get_channel()
+            channel = await msg.get_channel()
             await channel.send(embeds=embed)
 
     def _add_boost(self, member: di.Member):
