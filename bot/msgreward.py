@@ -45,7 +45,7 @@ class MsgXP(di.Extension):
             member_boosts = self._add_boost(member=member)
             emoji_boost = di.Emoji(name="nitro", id=985294758148706415, animated=True)
             emoji_heart = di.Emoji(name="disco_heart", id=929823044480938054, animated=True)
-            emoji_ribbon = di.Emoji(name="moon_ribbon", id=971514780705771560)
+            emoji_ribbon = di.Emoji(name="moon_ribbon", id=971514780705771560, animated=True)
             emoji_mc = di.Emoji(name="minecraft_herz", id=913381125831929876)
             channel_colors = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_colors)
             text = f"**Moon Family 🌙** hat aktuell {boost_num} boosts!\n\n" \
