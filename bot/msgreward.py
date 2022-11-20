@@ -17,13 +17,17 @@ class MsgXP(di.Extension):
         self._streak_roles:dict[str] = f_json.get_roles()
         self._get_storage()
         self._dispatcher = dispatcher
+        self._msgtypes_subs = (
+            di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION,
+            di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_1,
+            di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_2,
+            di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_3,
+        )
 
 
     @di.extension_listener()
     async def on_message_create(self, msg: di.Message):
-        if msg.author.bot:
-            return
-        if int(msg.channel_id) in c.channel:
+        if int(msg.channel_id) == c.channel and not msg.author.bot:
             user_data = self.add_msg(msg=msg)
             if not user_data: return
             if c.bost_roleid in msg.member.roles:
@@ -32,6 +36,43 @@ class MsgXP(di.Extension):
                 req_msgs = [30]
             if user_data.counter_msgs in req_msgs:
                 await self.upgrade_user(user_id=int(msg.author.id))
+        if msg.type in self._msgtypes_subs or msg.content == "gen_boost":
+            member = msg.member
+            member_iconurl = member.user.avatar_url
+            guild = await msg.get_guild()
+            boost_num = guild.premium_subscription_count
+            boost_lvl = guild.premium_tier
+            member_boosts = self._add_boost(member=member)
+            emoji_boost = di.Emoji(name="nitro", id=985294758148706415, animated=True)
+            emoji_heart = di.Emoji(name="disco_heart", id=929823044480938054, animated=True)
+            emoji_ribbon = di.Emoji(name="moon_ribbon", id=971514780705771560)
+            emoji_mc = di.Emoji(name="minecraft_herz", id=913381125831929876)
+            channel_colors = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_colors)
+            text = f"**Moon Family 🌙** hat aktuell {boost_num} boosts!\n\n" \
+                f"{emoji_boost} __***DANKE FÜR DEINEN BOOST!***__ {emoji_boost}\n\n" \
+                f"Vielen Dank, das du den Server geboostet hast! " \
+                f"Du kannst dir nun in {channel_colors.mention} eine Farbe für deinen Namen und ein Rollenicon aussuchen! {emoji_heart} {emoji_ribbon}\n\n" \
+                f"Booster: {member.mention}\n{member.name}'s Boosts: {member_boosts}\n\n" \
+                f"**Moon Family 🌙** ist aktuell Boost Level {boost_lvl} mit {boost_num} Boosts.\n\n Viel Spaß {emoji_mc}"
+            embed = di.Embed(
+                author=di.EmbedAuthor(icon_url=member_iconurl, name=f"{member.name} hat den Server geboostet! 💖"),
+                description=text,
+                color=0xf47fff,
+                footer=di.EmbedFooter(text="Booste jetzt auch, um alle Boostervorteile zu nutzen!"),
+                thumbnail=di.EmbedImageStruct(url=member_iconurl)
+            )
+            channel = msg.get_channel()
+            await channel.send(embeds=embed)
+
+    def _add_boost(self, member: di.Member):
+        boost_sql = self._SQL.execute(stmt="SELECT amount FROM booster WHERE user_ID=?", var=(int(member.id),)).data_single
+        if boost_sql:
+            boost_amount = boost_sql[0] + 1
+            self._SQL.execute(stmt="UPDATE booster amount=? WHERE user_ID=?", var=(boost_amount, int(member.id),))
+        else:
+            boost_amount = 1
+            self._SQL.execute(stmt="INSERT INTO booster (user_ID, amount) VALUES (?, ?)", var=(int(member.id), boost_amount,))
+        return boost_amount
 
     @di.extension_command(description="Persönlicher Status der Message Streak", scope=c.serverid)
     @di.option(description="Angabe eines anderen Users (optional)")
@@ -57,7 +98,7 @@ class MsgXP(di.Extension):
         if msg_count >= req_msgs:
             await self.upgrade_user(user_id=int(dcuser.dc_id))
         mention_text = f"{dcuser.member.name if user else 'Du'} {'hat' if user else 'hast'}"
-        channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel[0])
+        channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel)
         if msg_count >= req_msgs:
             success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
         else:
