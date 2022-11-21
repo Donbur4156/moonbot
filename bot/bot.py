@@ -59,6 +59,9 @@ async def on_guild_member_add(member: di.Member):
     text = f"Herzlich Willkommen auf **Moon Family 🌙** {member.mention}! {emoji_wlc} {emoji_dan} {emoji_cro}"
     channel = await di.get(client=bot, obj=di.Channel, object_id=c.channel)
     await channel.send(text)
+    await member.add_role(role=903715839545598022, guild_id=member.guild_id)
+    await member.add_role(role=905466661237301268, guild_id=member.guild_id)
+    await member.add_role(role=913534417123815455, guild_id=member.guild_id)
 
 
 @aiocron.crontab('0 0 * * *')
