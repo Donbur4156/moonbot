@@ -58,17 +58,21 @@ class Configs():
     def set_role(self, name: str, id: str) -> None:
         self.roles[name] = id
         self._write_config()
-        self._dispatcher.dispatch("config_update")
+        self._dispatch_update()
     
     def set_channel(self, name: str, id: str) -> None:
         self.channel[name] = id
         self._write_config()
-        self._dispatcher.dispatch("config_update")
+        self._dispatch_update()
 
     def set_special(self, name: str, value: str) -> None:
         self.specials[name] = value
         self._write_config()
-        self._dispatcher.dispatch("config_update")
+        self._dispatch_update()
+
+    def _dispatch_update(self):
+        event = Event()
+        self._dispatcher.dispatch("config_update", event)
 
     async def get_role_mention(self, name: str) -> di.Role.mention:
         role = await self.get_role(name)
