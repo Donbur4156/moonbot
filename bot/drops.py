@@ -34,7 +34,7 @@ class DropsHandler(di.Extension):
 
     @di.extension_listener
     async def on_message_create(self, msg: di.Message):
-        if msg.author.bot or int(msg.channel_id) != int(self._channel):
+        if msg.author.bot or int(msg.channel_id) != int(self._channel.id):
             return
         self.count += 1
         if self._check_goal():
