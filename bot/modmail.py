@@ -4,20 +4,28 @@ import config as c
 import objects as obj
 from functions_sql import SQL
 from io import BytesIO
+from configs import Configs
+from whistle import EventDispatcher
 
 
 class Modmail(di.Extension):
     def __init__(self, client: di.Client) -> None:
         self._client = client
         self._SQL = SQL(database=c.database)
+        self._config: Configs = client.config
+        self._dispatcher: EventDispatcher = client.dispatcher
 
     @di.extension_listener()
     async def on_start(self):
+        self._dispatcher.add_listener("config_update", await self._load_config())
         self._get_storage()
+        await self._load_config()
         self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=c.serverid)
-        self._channel_def: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_def)
-        self._channel_log: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_log)
-        self._mod_role: di.Role = await self._guild.get_role(role_id=c.mod_roleid)
+
+    async def _load_config(self):
+        self._channel_def = await self._config.get_channel("mail_def")
+        self._channel_log = await self._config.get_channel("mail_log")
+        self._mod_role = await self._config.get_role("mod")
 
     @di.extension_listener()
     async def on_message_create(self, msg: di.Message):
