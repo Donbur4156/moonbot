@@ -2,12 +2,12 @@ import config as c
 from functions_sql import SQL
 import interactions as di
 from configparser import ConfigParser
-from whistle import EventDispatcher
+from whistle import EventDispatcher, Event
 
 
 class Configs():
     def __init__(self, client: di.Client) -> None:
-        self._dispatcher = client.dispatcher
+        self._dispatcher: EventDispatcher = client.dispatcher
         self._config = ConfigParser()
         self._filename = c.config
         self._read_config()
@@ -58,14 +58,17 @@ class Configs():
     def set_role(self, name: str, id: str) -> None:
         self.roles[name] = id
         self._write_config()
+        self._dispatcher.dispatch("config_update")
     
     def set_channel(self, name: str, id: str) -> None:
         self.channel[name] = id
         self._write_config()
+        self._dispatcher.dispatch("config_update")
 
     def set_special(self, name: str, value: str) -> None:
         self.specials[name] = value
         self._write_config()
+        self._dispatcher.dispatch("config_update")
 
     async def get_role_mention(self, name: str) -> di.Role.mention:
         role = await self.get_role(name)

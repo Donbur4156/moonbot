@@ -146,7 +146,7 @@ class AdminCmds(di.Extension):
     @di.option(description="Special")
     async def specials(self, ctx: di.CommandContext, type: str, special: str):
         logging.info(f"/config/ set special {type} with {special} ({special}) by {ctx.member.name} ({ctx.member.id})")
-        self._config.set_special(name=type, id=special)
+        self._config.set_special(name=type, value=special)
         await ctx.send(f"Typ: {type}\nWert: {special}")
 
 
