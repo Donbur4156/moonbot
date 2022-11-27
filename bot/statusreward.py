@@ -3,18 +3,27 @@ import interactions as di
 import config as c
 import objects as obj
 from functions_sql import SQL
+from configs import Configs
+from whistle import EventDispatcher
 
 
 class StatusReward(di.Extension):
     def __init__(self, client: di.Client) -> None:
         self._client = client
         self._SQL = SQL(database=c.database)
+        self._config: Configs = client.config
+        self._dispatcher: EventDispatcher = client.dispatcher
+
 
     @di.extension_listener()
     async def on_start(self):
+        self._dispatcher.add_listener("config_update", await self._load_config())
         self._get_storage()
+        await self._load_config()
         self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=c.serverid)
-        self._moon_role: di.Role = await self._guild.get_role(role_id=c.moon_roleid)
+
+    async def _load_config(self):
+        self._moon_role: di.Role = await self._config.get_role("moon")
 
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache

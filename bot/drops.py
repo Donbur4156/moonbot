@@ -8,17 +8,25 @@ import uuid
 import config as c
 from functions_sql import SQL
 import aiocron
+from configs import Configs
+from whistle import EventDispatcher
 
 
 class DropsHandler(di.Extension):
     def __init__(self, client: di.Client) -> None:
-        self._client:di.Client = client
+        self._client: di.Client = client
+        self._config: Configs = client.config
+        self._dispatcher: EventDispatcher = client.dispatcher
 
     @di.extension_listener
     async def on_start(self):
+        self._dispatcher.add_listener("config_update", await self._load_config())
         self._reset()
-        self._channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_drop_chat)
-        self._log_channel: di.Channel = await di.get(client=self._client, obj=di.Channel, object_id=c.channel_drop_log)
+        await self._load_config()
+
+    async def _load_config(self):
+        self._channel: di.Channel = await self._config.get_channel("drop_chat")
+        self._log_channel: di.Channel = await self._config.get_channel("drop_log")
     
     def _reset(self):
         self.count = 0
@@ -26,7 +34,7 @@ class DropsHandler(di.Extension):
 
     @di.extension_listener
     async def on_message_create(self, msg: di.Message):
-        if msg.author.bot or int(msg.channel_id) != c.channel_drop_chat:
+        if msg.author.bot or int(msg.channel_id) != int(self._channel):
             return
         self.count += 1
         if self._check_goal():
@@ -57,7 +65,9 @@ class DropsHandler(di.Extension):
         await ctx.send(f"Counter: {self.count}\nGoal: {self._msg_goal}", ephemeral=True)
 
     def _get_rnd_msg_goal(self):
-        self._msg_goal = random.randint(a=c.drop_timing[0], b=c.drop_timing[1])
+        drop_min = self._config.get_special("drop_min")
+        drop_max = self._config.get_special("drop_max")
+        self._msg_goal = random.randint(a=drop_min, b=drop_max)
 
     def _check_goal(self):
         return self.count >= self._msg_goal
@@ -173,8 +183,14 @@ class Drops:
             self.support = False
 
         async def execute(self, but_ctx: di.ComponentContext):
-            await but_ctx.member.add_role(c.vip_roleid, c.serverid, reason="Drop Belohnung")
             return f"Die VIP Rolle wurde dir automatisch vergeben."
+
+        async def execute_last(self, **kwargs):
+            client: di.Client = kwargs.pop("client")
+            ctx: di.CommandContext = kwargs.pop("ctx")
+            config: Configs = client.config
+            vip_role = await config.get_role("vip")
+            await ctx.member.add_role(vip_role, c.serverid, reason="Drop Belohnung")
 
     class BoostCol:
         def __init__(self) -> None:
@@ -189,20 +205,20 @@ class Drops:
         async def execute_last(self, **kwargs):
             ctx: di.ComponentContext = kwargs.pop("ctx", None)
             content = "**Booster Farbe:**\n\n:arrow_right: Wähle eine neue Farbe aus, mit welcher du im Chat angezeigt werden willst:\n"
-            role_ids = c.bost_col_roleids
             role_colors = {
-                "1": ["🔵", role_ids[0], "Blau"],
-                "2": ["💗", role_ids[1], "Pink"],
-                "3": ["🟣", role_ids[2], "Lila"],
-                "4": ["🟡", role_ids[3], "Gelb"],
-                "5": ["🟢", role_ids[4], "Grün"],
-                "6": ["⚫", role_ids[5], "Schwarz"],
-                "7": ["⚪", role_ids[6], "Weiß"],
-                "8": ["🔹", role_ids[7], "Türkis"],
-                "9": ["🔴", role_ids[8], "Rot"]
+                "1": ["🔵", "boost_col_blue", "Blau"],
+                "2": ["💗", "boost_col_pink", "Pink"],
+                "3": ["🟣", "boost_col_violet", "Lila"],
+                "4": ["🟡", "boost_col_yellow", "Gelb"],
+                "5": ["🟢", "boost_col_green", "Grün"],
+                "6": ["⚫", "boost_col_black", "Schwarz"],
+                "7": ["⚪", "boost_col_white", "Weiß"],
+                "8": ["🔹", "boost_col_cyan", "Türkis"],
+                "9": ["🔴", "boost_col_red", "Rot"]
                 }
             buttons = []
             client: di.Client = kwargs.pop("client")
+            config: Configs = client.config
             for k, i in role_colors.items():
                 pers_id = PersistentCustomID(cipher=client, tag="boost_col", package=k)
                 button = di.Button(
@@ -211,7 +227,7 @@ class Drops:
                     custom_id=str(pers_id),
                     emoji=di.Emoji(name=i[0])
                 )
-                if i[1] in ctx.member.roles:
+                if config.get_roleid(i[1]) in ctx.member.roles:
                     button.disabled = True
                 buttons.append(button)
             row1 = di.ActionRow(components=[buttons[0], buttons[1], buttons[2]])
@@ -261,33 +277,36 @@ class Drops:
 class BoostColResponse(PersistenceExtension):
     def __init__(self, client: di.Client) -> None:
         self.client=client
+        self.config: Configs = client.config
 
     @extension_persistent_component("boost_col")
     async def boost_col_response(self, ctx: di.ComponentContext, id: str):
-        role_ids = c.bost_col_roleids
         role_colors = {
-            "1": ["🔵", role_ids[0], "Blau"],
-            "2": ["💗", role_ids[1], "Pink"],
-            "3": ["🟣", role_ids[2], "Lila"],
-            "4": ["🟡", role_ids[3], "Gelb"],
-            "5": ["🟢", role_ids[4], "Grün"],
-            "6": ["⚫", role_ids[5], "Schwarz"],
-            "7": ["⚪", role_ids[6], "Weiß"],
-            "8": ["🔹", role_ids[7], "Türkis"],
-            "9": ["🔴", role_ids[8], "Rot"]
+            "1": ["🔵", "boost_col_blue", "Blau"],
+            "2": ["💗", "boost_col_pink", "Pink"],
+            "3": ["🟣", "boost_col_violet", "Lila"],
+            "4": ["🟡", "boost_col_yellow", "Gelb"],
+            "5": ["🟢", "boost_col_green", "Grün"],
+            "6": ["⚫", "boost_col_black", "Schwarz"],
+            "7": ["⚪", "boost_col_white", "Weiß"],
+            "8": ["🔹", "boost_col_cyan", "Türkis"],
+            "9": ["🔴", "boost_col_red", "Rot"]
             }
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=ctx.user.id)
         for role in role_colors.values():
-            if role[1] == 1: continue
-            await member.remove_role(role=int(role[1]), guild_id=c.serverid, reason="Drop Belohnung")
-        await member.add_role(role=role_colors[id][1], guild_id=c.serverid, reason="Drop Belohnung")
+            role_id = self.config.get_roleid(role[1])
+            if not role_id: continue
+            await member.remove_role(role=role_id, guild_id=c.serverid, reason="Drop Belohnung")
+        role_id = self.config.get_roleid(role_colors[id][1])
+        await member.add_role(role=role_id, guild_id=c.serverid, reason="Drop Belohnung")
         await ctx.message.delete()
         await member.send(embeds=di.Embed(description=f"Du hast dich für `{role_colors[id][2]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00))
 
 
 class UniqueRole(PersistenceExtension):
     def __init__(self, client:di.Client) -> None:
-        self.client=client        
+        self.client = client
+        self.config: Configs = client.config
 
     @di.extension_component("customrole_create")
     async def create_button(self, ctx:di.ComponentContext):
@@ -329,7 +348,7 @@ class UniqueRole(PersistenceExtension):
         await ctx.message.edit(components=components)
         await ctx.send(embeds=di.Embed(description=f"Die Rolle `{name}` wird geprüft.\nNach der Prüfung erhältst du weitere Infos.", color=0xFAE500))
         
-        team_channel: di.Channel = await di.get(client=self.client, obj=di.Channel, object_id=c.channel_team)
+        team_channel = await self.config.get_channel("team_chat")
         pers_custom_id_allow = PersistentCustomID(cipher=self.client, tag="allow_role", package=[int(new_role.id), int(ctx.user.id)])
         pers_custom_id_deny = PersistentCustomID(cipher=self.client, tag="deny_role", package=[int(new_role.id), int(ctx.user.id)])
         but_allow = di.Button(
@@ -342,7 +361,7 @@ class UniqueRole(PersistenceExtension):
             label="Ablehnen",
             custom_id=str(pers_custom_id_deny)
         )
-        owner_role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=c.owner_roleid)
+        owner_role = await self.config.get_role("owner")
         content = f"{owner_role.mention}, der User {ctx.user.mention} hat mit Sternenstaub die Rolle {new_role.mention} erstellt und zur Überprüfung eingereicht.\n"
         await team_channel.send(content=content, components=di.ActionRow(components=[but_allow, but_deny]))
 
@@ -350,13 +369,13 @@ class UniqueRole(PersistenceExtension):
         amount = sql_amount[0] - 2000
         SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, int(ctx.user.id),))
 
-    async def _check_perm(self, ctx: di.CommandContext):
-        owner_role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=c.owner_roleid)
-        return owner_role.id in ctx.member.roles
+    def _check_perm(self, ctx: di.CommandContext):
+        owner_role_id = self.config.get_roleid("owner")
+        return owner_role_id in ctx.member.roles
 
     @extension_persistent_component("allow_role")
     async def allow_role(self, ctx: di.ComponentContext, package: list):
-        if not await self._check_perm(ctx=ctx): 
+        if not self._check_perm(ctx=ctx): 
             await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
             return False
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=package[1])
@@ -368,7 +387,7 @@ class UniqueRole(PersistenceExtension):
 
     @extension_persistent_component("deny_role")
     async def deny_role(self, ctx: di.ComponentContext, package: list):
-        if not await self._check_perm(ctx=ctx): 
+        if not self._check_perm(ctx=ctx): 
             await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
             return False
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=package[1])
