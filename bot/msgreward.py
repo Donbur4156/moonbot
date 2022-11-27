@@ -6,6 +6,7 @@ import config as c
 from functions_sql import SQL
 import functions_json as f_json
 import aiocron
+import asyncio
 import objects as obj
 from whistle import EventDispatcher, Event
 from configs import Configs
@@ -28,8 +29,11 @@ class MsgXP(di.Extension):
 
     @di.extension_listener()
     async def on_start(self):
-        self._dispatcher.add_listener("config_update", await self._load_config())
+        self._dispatcher.add_listener("config_update", self._run_load_config)
         await self._load_config()
+
+    def _run_load_config(self, event):
+        asyncio.run(self._load_config())
 
     async def _load_config(self):
         self.channel_chat = await self._config.get_channel("chat")

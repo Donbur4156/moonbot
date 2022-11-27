@@ -4,6 +4,7 @@ import config as c
 import objects as obj
 from functions_sql import SQL
 from io import BytesIO
+import asyncio
 from configs import Configs
 from whistle import EventDispatcher
 
@@ -17,10 +18,13 @@ class Modmail(di.Extension):
 
     @di.extension_listener()
     async def on_start(self):
-        self._dispatcher.add_listener("config_update", await self._load_config())
+        self._dispatcher.add_listener("config_update", self._run_load_config)
         self._get_storage()
         await self._load_config()
         self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=c.serverid)
+    
+    def _run_load_config(self, event):
+        asyncio.run(self._load_config())
 
     async def _load_config(self):
         self._channel_def = await self._config.get_channel("mail_def")

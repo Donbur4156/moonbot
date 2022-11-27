@@ -8,6 +8,7 @@ import uuid
 import config as c
 from functions_sql import SQL
 import aiocron
+import asyncio
 from configs import Configs
 from whistle import EventDispatcher
 
@@ -20,9 +21,12 @@ class DropsHandler(di.Extension):
 
     @di.extension_listener
     async def on_start(self):
-        self._dispatcher.add_listener("config_update", await self._load_config())
+        self._dispatcher.add_listener("config_update", self._run_load_config)
         self._reset()
         await self._load_config()
+
+    def _run_load_config(self, event):
+        asyncio.run(self._load_config())
 
     async def _load_config(self):
         self._channel: di.Channel = await self._config.get_channel("drop_chat")

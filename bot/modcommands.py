@@ -2,6 +2,7 @@ import logging
 import objects as obj
 import interactions as di
 import config as c
+import asyncio
 from configs import Configs
 from whistle import EventDispatcher
 
@@ -14,8 +15,11 @@ class AdminCmds(di.Extension):
 
     @di.extension_listener()
     async def on_start(self):
-        self._dispatcher.add_listener("config_update", await self._load_config())
+        self._dispatcher.add_listener("config_update", self._run_load_config)
         await self._load_config()
+        
+    def _run_load_config(self, event):
+        asyncio.run(self._load_config())
 
     async def _load_config(self):
         self.role_engel = await self._config.get_role("engel")
@@ -158,8 +162,11 @@ class ModCmds(di.Extension):
 
     @di.extension_listener()
     async def on_start(self):
-        self._dispatcher.add_listener("config_update", await self._load_config())
+        self._dispatcher.add_listener("config_update", self._run_load_config)
         await self._load_config()
+
+    def _run_load_config(self, event):
+        asyncio.run(self._load_config())
 
     async def _load_config(self):
         self.role_engel = await self._config.get_role("engel")
