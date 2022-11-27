@@ -1,3 +1,4 @@
+import logging
 import objects as obj
 import interactions as di
 import config as c
@@ -22,6 +23,7 @@ class AdminCmds(di.Extension):
     @di.extension_command(description="vergibt die Engelchen Rolle an einen User")
     @di.option(description="@User")
     async def engel(self, ctx: di.CommandContext, user: di.Member):
+        logging.info(f"/engel/ add Role 'engel' to {user.name} ({user.id}) by {ctx.member.name} ({ctx.member.id})")
         await user.add_role(guild_id=ctx.guild_id, role=self.role_engel)
         emoji_check = di.Emoji(name="check", id=913416366470602753, animated=True)
         emoji_bfly = di.Emoji(name="aquabutterfly", id=971514781972455525, animated=True)
@@ -43,6 +45,7 @@ class AdminCmds(di.Extension):
 
     @config.subcommand(description="Zeigt Config an")
     async def show(self, ctx: di.CommandContext):
+        logging.info(f"show config for {ctx.member.name} ({ctx.member.id})")
         channels = [
             {"name": "Chat", "value": "chat"},
             {"name": "Mail Default", "value": "mail_def"},
@@ -103,6 +106,7 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Channel")
     async def channels(self, ctx: di.CommandContext, type: str, channel: di.Channel):
+        logging.info(f"/config/ set Channel {type} with {channel.name} ({channel.id}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_channel(name=type, id=str(channel.id))
         await ctx.send(f"Typ: {type}\nChannel: {channel.mention}")
 
@@ -129,6 +133,7 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Role")
     async def roles(self, ctx: di.CommandContext, type: str, role: di.Role):
+        logging.info(f"/config/ set Role {type} with {role.name} ({role.id}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_role(name=type, id=str(role.id))
         await ctx.send(f"Typ: {type}\nRolle: {role.mention}")
         
@@ -140,6 +145,7 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Special")
     async def specials(self, ctx: di.CommandContext, type: str, special: str):
+        logging.info(f"/config/ set special {type} with {special} ({special}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_special(name=type, id=special)
         await ctx.send(f"Typ: {type}\nWert: {special}")
 
