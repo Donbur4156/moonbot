@@ -9,7 +9,7 @@ class Configs():
     def __init__(self, client: di.Client) -> None:
         self._dispatcher = client.dispatcher
         self._config = ConfigParser()
-        self._filename = "bot/config.ini"
+        self._filename = c.config
         self._read_config()
         self._client = client
 
