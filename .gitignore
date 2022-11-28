@@ -3,6 +3,7 @@
 *config.py
 *.db
 bot/logs/*
+config.ini
 
 
 
