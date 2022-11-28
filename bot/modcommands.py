@@ -43,6 +43,38 @@ class AdminCmds(di.Extension):
         text = "**Alle verfügbaren Admin Commands:**"
         await ctx.send(text)
 
+    @admin.subcommand(description="Generiert die Self Role Message")
+    @di.option(description="Channel, in dem die Nachricht gepostet werden soll")
+    async def role_event(self, ctx:di.CommandContext, channel: di.Channel = None):
+        channel = channel or ctx.channel
+        jub_role = await self._config.get_role("jub_role")
+        emoji_mc = di.Emoji(name="minecraft_herz", id=913381125831929876)
+        emojy_give = di.Emoji(name="Giveaway", id=913415646103109632)
+        emoji_sleepy = di.Emoji(name="SleepyMoon", id=913418101440249886)
+        text = f"{emoji_sleepy} **|** __**Moon Family 2022!**__\n\n" \
+            f"Das **Jahr 2022** neigt sich nun auch langsam dem Ende und wir wollen natürlich, " \
+            f"das **jeder von euch mit einer besonderen Rolle nächstes Jahr zeigen kann, das er schon seit 2022 dabei ist!**\n" \
+            f"Und da das Jahr so erfolgreich lief und wir das natürlich nächstes Jahr mindestens genau so gut hinbekommen, " \
+            f"könnt ihr euch einen Monat, also den ganzen Dezember, lang die {jub_role.mention} Rolle geben, indem ihr hier auf den Button klickt!\n\n" \
+            f"Vielen Dank und viel Spaß! {emojy_give} {emoji_mc}"
+
+        button = di.Button(
+            label="2022 Rolle",
+            style=di.ButtonStyle.SUCCESS,
+            custom_id="self_role_jub",
+            emoji=emoji_mc
+        )
+        await channel.send(content=text, components=button)
+        await ctx.send(f"Der Post wurde erfolgreich in {channel.mention} erstellt.", ephemeral=True)
+
+    @di.extension_component("self_role_jub")
+    async def self_role_jub(self, ctx: di.ComponentContext):
+        jub_role = await self._config.get_role("jub_role")
+        emoji_sleepy = di.Emoji(name="SleepyMoon", id=913418101440249886)
+        await ctx.member.add_role(role=jub_role)
+        text = f"Du hast dir erfolgreich die {jub_role.mention} Rolle für dein Profil gegeben!\nViel Spaß! {emoji_sleepy} :tada:"
+        await ctx.send(text, ephemeral=True)
+
     @admin.group(description="Role/Channel... Config")
     async def config(self, ctx: di.CommandContext):
         pass
@@ -68,6 +100,7 @@ class AdminCmds(di.Extension):
             {"name": "Premium", "value": "premium"},
             {"name": "Booster", "value": "booster"},
             {"name": "Engel", "value": "engel"},
+            {"name": "Jubiläums Rolle", "value": "jub_role"},
             {"name": "Boost Color Blau", "value": "boost_col_blue"},
             {"name": "Boost Color Pink", "value": "boost_col_pink"},
             {"name": "Boost Color Lila", "value": "boost_col_violet"},
@@ -125,6 +158,7 @@ class AdminCmds(di.Extension):
             di.Choice(name="Premium", value="premium"),
             di.Choice(name="Booster", value="booster"),
             di.Choice(name="Engel", value="engel"),
+            di.Choice(name="Jubiläums Rolle", value="jub_role"),
             di.Choice(name="Boost Color Blau", value="boost_col_blue"),
             di.Choice(name="Boost Color Pink", value="boost_col_pink"),
             di.Choice(name="Boost Color Lila", value="boost_col_violet"),
@@ -152,6 +186,7 @@ class AdminCmds(di.Extension):
         logging.info(f"/config/ set special {type} with {special} ({special}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_special(name=type, value=special)
         await ctx.send(f"Typ: {type}\nWert: {special}")
+
 
 
 class ModCmds(di.Extension):
