@@ -49,7 +49,7 @@ class AdminCmds(di.Extension):
         channel = channel or ctx.channel
         jub_role = await self._config.get_role("jub_role")
         emoji_mc = di.Emoji(name="minecraft_herz", id=913381125831929876)
-        emojy_give = di.Emoji(name="Giveaway", id=913415646103109632)
+        emojy_give = di.Emoji(name="Giveaway", id=913415646103109632,animated=True)
         emoji_sleepy = di.Emoji(name="SleepyMoon", id=913418101440249886)
         text = f"{emoji_sleepy} **|** __**Moon Family 2022!**__\n\n" \
             f"Das **Jahr 2022** neigt sich nun auch langsam dem Ende und wir wollen natürlich, " \
