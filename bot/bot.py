@@ -65,6 +65,7 @@ async def on_guild_member_add(member: di.Member):
     await member.add_role(role=905466661237301268, guild_id=member.guild_id)
     await member.add_role(role=913534417123815455, guild_id=member.guild_id)
 
+'''
 @bot.command(description="zeigt die Meilensteine der Moon Family", name="meilensteine")
 async def milestones(ctx: di.CommandContext):
     channel_id = config.get_special(name="milestone_channel")
@@ -72,6 +73,7 @@ async def milestones(ctx: di.CommandContext):
     channel = await di.get(bot, obj=di.Channel, object_id=channel_id)
     message = await channel.get_message(message_id=message_id)
     await ctx.send(message.content)
+'''
 
 @aiocron.crontab('0 0 * * *')
 async def cron_streak_check():
