@@ -43,6 +43,14 @@ class AdminCmds(di.Extension):
         text = "**Alle verfügbaren Admin Commands:**"
         await ctx.send(text)
 
+    @admin.subcommand(name="meilensteine")
+    async def milestones(self, ctx: di.CommandContext):
+        channel_id = self._config.get_special(name="milestone_channel")
+        message_id = self._config.get_special(name="milestone_message")
+        channel = await di.get(self.client, obj=di.Channel, object_id=channel_id)
+        message = await channel.get_message(message_id=message_id)
+        await ctx.send(message.content)
+
     @admin.subcommand(description="Generiert die Self Role Message")
     @di.option(description="Channel, in dem die Nachricht gepostet werden soll")
     async def role_event(self, ctx:di.CommandContext, channel: di.Channel = None):
@@ -180,6 +188,8 @@ class AdminCmds(di.Extension):
         choices=[
             di.Choice(name="Drop Minimum", value="drop_min"),
             di.Choice(name="Drop Maximum", value="drop_max"),
+            di.Choice(name="Meilensteine Channel", value="milestone_channel"),
+            di.Choice(name="Meilensteine Message", value="milestone_message"),
         ])
     @di.option(description="Special")
     async def specials(self, ctx: di.CommandContext, type: str, special: str):
