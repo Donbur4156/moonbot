@@ -5,6 +5,7 @@ import config as c
 import asyncio
 from configs import Configs
 from whistle import EventDispatcher
+from drops import Drops
 
 
 class AdminCmds(di.Extension):
@@ -74,6 +75,13 @@ class AdminCmds(di.Extension):
         await ctx.member.add_role(role=jub_role)
         text = f"Du hast dir erfolgreich die {jub_role.mention} Rolle für dein Profil gegeben!\nViel Spaß! {emoji_sleepy} :tada:"
         await ctx.send(text, ephemeral=True)
+
+    @admin.subcommand(description="Fügt dem User Sternenstaub hinzu")
+    @di.option(description="User, der Sternenstaub bekommen soll")
+    @di.option(description="Menge von Sternenstaub")
+    async def add_sternenstaub(self, ctx: di.CommandContext, user: di.Member, amount: int):
+        amount_total = Drops.StarPowder.add_starpower(user_id=int(user.id), amount=amount)
+        await ctx.send(f"Dem User {user.mention} wurden {amount} Sternenstaub hinzugefügt.\nDer User hat nun insgesamt {amount_total} Sternenstaub gesammelt.", ephemeral=True)
 
     @admin.group(description="Role/Channel... Config")
     async def config(self, ctx: di.CommandContext):
