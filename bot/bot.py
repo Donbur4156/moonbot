@@ -47,6 +47,7 @@ bot.load("statusreward")
 bot.load("modmail")
 bot.load("msgreward")
 bot.load("modcommands")
+bot.load("milestones")
 
 @bot.event
 async def on_start():
