@@ -89,8 +89,7 @@ class Milestones(di.Extension):
                 break
             self.birthday_ms.append(MilestoneBirthday(name=f"{year_count}. Geburtstag", dc_timestamp=int(dc_datetime.timestamp())))
         self.birthday_ms_next = MilestoneBirthday(name=f"{year_count}. Geburtstag", dc_timestamp=int(dc_datetime.timestamp()))
-        t = datetime.datetime.strptime(dc_datetime, "%d.%m.%Y %H:%M")
-        self._schedule.add_job(self.publish_birthday_ms, 'date', run_date=t)
+        self._schedule.add_job(self.publish_birthday_ms, 'date', run_date=dc_datetime)
 
     async def publish_member_ms(self):
         channel = await self._config.get_channel(name="chat")
