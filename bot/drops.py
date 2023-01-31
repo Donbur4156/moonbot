@@ -69,14 +69,13 @@ class DropsHandler(di.Extension):
         await ctx.send(f"Counter: {self.count}\nGoal: {self._msg_goal}", ephemeral=True)
 
     @di.extension_command(name="sternenstaub", description="Gibt deine Sternenstaub Menge zurück")
-    async def starpower_cmd(self, ctx: di.CommandContext):
-        starpower = Drops.StarPowder()
-        user_id = int(ctx.user.id)
-        sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(user_id,)).data_single
+    async def starpowder_cmd(self, ctx: di.CommandContext):
+        starpowder = Drops.StarPowder()
+        sql_amount = starpowder.get_starpowder(int(ctx.user.id))
         if sql_amount:
-            text = f"Du hast bisher {sql_amount[0]} {starpower.emoji} Sternenstaub eingesammelt."
+            text = f"Du hast bisher {sql_amount} {starpowder.emoji} Sternenstaub eingesammelt."
         else:
-            text = "Du hast biser noch kein Sternenstaub eingesammelt"
+            text = "Du hast biser noch kein Sternenstaub eingesammelt."
         await ctx.send(text, ephemeral=True)
 
     def _get_rnd_msg_goal(self):
@@ -259,11 +258,11 @@ class Drops:
             self.support = False
 
         async def execute(self, but_ctx: di.ComponentContext):
-            amount = random.randint(a=10, b=50)
-            self.text += f" ({amount})"
+            self.amount = random.randint(a=10, b=50)
+            self.text += f" ({self.amount})"
             user_id = int(but_ctx.user.id._snowflake)
-            amount = self.add_starpower(user_id, amount)
-            return f"Du hast jetzt insgesamt {amount} Sternenstaub gesammelt.\n"
+            self.amount = self.add_starpowder(user_id, self.amount)
+            return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
 
         async def execute_last(self, **kwargs):
             ctx: di.ComponentContext = kwargs.pop("ctx", None)
@@ -279,14 +278,18 @@ class Drops:
                 embed = di.Embed(description=description, color=0x43FA00)
                 await ctx.member.send(embeds=embed, components=button)
 
-        def add_starpower(user_id: int, amount: int):
-            sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(user_id,)).data_single
+        def add_starpowder(self, user_id: int, amount: int):
+            sql_amount = self.get_starpowder(user_id)
             if sql_amount:
-                amount += sql_amount[0]
+                amount += sql_amount
                 SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, user_id,))
             else:
                 SQL(database=c.database).execute(stmt="INSERT INTO starpowder(user_ID, amount) VALUES (?, ?)", var=(user_id, amount,))
             return amount
+
+        def get_starpowder(self, user_id: int):
+            sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(user_id,)).data_single
+            return sql_amount[0] if sql_amount else None
 
     class Emoji:
         def __init__(self) -> None:

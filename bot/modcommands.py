@@ -80,7 +80,7 @@ class AdminCmds(di.Extension):
     @di.option(description="User, der Sternenstaub bekommen soll")
     @di.option(description="Menge von Sternenstaub")
     async def add_sternenstaub(self, ctx: di.CommandContext, user: di.Member, amount: int):
-        amount_total = Drops.StarPowder.add_starpower(user_id=int(user.id), amount=amount)
+        amount_total = Drops.StarPowder.add_starpowder(user_id=int(user.id), amount=amount)
         await ctx.send(f"Dem User {user.mention} wurden {amount} Sternenstaub hinzugefügt.\nDer User hat nun insgesamt {amount_total} Sternenstaub gesammelt.", ephemeral=True)
         logging.info(f"/add_sternenstaub/ User: {user.mention} ({user.id}); amount: {amount}; new amount: {amount_total}; Admin ID: {ctx.user.id}")
 
