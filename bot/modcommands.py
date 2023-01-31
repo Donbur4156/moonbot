@@ -25,7 +25,7 @@ class AdminCmds(di.Extension):
     async def _load_config(self):
         self.role_engel = await self._config.get_role("engel")
     
-    @di.extension_command(description="vergibt die Engelchen Rolle an einen User")
+    @di.extension_command(description="vergibt die Engelchen Rolle an einen User", dm_permission=False)
     @di.option(description="@User")
     async def engel(self, ctx: di.CommandContext, user: di.Member):
         logging.info(f"/engel/ add Role 'engel' to {user.name} ({user.id}) by {ctx.member.name} ({ctx.member.id})")
@@ -35,7 +35,7 @@ class AdminCmds(di.Extension):
         text = f"{emoji_check} {user.mention} ist nun ein Engelchen! {emoji_bfly}"
         await ctx.send(text)
 
-    @di.extension_command(name="admin", description="Commands für Admins")
+    @di.extension_command(name="admin", description="Commands für Admins", dm_permission=False)
     async def admin(self, ctx: di.CommandContext):
         pass
 
@@ -217,7 +217,7 @@ class ModCmds(di.Extension):
     async def _load_config(self):
         self.role_engel = await self._config.get_role("engel")
 
-    @di.extension_command(name="mod", description="Commands für Mods")
+    @di.extension_command(name="mod", description="Commands für Mods", dm_permission=False)
     async def mod(self, ctx: di.CommandContext):
         pass
 

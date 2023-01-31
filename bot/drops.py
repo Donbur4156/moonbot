@@ -48,7 +48,7 @@ class DropsHandler(di.Extension):
     def reduce_count(self):
         self.count = max(self.count-1, 0)
 
-    @di.extension_command(name="droptest", description="Test Command für Drop System")
+    @di.extension_command(name="droptest", description="Test Command für Drop System", dm_permission=False)
     async def droptest(self, ctx: di.CommandContext):
         pass
 
