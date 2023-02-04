@@ -242,24 +242,8 @@ class ModCmds(di.Extension):
 
     @mod.subcommand(description="test")
     async def test(self, ctx: di.CommandContext):
-        emoji_vote_yes = di.Emoji(name="VoteYes", id=913420308550127657, animated=True)
-        emoji_sleepy = di.Emoji(name="SleepyMoon", id=913418101440249886)
-        emoji_cro = di.Emoji(name="Krone", id=913415374278656100, animated=True)
-        emoji_anime = di.Emoji(name="Anime", id=913417511150706738, animated=True)
-        emoji_mc = di.Emoji(name="minecraft_herz", id=913381125831929876)
-
-        text = f"Hey! Du kannst voten! {emoji_vote_yes}\n" \
-            f"Wenn du aktiv für den Server stimmst, bekommst und behältst du die <@&939557486501969951> Rolle!\n\n" \
-            f"**Voten:** https://discords.com/servers/moonfamily\n\nVielen Dank und viel Spaß! {emoji_sleepy} {emoji_cro} {emoji_anime}"
-        url = "https://cdn.discordapp.com/attachments/1009413427485216798/1070076437882736690/Moon_Family_Upvote_Button.png"
-        embed = di.Embed(
-            title=f"Voten und Unterstützer werden {emoji_mc}",
-            description=text,
-            image=di.EmbedImageStruct(url=url)
-        )
-        await ctx.channel.send(embeds=embed)
-    '''text = f"Hier gibt es aktuell nichts zu sehen."
-        await ctx.send(text)'''
+        text = f"Hier gibt es aktuell nichts zu sehen."
+        await ctx.send(text)
         
 
 def setup(client: di.Client):
