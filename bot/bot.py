@@ -85,5 +85,24 @@ async def cron_streak_check():
 async def reduce_dropscount():
     bot._extensions['DropsHandler'].reduce_count()
 
+
+@aiocron.crontab('0 */6 * * *')
+async def create_vote_message():
+    emoji_vote_yes = di.Emoji(name="VoteYes", id=913420308550127657, animated=True)
+    emoji_sleepy = di.Emoji(name="SleepyMoon", id=913418101440249886)
+    emoji_cro = di.Emoji(name="Krone", id=913415374278656100, animated=True)
+    emoji_anime = di.Emoji(name="Anime", id=913417511150706738, animated=True)
+
+    text = f"Hey! Du kannst voten! {emoji_vote_yes}\n" \
+        f"Wenn du aktiv für den Server stimmst, bekommst und behältst du die <@&939557486501969951> Rolle!\n\n" \
+        f"**Voten:** https://discords.com/servers/moonfamily\n\nVielen Dank und viel Spaß! {emoji_sleepy} {emoji_cro} {emoji_anime}"
+    embed = di.Embed(
+        title="Voten und Unterstützer werden :minecraft_herz:",
+        description=text
+    )
+    channel = await config.get_channel("chat")
+    await channel.send(embeds=embed)
+
+
 if __name__ == "__main__":
     bot.start()
