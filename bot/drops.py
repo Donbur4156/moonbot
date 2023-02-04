@@ -261,7 +261,7 @@ class Drops:
             self.amount = random.randint(a=10, b=50)
             self.text += f" ({self.amount})"
             user_id = int(but_ctx.user.id._snowflake)
-            self.amount = self.add_starpowder(user_id, self.amount)
+            self.amount = self.upd_starpowder(user_id, self.amount)
             return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
 
         async def execute_last(self, **kwargs):
@@ -278,7 +278,7 @@ class Drops:
                 embed = di.Embed(description=description, color=0x43FA00)
                 await ctx.member.send(embeds=embed, components=button)
 
-        def add_starpowder(self, user_id: int, amount: int):
+        def upd_starpowder(self, user_id: int, amount: int):
             sql_amount = self.get_starpowder(user_id)
             if sql_amount:
                 amount += sql_amount
@@ -290,6 +290,9 @@ class Drops:
         def get_starpowder(self, user_id: int):
             sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(user_id,)).data_single
             return sql_amount[0] if sql_amount else None
+
+        def getlist_starpowder(self):
+            return SQL(database=c.database).execute(stmt="SELECT * FROM starpowder ORDER BY amount DESC").data_all
 
     class Emoji:
         def __init__(self) -> None:
@@ -332,8 +335,8 @@ class UniqueRole(PersistenceExtension):
 
     @di.extension_component("customrole_create")
     async def create_button(self, ctx:di.ComponentContext):
-        sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(int(ctx.user.id),)).data_single
-        if sql_amount[0] < 2000:
+        sql_amount = Drops.StarPowder().get_starpowder(user_id=int(ctx.user.id))
+        if not sql_amount or sql_amount < 2000:
             components = ctx.message.components
             components[0].components[0].disabled = True
             await ctx.message.edit(components=components)
@@ -387,9 +390,7 @@ class UniqueRole(PersistenceExtension):
         content = f"{owner_role.mention}, der User {ctx.user.mention} hat mit Sternenstaub die Rolle {new_role.mention} erstellt und zur Überprüfung eingereicht.\n"
         await team_channel.send(content=content, components=di.ActionRow(components=[but_allow, but_deny]))
 
-        sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(int(ctx.user.id),)).data_single
-        amount = sql_amount[0] - 2000
-        SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, int(ctx.user.id),))
+        Drops.StarPowder().upd_starpowder(int(ctx.user.id), amount=-2000)
 
     def _check_perm(self, ctx: di.CommandContext):
         owner_role_id = self.config.get_roleid("owner")
@@ -418,9 +419,7 @@ class UniqueRole(PersistenceExtension):
         await ctx.send(f"Die Rolle `{role.name}` wurde gelöscht.\nDer User erhält seine 2000 Sternenstaub zurück und bekommt die Info sich bei weiteren Fragen an den Support zu wenden.")
         await member.send(embeds=di.Embed(description=f"Die Rolle `{role.name}` wurde **nicht** genehmigt.\nDu erhältst die 2000 Sternenstaub zurück.\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.red()))
         await role.delete(guild_id=c.serverid)
-        sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(int(member.id),)).data_single
-        amount = sql_amount[0] + 2000
-        SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, int(member.id),))
+        Drops.StarPowder().upd_starpowder(int(member.id), amount=2000)
 
 def setup(client):
     DropsHandler(client)
