@@ -10,6 +10,7 @@ import asyncio
 import objects as obj
 from whistle import EventDispatcher, Event
 from configs import Configs
+from util.emojis import Emojis
 
 
 class MsgXP(di.Extension):
@@ -58,16 +59,12 @@ class MsgXP(di.Extension):
             boost_num = guild.premium_subscription_count
             boost_lvl = guild.premium_tier
             member_boosts = self._add_boost(member=member)
-            emoji_boost = di.Emoji(name="nitro", id=985294758148706415, animated=True)
-            emoji_heart = di.Emoji(name="disco_heart", id=929823044480938054, animated=True)
-            emoji_ribbon = di.Emoji(name="moon_ribbon", id=971514780705771560, animated=True)
-            emoji_mc = di.Emoji(name="minecraft_herz", id=913381125831929876)
             text = f"**Moon Family 🌙** hat aktuell {boost_num} boosts!\n\n" \
-                f"{emoji_boost} __***DANKE FÜR DEINEN BOOST!***__ {emoji_boost}\n\n" \
+                f"{Emojis.boost} __***DANKE FÜR DEINEN BOOST!***__ {Emojis.boost}\n\n" \
                 f"Vielen Dank, das du den Server geboostet hast! " \
-                f"Du kannst dir nun in {self.channel_colors.mention} eine Farbe für deinen Namen und ein Rollenicon aussuchen! {emoji_heart} {emoji_ribbon}\n\n" \
+                f"Du kannst dir nun in {self.channel_colors.mention} eine Farbe für deinen Namen und ein Rollenicon aussuchen! {Emojis.heart} {Emojis.ribbon}\n\n" \
                 f"Booster: {member.mention}\n{member.name}'s Boosts: {member_boosts}\n\n" \
-                f"**Moon Family 🌙** ist aktuell Boost Level {boost_lvl} mit {boost_num} Boosts.\n\n Viel Spaß {emoji_mc}"
+                f"**Moon Family 🌙** ist aktuell Boost Level {boost_lvl} mit {boost_num} Boosts.\n\n Viel Spaß {Emojis.minecraft}"
             embed = di.Embed(
                 author=di.EmbedAuthor(icon_url=member_iconurl, name=f"{member.name} hat den Server geboostet! 💖"),
                 description=text,

@@ -11,6 +11,7 @@ import aiocron
 import asyncio
 from configs import Configs
 from whistle import EventDispatcher
+from util.emojis import Emojis
 
 
 class DropsHandler(di.Extension):
@@ -57,9 +58,8 @@ class DropsHandler(di.Extension):
         drops = Drops()
         droplist = drops.droplist
         drop_text = "\n".join([f'{drop.text}: {drop.emoji}, {drop.weight}' for drop in droplist])
-        supply_emoji = di.Emoji(name="supplydrop", id=1023956853983563889)
         embed = di.Embed(
-            title=f"Drop Test {supply_emoji}",
+            title=f"Drop Test {Emojis.supply}",
             description=drop_text
         )
         await ctx.send(embeds=embed, ephemeral=True)
@@ -89,9 +89,8 @@ class DropsHandler(di.Extension):
     async def drop(self):
         drop = self._gen_drop()
         logging.info(f"Drop generated: {drop.text}")
-        supply_emoji = di.Emoji(name="supplydrop", id=1023956853983563889)
         embed = di.Embed(
-            title=f"{supply_emoji} Drop gelandet {supply_emoji}",
+            title=f"{Emojis.supply} Drop gelandet {Emojis.supply}",
             description="Hey! Es ist soeben ein Drop gelandet! Wer ihn aufsammelt bekommt ihn! ",
             color=0xa6ff00,
             footer=di.EmbedFooter(text="Drops ~ made with 💖 by Moon Family "),
@@ -100,7 +99,7 @@ class DropsHandler(di.Extension):
             label="Drop beanspruchen",
             style=di.ButtonStyle.SUCCESS,
             custom_id="drop_get",
-            emoji=di.Emoji(name=":drop:", id=1018161555663229028)
+            emoji=Emojis.drop
         )
         msg = await self._channel.send(embeds=embed, components=button)
     
@@ -167,7 +166,7 @@ class Drops:
     class XP_Booster:
         def __init__(self) -> None:
             self.text = "XP Booster"
-            self.emoji = di.Emoji(name="XP", id=971778030047477791)
+            self.emoji = Emojis.xp
             self.weight:float = 0.2
             self.support = True
             self.text_variants = ["Chat XP Booster", "Voice XP Booster", "Chat/Voice XP Booster"]
@@ -192,7 +191,7 @@ class Drops:
     class VIP_Rank:
         def __init__(self) -> None:
             self.text = "VIP Rank"
-            self.emoji = di.Emoji(name="vip_rank", id=1021054499231633469)
+            self.emoji = Emojis.vip
             self.weight:float = 0.1
             self.support = False
 
@@ -209,7 +208,7 @@ class Drops:
     class BoostCol:
         def __init__(self) -> None:
             self.text = "Booster Farbe"
-            self.emoji = di.Emoji(name="pinsel", id=1021054535248134215)
+            self.emoji = Emojis.pinsel
             self.weight:float = 0.15
             self.support = False
 
@@ -253,7 +252,7 @@ class Drops:
     class StarPowder:
         def __init__(self) -> None:
             self.text = "Sternenstaub"
-            self.emoji = di.Emoji(name="sternenstaub", id=1021054585080655882)
+            self.emoji = Emojis.starpowder
             self.weight:float = 0.5
             self.support = False
 

@@ -5,6 +5,7 @@ import config as c
 import interactions as di
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
+from util.emojis import Emojis
 from functions_sql import SQL
 
 '''
@@ -46,15 +47,12 @@ class Milestones(di.Extension):
 
     @di.extension_command(name="meilensteine")
     async def cmd_milestone(self, ctx: di.CommandContext):
-        emoji_vote_yes = di.Emoji(name="VoteYes", id=913420308550127657, animated=True)
-        emoji_vote_no = di.Emoji(name="VoteNo", id=913420354578436096, animated=True)
-        emoji_loading = di.Emoji(name="laden", id=913488789303853056, animated=True)
         milestones = self.member_ms_reached + self.birthday_ms
         milestones.sort(key=lambda x: x.dc_timestamp)
         next = self.member_ms_next
         tabs = "\n\n"
-        text = f"{''.join([f'{emoji_vote_yes} `-` {m.get_text()}{tabs}' for m in milestones])}" \
-            f"{emoji_vote_no} `-` {next.get_text()} ___ - {emoji_loading}"
+        text = f"{''.join([f'{Emojis.vote_yes} `-` {m.get_text()}{tabs}' for m in milestones])}" \
+            f"{Emojis.vote_no} `-` {next.get_text()} ___ - {Emojis.loading}"
         embed = di.Embed(
             title=":hindu_temple: | Moon Family Meilensteine",
             description=text
