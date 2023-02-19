@@ -18,7 +18,7 @@ class dcuser:
             self.member = member
             self.dc_id = int(member.id._snowflake)
         else: raise Exception("dcuser needs dc_id or a ctx Object for id!")
-        self.mention = f_get.get_dc_mention(dc_id=self.dc_id)
+        self.mention = f"<@!{self.dc_id}>"
 
     def __await__(self):
         async def closure():

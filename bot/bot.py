@@ -32,12 +32,13 @@ bot.dispatcher = EventDispatcher()
 config: Configs = config_setup(bot)
 setup(bot)
 bot.load("interactions.ext.persistence", cipher_key=c.cipher_key)
-bot.load("drops")
-bot.load("statusreward")
-bot.load("modmail")
-bot.load("msgreward")
-bot.load("modcommands")
-bot.load("milestones")
+bot.load("ext.drops")
+bot.load("ext.statusreward")
+bot.load("ext.modmail")
+bot.load("ext.msgreward")
+bot.load("ext.modcommands")
+bot.load("ext.milestones")
+
 
 @bot.event
 async def on_start():
