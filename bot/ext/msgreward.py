@@ -169,8 +169,8 @@ class MsgXP(di.Extension):
         self._SQL.execute(stmt="UPDATE msgrewards SET streak=?, counter_days=?, last_day=?, expired=? WHERE user_ID=?", var=(user.streak, user.counter_days, user.last_day, user.expired, user_id,))
         
         if streak_data:
-            await self._remove_roles(dcuser.member)
             dcuser = await DcUser(bot=self.client, dc_id=user_id)
+            await self._remove_roles(dcuser)
             logging.info(f"{dcuser.member.user.username} reached new streak: {streak_data}")
             await dcuser.member.add_role(guild_id=c.serverid, role=self._streak_roles.get(str(streak_data)))
 
@@ -190,13 +190,6 @@ class MsgXP(di.Extension):
         self._userlist[user_id] = User(data=[user_id,0,0,0,"",0])
 
     async def _reset(self):
-        async def remove_roles(user: User):
-            dcuser = await obj.dcuser(bot=self._client, dc_id=user.user_id)
-            if dcuser.member:
-                await self._remove_roles(dcuser.member)
-            self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user.user_id,))
-
-        logging.info(self)
         self._SQL.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
         
         today = datetime.now().date()
@@ -206,14 +199,16 @@ class MsgXP(di.Extension):
             if not user.last_day: continue
             last_day = datetime.strptime(user.last_day, "%Y-%m-%d").date()
             if (today - last_day).days > 1:
-                await remove_roles(user)
                 dcuser = await DcUser(bot=self._client, dc_id=user.user_id)
+                await self._remove_roles(dcuser)
+                self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user.user_id,))
         self._get_storage()
 
-    async def _remove_roles(self, member:di.Member):
+    async def _remove_roles(self, dcuser: DcUser):
+        if not dcuser.member: return False
         for role in self._streak_roles.values():
-            if int(role) in member.roles:
-                await member.remove_role(role=int(role), guild_id=c.serverid)
+            if int(role) in dcuser.member.roles:
+                await dcuser.member.remove_role(role=int(role), guild_id=c.serverid)
 
 
 class User:
