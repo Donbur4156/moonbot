@@ -64,16 +64,6 @@ async def milestones(ctx: di.CommandContext):
     await ctx.send(message.content)
 '''
 
-@aiocron.crontab('0 0 * * *')
-async def cron_streak_check():
-    await bot._extensions['MsgXP']._reset()
-
-
-@aiocron.crontab('0 * * * *')
-async def reduce_dropscount():
-    bot._extensions['DropsHandler'].reduce_count()
-
-
 @aiocron.crontab('0 */6 * * *')
 async def create_vote_message():
     text = f"Hey! Du kannst voten! {Emojis.vote_yes}\n" \

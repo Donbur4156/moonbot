@@ -20,6 +20,8 @@ class DropsHandler(di.Extension):
         self._client: di.Client = client
         self._config: Configs = client.config
         self._dispatcher: EventDispatcher = client.dispatcher
+        self.reduce_count.start(self)
+
 
     @di.extension_listener
     async def on_start(self):
@@ -47,6 +49,7 @@ class DropsHandler(di.Extension):
             self._reset()
             await self.drop()
 
+    @create_task(IntervalTrigger(3600))
     def reduce_count(self):
         self.count = max(self.count-1, 0)
 

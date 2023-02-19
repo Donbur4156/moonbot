@@ -27,6 +27,10 @@ class MsgXP(di.Extension):
             di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_2,
             di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_3,
         )
+        
+        @aiocron.crontab("0 0 * * *")
+        def cron():
+            asyncio.run(self._reset())
 
     @di.extension_listener()
     async def on_start(self):
