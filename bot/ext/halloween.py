@@ -1,10 +1,11 @@
-import interactions as di
-from functions_sql import SQL
-import config as c
-import logging
-from whistle import EventDispatcher
-import objects as obj
 import asyncio
+import logging
+
+import config as c
+import interactions as di
+from util.objects import DcUser
+from util.sql import SQL
+from whistle import EventDispatcher
 
 
 class Halloween(di.Extension):

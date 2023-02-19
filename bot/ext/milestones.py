@@ -6,7 +6,7 @@ import interactions as di
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
 from util.emojis import Emojis
-from functions_sql import SQL
+from util.sql import SQL
 
 '''
 Meilensteinarten:

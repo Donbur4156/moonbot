@@ -1,8 +1,8 @@
-import config as c
-from functions_sql import SQL
-import interactions as di
 from configparser import ConfigParser
-from whistle import EventDispatcher, Event
+
+import config as c
+import interactions as di
+from whistle import Event, EventDispatcher
 
 
 class Configs():

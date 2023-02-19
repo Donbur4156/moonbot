@@ -1,11 +1,12 @@
-import logging
-import interactions as di
-import config as c
-import objects as obj
-from functions_sql import SQL
-from io import BytesIO
 import asyncio
+import logging
+from io import BytesIO
+
+import config as c
+import interactions as di
+from util.objects import DcUser
 from configs import Configs
+from util.sql import SQL
 from whistle import EventDispatcher
 
 

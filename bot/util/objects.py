@@ -1,9 +1,8 @@
-import interactions as di
-import functions_gets as f_get
-import logging, traceback
+import logging
 
 import config as c
-import functions_json as f_json
+import interactions as di
+from util.json import JSON
 
 
 class dcuser:
