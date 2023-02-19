@@ -20,6 +20,7 @@ class DropsHandler(di.Extension):
         self._client: di.Client = client
         self._config: Configs = client.config
         self._dispatcher: EventDispatcher = client.dispatcher
+        self.drops = Drops()
         self.reduce_count.start(self)
 
 
@@ -28,6 +29,16 @@ class DropsHandler(di.Extension):
         self._dispatcher.add_listener("config_update", self._run_load_config)
         self._reset()
         await self._load_config()
+
+    @di.extension_listener
+    async def on_message_create(self, msg: di.Message):
+        if msg.author.bot or int(msg.channel_id) != int(self._channel.id):
+            return
+        self.count += 1
+        if self._check_goal():
+            self._reset()
+            await self.drop()
+
 
     def _run_load_config(self, event):
         asyncio.run(self._load_config())
@@ -38,16 +49,9 @@ class DropsHandler(di.Extension):
     
     def _reset(self):
         self.count = 0
-        self._get_rnd_msg_goal()
-
-    @di.extension_listener
-    async def on_message_create(self, msg: di.Message):
-        if msg.author.bot or int(msg.channel_id) != int(self._channel.id):
-            return
-        self.count += 1
-        if self._check_goal():
-            self._reset()
-            await self.drop()
+        drop_min = self._config.get_special("drop_min")
+        drop_max = self._config.get_special("drop_max")
+        self._msg_goal = random.randint(a=drop_min, b=drop_max)
 
     @create_task(IntervalTrigger(3600))
     def reduce_count(self):
@@ -74,7 +78,7 @@ class DropsHandler(di.Extension):
 
     @di.extension_command(name="sternenstaub", description="Gibt deine Sternenstaub Menge zurück")
     async def starpowder_cmd(self, ctx: di.CommandContext):
-        starpowder = Drops.StarPowder()
+        starpowder = Drop_StarPowder()
         sql_amount = starpowder.get_starpowder(int(ctx.user.id))
         if sql_amount:
             text = f"Du hast bisher {sql_amount} {starpowder.emoji} Sternenstaub eingesammelt."
@@ -82,16 +86,12 @@ class DropsHandler(di.Extension):
             text = "Du hast biser noch kein Sternenstaub eingesammelt."
         await ctx.send(text, ephemeral=True)
 
-    def _get_rnd_msg_goal(self):
-        drop_min = self._config.get_special("drop_min")
-        drop_max = self._config.get_special("drop_max")
-        self._msg_goal = random.randint(a=drop_min, b=drop_max)
 
     def _check_goal(self):
         return self.count >= self._msg_goal
 
     async def drop(self):
-        drop = self._gen_drop()
+        drop: Drop = self.drops._gen_drop()
         logging.info(f"Drop generated: {drop.text}")
         embed = di.Embed(
             title=f"{Emojis.supply} Drop gelandet {Emojis.supply}",
@@ -129,6 +129,7 @@ class DropsHandler(di.Extension):
             await msg.edit(embeds=embed, components=None)
 
     async def _execute(self, drop, but_ctx:di.ComponentContext):
+        drop: Drop = drop
         drop_text = await drop.execute(but_ctx)
         ref_id = str(uuid.uuid4().hex)[:8]
 
@@ -151,156 +152,172 @@ class DropsHandler(di.Extension):
             )
             await self._log_channel.send(embeds=embed_log)
 
-        if has_method(drop, "execute_last"):
-            await drop.execute_last(client=self._client, ctx=but_ctx, ref_id=ref_id)
-        
-    def _gen_drop(self):
-        drops = Drops()
-        return random.choices(population=drops.droplist, weights=drops.weights, k=1)[0]
-
-def has_method(o, name):
-    return callable(getattr(o, name, None))
+        await drop.execute_last(client=self._client, ctx=but_ctx, ref_id=ref_id)
 
 
 class Drops:
     def __init__(self) -> None:
-        self.droplist = [self.VIP_Rank(), self.BoostCol(), self.StarPowder()] #self.XP_Booster(), 
+        self.droplist: list[Drop] = [Drop_VIP_Rank(), Drop_BoostCol(), Drop_StarPowder()]
         self.weights = [d.weight for d in self.droplist]
 
-    class XP_Booster:
-        def __init__(self) -> None:
-            self.text = "XP Booster"
-            self.emoji = Emojis.xp
-            self.weight:float = 0.2
-            self.support = True
-            self.text_variants = ["Chat XP Booster", "Voice XP Booster", "Chat/Voice XP Booster"]
-            self.text_weights = [5,3,2]
+    def _gen_drop(self):
+        return random.choices(population=self.droplist, weights=self.weights, k=1)[0]
 
-        async def execute(self, but_ctx: di.ComponentContext):
-            self.text = random.choices(population=self.text_variants, weights=self.text_weights, k=1)[0]
-            return f"In deinen DMs erfährst du, wie du den Booster einlösen kannst."
+class Drop:
+    def __init__(self) -> None:
+        self.text: str = None
+        self.emoji: Drop_Emoji = None
+        self.weight: float = None
+        self.support: bool = True
 
-        async def execute_last(self, **kwargs):
-            ref_id = kwargs.pop("ref_id", None)
-            ctx: di.ComponentContext = kwargs.pop("ctx", None)
-            description = "Damit du deine Belohnung bekommst, antworte hier mit folgendem Text:\n\n"
-            description += f"Drop {self.text} beanspruchen\nCode: {ref_id}"
-            embed_user = di.Embed(
-                title="Drop eingesammelt",
-                description=description,
-                color=0x43FA00
+    async def execute(self, but_ctx: di.ComponentContext):
+        pass
+
+    async def execute_last(self, **kwargs):
+        pass
+
+class Drop_XP_Booster(Drop):
+    def __init__(self) -> None:
+        self.text = "XP Booster"
+        self.emoji = Emojis.xp
+        self.weight:float = 0.2
+        self.support = True
+        self.text_variants = ["Chat XP Booster", "Voice XP Booster", "Chat/Voice XP Booster"]
+        self.text_weights = [5,3,2]
+
+    async def execute(self, but_ctx: di.ComponentContext):
+        self.text = random.choices(population=self.text_variants, weights=self.text_weights, k=1)[0]
+        return f"In deinen DMs erfährst du, wie du den Booster einlösen kannst."
+
+    async def execute_last(self, **kwargs):
+        ref_id = kwargs.pop("ref_id", None)
+        ctx: di.ComponentContext = kwargs.pop("ctx", None)
+        description = "Damit du deine Belohnung bekommst, antworte hier mit folgendem Text:\n\n"
+        description += f"Drop {self.text} beanspruchen\nCode: {ref_id}"
+        embed_user = di.Embed(
+            title="Drop eingesammelt",
+            description=description,
+            color=0x43FA00
+        )
+        await ctx.member.send(embeds=embed_user)
+
+class Drop_VIP_Rank(Drop):
+    def __init__(self) -> None:
+        self.text = "VIP Rank"
+        self.emoji = Emojis.vip
+        self.weight:float = 0.1
+        self.support = False
+
+    async def execute(self, but_ctx: di.ComponentContext):
+        return f"Die VIP Rolle wurde dir automatisch vergeben."
+
+    async def execute_last(self, **kwargs):
+        client: di.Client = kwargs.pop("client")
+        ctx: di.CommandContext = kwargs.pop("ctx")
+        config: Configs = client.config
+        vip_role = await config.get_role("vip")
+        await ctx.member.add_role(vip_role, c.serverid, reason="Drop Belohnung")
+
+class Drop_BoostCol(Drop):
+    def __init__(self) -> None:
+        self.text = "Booster Farbe"
+        self.emoji = Emojis.pinsel
+        self.weight: float = 10.15
+        self.support = False
+
+    async def execute(self, but_ctx: di.ComponentContext):
+        return "In deinen DMs kannst du dir die neue Booster Farbe auswählen."
+
+    async def execute_last(self, **kwargs):
+        ctx: di.ComponentContext = kwargs.pop("ctx", None)
+        content = "**Booster Farbe:**\n\n:arrow_right: Wähle eine neue Farbe aus, mit welcher du im Chat angezeigt werden willst:\n"
+        role_colors = BoostCol.role_colors
+        buttons = []
+        client: di.Client = kwargs.pop("client")
+        config: Configs = client.config
+        for k, i in role_colors.items():
+            pers_id = PersistentCustomID(cipher=client, tag="boost_col", package=k)
+            button = di.Button(
+                style=di.ButtonStyle.SECONDARY,
+                label=i[2],
+                custom_id=str(pers_id),
+                emoji=di.Emoji(name=i[0])
             )
-            await ctx.member.send(embeds=embed_user)
+            if config.get_roleid(i[1]) in ctx.member.roles:
+                button.disabled = True
+            buttons.append(button)
+        row1 = di.ActionRow(components=[buttons[0], buttons[1], buttons[2]])
+        row2 = di.ActionRow(components=[buttons[3], buttons[4], buttons[5]])
+        row3 = di.ActionRow(components=[buttons[6], buttons[7], buttons[8]])
 
-    class VIP_Rank:
-        def __init__(self) -> None:
-            self.text = "VIP Rank"
-            self.emoji = Emojis.vip
-            self.weight:float = 0.1
-            self.support = False
+        await ctx.member.send(embeds=di.Embed(description=content, color=0x43FA00), components=[row1, row2, row3])
 
-        async def execute(self, but_ctx: di.ComponentContext):
-            return f"Die VIP Rolle wurde dir automatisch vergeben."
+class Drop_StarPowder(Drop):
+    def __init__(self) -> None:
+        self.text = "Sternenstaub"
+        self.emoji = Emojis.starpowder
+        self.weight: float = 0.5
+        self.support = False
+        self.starpowder = StarPowder()
 
-        async def execute_last(self, **kwargs):
-            client: di.Client = kwargs.pop("client")
-            ctx: di.CommandContext = kwargs.pop("ctx")
-            config: Configs = client.config
-            vip_role = await config.get_role("vip")
-            await ctx.member.add_role(vip_role, c.serverid, reason="Drop Belohnung")
+    async def execute(self, but_ctx: di.ComponentContext):
+        self.amount = random.randint(a=10, b=50)
+        self.text += f" ({self.amount})"
+        user_id = int(but_ctx.user.id._snowflake)
+        self.amount = self.starpowder.upd_starpowder(user_id, self.amount)
+        return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
 
-    class BoostCol:
-        def __init__(self) -> None:
-            self.text = "Booster Farbe"
-            self.emoji = Emojis.pinsel
-            self.weight:float = 0.15
-            self.support = False
+    async def execute_last(self, **kwargs):
+        ctx: di.ComponentContext = kwargs.pop("ctx", None)
+        if self.amount >= 2000:
+            button = di.Button(
+                style=di.ButtonStyle.SUCCESS,
+                label="Rolle erstellen",
+                custom_id="customrole_create"
+            )
+            description = "Mit 2000 Sternenstaub kannst du eine benutzerdefinerte Rolle für dich erstellen.\n" \
+                "Benutze dazu den Button `Rolle erstellen`\nEs öffnet sich ein Formular, in welchem du den Namen und die Farbe angibst.\n" \
+                "Die Farbe ist als HEX Zahl anzugeben (ohne #). Bsp.: E67E22 für Orange.\nHier der Color Picker von Google: https://g.co/kgs/CFpKnZ\n"
+            embed = di.Embed(description=description, color=0x43FA00)
+            await ctx.member.send(embeds=embed, components=button)
 
-        async def execute(self, but_ctx: di.ComponentContext):
-            return "In deinen DMs kannst du dir die neue Booster Farbe auswählen."
+class Drop_Emoji(Drop):
+    def __init__(self) -> None:
+        self.text = "Emoji"
+        self.emoji = di.Emoji(name="emojis", id=1035178714687864843)
 
-        async def execute_last(self, **kwargs):
-            ctx: di.ComponentContext = kwargs.pop("ctx", None)
-            content = "**Booster Farbe:**\n\n:arrow_right: Wähle eine neue Farbe aus, mit welcher du im Chat angezeigt werden willst:\n"
-            role_colors = {
-                "1": ["🔵", "boost_col_blue", "Blau"],
-                "2": ["💗", "boost_col_pink", "Pink"],
-                "3": ["🟣", "boost_col_violet", "Lila"],
-                "4": ["🟡", "boost_col_yellow", "Gelb"],
-                "5": ["🟢", "boost_col_green", "Grün"],
-                "6": ["⚫", "boost_col_black", "Schwarz"],
-                "7": ["⚪", "boost_col_white", "Weiß"],
-                "8": ["🔹", "boost_col_cyan", "Türkis"],
-                "9": ["🔴", "boost_col_red", "Rot"]
-                }
-            buttons = []
-            client: di.Client = kwargs.pop("client")
-            config: Configs = client.config
-            for k, i in role_colors.items():
-                pers_id = PersistentCustomID(cipher=client, tag="boost_col", package=k)
-                button = di.Button(
-                    style=di.ButtonStyle.SECONDARY,
-                    label=i[2],
-                    custom_id=str(pers_id),
-                    emoji=di.Emoji(name=i[0])
-                )
-                if config.get_roleid(i[1]) in ctx.member.roles:
-                    button.disabled = True
-                buttons.append(button)
-            row1 = di.ActionRow(components=[buttons[0], buttons[1], buttons[2]])
-            row2 = di.ActionRow(components=[buttons[3], buttons[4], buttons[5]])
-            row3 = di.ActionRow(components=[buttons[6], buttons[7], buttons[8]])
+class StarPowder:
+    def __init__(self) -> None:
+        pass
 
-            await ctx.member.send(embeds=di.Embed(description=content, color=0x43FA00), components=[row1, row2, row3])
+    def upd_starpowder(self, user_id: int, amount: int):
+        sql_amount = self.get_starpowder(user_id)
+        if sql_amount:
+            amount += sql_amount
+            SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, user_id,))
+        else:
+            SQL(database=c.database).execute(stmt="INSERT INTO starpowder(user_ID, amount) VALUES (?, ?)", var=(user_id, amount,))
+        return amount
 
-    class StarPowder:
-        def __init__(self) -> None:
-            self.text = "Sternenstaub"
-            self.emoji = Emojis.starpowder
-            self.weight:float = 0.5
-            self.support = False
+    def get_starpowder(self, user_id: int):
+        sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(user_id,)).data_single
+        return sql_amount[0] if sql_amount else None
 
-        async def execute(self, but_ctx: di.ComponentContext):
-            self.amount = random.randint(a=10, b=50)
-            self.text += f" ({self.amount})"
-            user_id = int(but_ctx.user.id._snowflake)
-            self.amount = self.upd_starpowder(user_id, self.amount)
-            return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
+    def getlist_starpowder(self):
+        return SQL(database=c.database).execute(stmt="SELECT * FROM starpowder ORDER BY amount DESC").data_all
 
-        async def execute_last(self, **kwargs):
-            ctx: di.ComponentContext = kwargs.pop("ctx", None)
-            if self.amount >= 2000:
-                button = di.Button(
-                    style=di.ButtonStyle.SUCCESS,
-                    label="Rolle erstellen",
-                    custom_id="customrole_create"
-                )
-                description = "Mit 2000 Sternenstaub kannst du eine benutzerdefinerte Rolle für dich erstellen.\n" \
-                    "Benutze dazu den Button `Rolle erstellen`\nEs öffnet sich ein Formular, in welchem du den Namen und die Farbe angibst.\n" \
-                    "Die Farbe ist als HEX Zahl anzugeben (ohne #). Bsp.: E67E22 für Orange.\nHier der Color Picker von Google: https://g.co/kgs/CFpKnZ\n"
-                embed = di.Embed(description=description, color=0x43FA00)
-                await ctx.member.send(embeds=embed, components=button)
-
-        def upd_starpowder(self, user_id: int, amount: int):
-            sql_amount = self.get_starpowder(user_id)
-            if sql_amount:
-                amount += sql_amount
-                SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, user_id,))
-            else:
-                SQL(database=c.database).execute(stmt="INSERT INTO starpowder(user_ID, amount) VALUES (?, ?)", var=(user_id, amount,))
-            return amount
-
-        def get_starpowder(self, user_id: int):
-            sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(user_id,)).data_single
-            return sql_amount[0] if sql_amount else None
-
-        def getlist_starpowder(self):
-            return SQL(database=c.database).execute(stmt="SELECT * FROM starpowder ORDER BY amount DESC").data_all
-
-    class Emoji:
-        def __init__(self) -> None:
-            self.text = "Emoji"
-            self.emoji = di.Emoji(name="emojis", id=1035178714687864843)
+class BoostCol:
+    role_colors = {
+        "1": ["🔵", "boost_col_blue", "Blau"],
+        "2": ["💗", "boost_col_pink", "Pink"],
+        "3": ["🟣", "boost_col_violet", "Lila"],
+        "4": ["🟡", "boost_col_yellow", "Gelb"],
+        "5": ["🟢", "boost_col_green", "Grün"],
+        "6": ["⚫", "boost_col_black", "Schwarz"],
+        "7": ["⚪", "boost_col_white", "Weiß"],
+        "8": ["🔹", "boost_col_cyan", "Türkis"],
+        "9": ["🔴", "boost_col_red", "Rot"]
+        }
 
 class BoostColResponse(PersistenceExtension):
     def __init__(self, client: di.Client) -> None:
@@ -309,17 +326,7 @@ class BoostColResponse(PersistenceExtension):
 
     @extension_persistent_component("boost_col")
     async def boost_col_response(self, ctx: di.ComponentContext, id: str):
-        role_colors = {
-            "1": ["🔵", "boost_col_blue", "Blau"],
-            "2": ["💗", "boost_col_pink", "Pink"],
-            "3": ["🟣", "boost_col_violet", "Lila"],
-            "4": ["🟡", "boost_col_yellow", "Gelb"],
-            "5": ["🟢", "boost_col_green", "Grün"],
-            "6": ["⚫", "boost_col_black", "Schwarz"],
-            "7": ["⚪", "boost_col_white", "Weiß"],
-            "8": ["🔹", "boost_col_cyan", "Türkis"],
-            "9": ["🔴", "boost_col_red", "Rot"]
-            }
+        role_colors = BoostCol.role_colors
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=ctx.user.id)
         for role in role_colors.values():
             role_id = self.config.get_roleid(role[1])
@@ -330,15 +337,14 @@ class BoostColResponse(PersistenceExtension):
         await ctx.message.delete()
         await member.send(embeds=di.Embed(description=f"Du hast dich für `{role_colors[id][2]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00))
 
-
-class UniqueRole(PersistenceExtension):
+class UniqueRoleResponse(PersistenceExtension):
     def __init__(self, client:di.Client) -> None:
         self.client = client
         self.config: Configs = client.config
 
     @di.extension_component("customrole_create")
     async def create_button(self, ctx:di.ComponentContext):
-        sql_amount = Drops.StarPowder().get_starpowder(user_id=int(ctx.user.id))
+        sql_amount = StarPowder().get_starpowder(user_id=int(ctx.user.id))
         if not sql_amount or sql_amount < 2000:
             components = ctx.message.components
             components[0].components[0].disabled = True
@@ -393,7 +399,7 @@ class UniqueRole(PersistenceExtension):
         content = f"{owner_role.mention}, der User {ctx.user.mention} hat mit Sternenstaub die Rolle {new_role.mention} erstellt und zur Überprüfung eingereicht.\n"
         await team_channel.send(content=content, components=di.ActionRow(components=[but_allow, but_deny]))
 
-        Drops.StarPowder().upd_starpowder(int(ctx.user.id), amount=-2000)
+        StarPowder().upd_starpowder(int(ctx.user.id), amount=-2000)
 
     def _check_perm(self, ctx: di.CommandContext):
         owner_role_id = self.config.get_roleid("owner")
@@ -422,9 +428,9 @@ class UniqueRole(PersistenceExtension):
         await ctx.send(f"Die Rolle `{role.name}` wurde gelöscht.\nDer User erhält seine 2000 Sternenstaub zurück und bekommt die Info sich bei weiteren Fragen an den Support zu wenden.")
         await member.send(embeds=di.Embed(description=f"Die Rolle `{role.name}` wurde **nicht** genehmigt.\nDu erhältst die 2000 Sternenstaub zurück.\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.red()))
         await role.delete(guild_id=c.serverid)
-        Drops.StarPowder().upd_starpowder(int(member.id), amount=2000)
+        StarPowder().upd_starpowder(int(member.id), amount=2000)
 
 def setup(client):
     DropsHandler(client)
     BoostColResponse(client)
-    UniqueRole(client)
+    UniqueRoleResponse(client)
