@@ -19,7 +19,7 @@ class MsgXP(di.Extension):
         self._config: Configs = client.config
         self._dispatcher: EventDispatcher = client.dispatcher
         self._SQL = SQL(database=c.database)
-        self._streak_roles:dict[str] = f_json.get_roles()
+        self._streak_roles:dict[str] = JSON.get_roles()
         self._get_storage()
         self._msgtypes_subs = (
             di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION,
@@ -89,9 +89,9 @@ class MsgXP(di.Extension):
     @di.option(description="Angabe eines anderen Users (optional)")
     async def status(self, ctx: di.CommandContext, user: di.User = None):
         if user:
-            dcuser = await obj.dcuser(bot=self._client, dc_id=user.id)
+            dcuser = await DcUser(bot=self._client, dc_id=user.id)
         else:
-            dcuser = await obj.dcuser(bot=self._client, ctx=ctx)
+            dcuser = await DcUser(bot=self._client, ctx=ctx)
         logging.info(f"show status for {dcuser.member.user.username} by {ctx.member.user.username}")
         user_data: User = self._get_user(user_id=dcuser.dc_id)
         if not user_data:
@@ -159,14 +159,14 @@ class MsgXP(di.Extension):
                 user.counter_days = 1
         user.last_day = today.strftime("%Y-%m-%d")
         user.expired = False
-        streak_data = f_json.get_streak(user.counter_days)
+        streak_data = JSON.get_streak(user.counter_days)
         if streak_data:
             user.streak = streak_data
         self._SQL.execute(stmt="UPDATE msgrewards SET streak=?, counter_days=?, last_day=?, expired=? WHERE user_ID=?", var=(user.streak, user.counter_days, user.last_day, user.expired, user_id,))
         
         if streak_data:
-            dcuser = await obj.dcuser(bot=self.client, dc_id=user_id)
             await self._remove_roles(dcuser.member)
+            dcuser = await DcUser(bot=self.client, dc_id=user_id)
             logging.info(f"{dcuser.member.user.username} reached new streak: {streak_data}")
             await dcuser.member.add_role(guild_id=c.serverid, role=self._streak_roles.get(str(streak_data)))
 
@@ -203,6 +203,7 @@ class MsgXP(di.Extension):
             last_day = datetime.strptime(user.last_day, "%Y-%m-%d").date()
             if (today - last_day).days > 1:
                 await remove_roles(user)
+                dcuser = await DcUser(bot=self._client, dc_id=user.user_id)
         self._get_storage()
 
     async def _remove_roles(self, member:di.Member):

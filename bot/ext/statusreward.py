@@ -45,14 +45,14 @@ class StatusReward(di.Extension):
                 await self.add_moonrole(user_id=int(data.user.id))
     
     async def add_moonrole(self, user_id: int):
-        dcuser = await obj.dcuser(bot=self._client, dc_id=user_id)
+        dcuser = await DcUser(bot=self._client, dc_id=user_id)
         await dcuser.member.add_role(role=self._moon_role, guild_id=c.serverid)
         logging.info(f"add Role '{self._moon_role.name}' to {dcuser.member.user.username}")
         self._SQL.execute(stmt="INSERT INTO statusrewards(user_ID) VALUES(?)", var=(dcuser.dc_id,))
         self._get_storage()
 
     async def remove_moonrole(self, user_id: int):
-        dcuser = await obj.dcuser(bot=self._client, dc_id=user_id)
+        dcuser = await DcUser(bot=self._client, dc_id=user_id)
         await dcuser.member.remove_role(role=self._moon_role, guild_id=c.serverid)
         logging.info(f"remove Role '{self._moon_role.name}' from {dcuser.member.user.username}")
         self._SQL.execute(stmt="DELETE FROM statusrewards WHERE user_ID=?", var=(dcuser.dc_id,))

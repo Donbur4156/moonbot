@@ -43,7 +43,7 @@ class Halloween(di.Extension):
         return amount
 
     async def _send_reward(self, user_id: int, amounts: int, amount:int, reason: str):
-        dcuser = obj.dcuser(dc_id=user_id)
+        dcuser = DcUser(dc_id=user_id)
         text = f"{dcuser.mention} hat **{amount}** :jack_o_lantern: für das {reason} erhalten.\n`Kürbiscount:` {amounts} :jack_o_lantern:"
         await self.channel.send(text)
 
@@ -86,13 +86,13 @@ class Halloween(di.Extension):
 
     @di.extension_command(description="Halloween Event Bestenliste")
     async def leaderboard(self, ctx: di.CommandContext):
-        ctxuser = obj.dcuser(ctx=ctx)
+        ctxuser = DcUser(ctx=ctx)
         sql_data = self._SQL.execute(stmt="SELECT * FROM halloween ORDER BY pumpkins DESC").data_all
         board_user = ""
         place = 1
         user_inside = False
         for user in sql_data:
-            dcuser = obj.dcuser(dc_id=user[0])
+            dcuser = DcUser(dc_id=user[0])
             place_text = f"{place}. {dcuser.mention}: {user[1]} :jack_o_lantern:"
             if ctxuser.dc_id == dcuser.dc_id:
                 place_text = f"**{place_text}**"
@@ -104,7 +104,7 @@ class Halloween(di.Extension):
         if ctxuser.dc_id in ids:
             if not user_inside:
                 place_ind = ids.index(ctxuser.dc_id)
-                dcuser = obj.dcuser(dc_id=user[0])
+                dcuser = DcUser(dc_id=user[0])
                 board_user += f"..\n..\n**{place_ind + 1}. {dcuser.mention}: {sql_data[place_ind][1]} :jack_o_lantern:**"
             board_user += f""
         embed = di.Embed(

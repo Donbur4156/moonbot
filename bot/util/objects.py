@@ -5,7 +5,7 @@ import interactions as di
 from util.json import JSON
 
 
-class dcuser:
+class DcUser:
     def __init__(self, bot:di.Client = None, dc_id:int = None, ctx:di.CommandContext = None, member:di.Member = None) -> None:
         self.bot = bot
         self.member = None
@@ -50,9 +50,9 @@ class dcuser:
         return self.dc_tag
 
     async def update_xp_role(self, streak_count):
-        old_role = f_json.get_role(role_nr=streak_count-1)
+        old_role = JSON.get_role(role_nr=streak_count-1)
         if old_role:
             await self.member.remove_role(guild_id=c.serverid, role=old_role)
-        new_role = f_json.get_role(role_nr=streak_count)
+        new_role = JSON.get_role(role_nr=streak_count)
         if new_role:
             await self.member.add_role(guild_id=c.serverid, role=new_role)

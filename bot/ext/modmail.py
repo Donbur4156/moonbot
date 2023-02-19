@@ -65,7 +65,7 @@ class Modmail(di.Extension):
         return self._storage_user[index]
 
     async def _create_channel(self, msg: di.Message) -> di.Channel: #TODO: Möglicher Error, wenn kein Servermember.
-        dcuser = await obj.dcuser(bot=self._client, dc_id=int(msg.author.id))
+        dcuser = await DcUser(bot=self._client, dc_id=int(msg.author.id))
         member = dcuser.member
         name = f"{member.user.username}-{member.user.discriminator}"
         channel = await self._guild.create_channel(
@@ -127,7 +127,7 @@ class Modmail(di.Extension):
     async def mod_react(self, msg: di.Message):
         #Mod antwortet in Channel
         user_id = self._get_userid_bychannel(channel_id=int(msg.channel_id))
-        dcuser = await obj.dcuser(bot=self._client, dc_id=int(user_id))
+        dcuser = await DcUser(bot=self._client, dc_id=int(user_id))
         if not dcuser.member:
             await msg.reply(f"{msg.member.mention}, der User zu diesem Ticket ist nicht mehr auf diesem Server. Deine Nachricht wurde nicht zugestellt.")
             return False
@@ -150,7 +150,7 @@ class Modmail(di.Extension):
             await ctx.send("Dieser Channel ist kein aktives Ticket!", ephemeral=True)
             return
         user_id = self._get_userid_bychannel(channel_id=ctx.channel_id)
-        dcuser = await obj.dcuser(bot=self._client, dc_id=int(user_id))
+        dcuser = await DcUser(bot=self._client, dc_id=int(user_id))
         ticket_id = self._SQL.execute(
             stmt="INSERT INTO tickets_closed(user_ID) VALUES (?)",
             var=(dcuser.dc_id,)).lastrowid
