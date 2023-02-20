@@ -78,10 +78,9 @@ class DropsHandler(di.Extension):
 
     @di.extension_command(name="sternenstaub", description="Gibt deine Sternenstaub Menge zurück")
     async def starpowder_cmd(self, ctx: di.CommandContext):
-        starpowder = Drop_StarPowder()
-        sql_amount = starpowder.get_starpowder(int(ctx.user.id))
+        sql_amount = StarPowder().get_starpowder(int(ctx.user.id))
         if sql_amount:
-            text = f"Du hast bisher {sql_amount} {starpowder.emoji} Sternenstaub eingesammelt."
+            text = f"Du hast bisher {sql_amount} {Emojis.starpowder} Sternenstaub eingesammelt."
         else:
             text = "Du hast biser noch kein Sternenstaub eingesammelt."
         await ctx.send(text, ephemeral=True)
