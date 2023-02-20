@@ -101,7 +101,7 @@ class MsgXP(di.Extension):
         if not user_data:
             embed = di.Embed(
                 description="Der angefragte User war wohl noch nicht im Chat aktiv.",
-                color=di.Color.red()
+                color=di.Color.RED
             )
             await ctx.send(embeds=embed, ephemeral=True)
             return

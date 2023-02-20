@@ -188,7 +188,7 @@ class Modmail(di.Extension):
         embed = di.Embed(
             title=":scroll: Ticket geschlossen :scroll:",
             description=f"Dein aktuelles Ticket wurde durch den Moderator **{ctx.user.username}** geschlossen.\n{reason_text}\nDu kannst mit einer neuen Nachricht jederzeit ein neues eröffnen.",
-            color=di.Color.red()
+            color=di.Color.RED
         )
         if dcuser.member: await dcuser.member.send(embeds=embed)
         await ctx.channel.delete()

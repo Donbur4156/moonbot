@@ -6,7 +6,6 @@ import interactions as di
 import nest_asyncio
 from configs import Configs, config_setup
 from interactions.api.models.flags import Intents
-from interactions.ext.wait_for import setup
 from whistle import EventDispatcher
 
 nest_asyncio.apply()
@@ -30,7 +29,6 @@ bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 bot.dispatcher = EventDispatcher()
 config: Configs = config_setup(bot)
-setup(bot)
 bot.load("interactions.ext.persistence", cipher_key=c.cipher_key)
 bot.load("ext.drops")
 bot.load("ext.statusreward")

@@ -140,7 +140,7 @@ class AdminCmds(di.Extension):
         
         embed = di.Embed(
             title="Config",
-            color=di.Color.black(),
+            color=di.Color.BLACK,
             footer=di.EmbedFooter(text="Änderungen als Admin mit /config [roles/channels/specials]")
         )
         embed.add_field(name="Channel", value=channels_text)

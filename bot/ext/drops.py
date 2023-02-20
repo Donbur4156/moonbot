@@ -124,7 +124,7 @@ class DropsHandler(di.Extension):
             embed = msg.embeds[0]
             embed.title = "Drop abgelaufen"
             embed.description = "Drop ist nicht mehr verfügbar."
-            embed.color = di.Color.red()
+            embed.color = di.Color.RED
             await msg.edit(embeds=embed, components=None)
 
     async def _execute(self, drop, but_ctx:di.ComponentContext):
@@ -348,7 +348,7 @@ class UniqueRoleResponse(PersistenceExtension):
             components = ctx.message.components
             components[0].components[0].disabled = True
             await ctx.message.edit(components=components)
-            embed = di.Embed(description="Du hast leider zu wenig Sternenstaub für eine individuelle Rolle.", color=di.Color.red())
+            embed = di.Embed(description="Du hast leider zu wenig Sternenstaub für eine individuelle Rolle.", color=di.Color.RED)
             await ctx.send(embeds=embed)
             return False
         modal = di.Modal(
@@ -425,7 +425,7 @@ class UniqueRoleResponse(PersistenceExtension):
         role: di.Role = await di.get(client=self.client, obj=di.Role, parent_id=c.serverid, object_id=package[0])
         await ctx.edit(components=None)
         await ctx.send(f"Die Rolle `{role.name}` wurde gelöscht.\nDer User erhält seine 2000 Sternenstaub zurück und bekommt die Info sich bei weiteren Fragen an den Support zu wenden.")
-        await member.send(embeds=di.Embed(description=f"Die Rolle `{role.name}` wurde **nicht** genehmigt.\nDu erhältst die 2000 Sternenstaub zurück.\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.red()))
+        await member.send(embeds=di.Embed(description=f"Die Rolle `{role.name}` wurde **nicht** genehmigt.\nDu erhältst die 2000 Sternenstaub zurück.\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.RED))
         await role.delete(guild_id=c.serverid)
         StarPowder().upd_starpowder(int(member.id), amount=2000)
 
