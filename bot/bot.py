@@ -68,7 +68,9 @@ async def milestones(ctx: di.CommandContext):
 async def create_vote_message():
     text = f"Hey! Du kannst voten! {Emojis.vote_yes}\n" \
         f"Wenn du aktiv für den Server stimmst, bekommst und behältst du die <@&939557486501969951> Rolle!\n\n" \
-        f"**Voten:** https://discords.com/servers/moonfamily\n\nVielen Dank und viel Spaß! {Emojis.sleepy} {Emojis.crone} {Emojis.anime}"
+        f"**Voten:** https://discords.com/servers/moonfamily\n\nVielen Dank und viel Spaß! {Emojis.sleepy} {Emojis.crone} {Emojis.anime}" \
+        f"\n\n<@&1075849079638196395> Rolle für höhere Gewinnchancen bei Giveaways:\n" \
+        f"**Voten:** https://top.gg/de/servers/903713782650527744/vote"
     url = "https://cdn.discordapp.com/attachments/1009413427485216798/1070076437882736690/Moon_Family_Upvote_Button.png"
     embed = di.Embed(
         title=f"Voten und Unterstützer werden {Emojis.minecraft}",
