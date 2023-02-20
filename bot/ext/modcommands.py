@@ -5,7 +5,7 @@ import config as c
 import interactions as di
 from util.objects import DcUser
 from configs import Configs
-from ext.drops import Drops
+from ext.drops import StarPowder
 from util.emojis import Emojis
 from whistle import EventDispatcher
 
@@ -80,13 +80,13 @@ class AdminCmds(di.Extension):
     @di.option(description="User, der Sternenstaub bekommen soll")
     @di.option(description="Menge von Sternenstaub")
     async def starpowder_add(self, ctx: di.CommandContext, user: di.Member, amount: int):
-        amount_total = Drops.StarPowder().upd_starpowder(user_id=int(user.id), amount=amount)
+        amount_total = StarPowder().upd_starpowder(user_id=int(user.id), amount=amount)
         await ctx.send(f"Dem User {user.mention} wurden {amount} Sternenstaub hinzugefügt.\nDer User hat nun insgesamt {amount_total} Sternenstaub gesammelt.", ephemeral=True)
         logging.info(f"/add_sternenstaub/ User: {user.mention} ({user.id}); amount: {amount}; new amount: {amount_total}; Admin ID: {ctx.user.id}")
 
     @starpowder.subcommand(name="getlist", description="Erstellt eine Liste mit allen Usern mit Sternenstaub.")
     async def starpowder_getlist(self, ctx: di.CommandContext):
-        starpowder_list = Drops.StarPowder().getlist_starpowder()
+        starpowder_list = StarPowder().getlist_starpowder()
         starpowder_table = "\n".join([f'{e}. {s[1]} - <@{s[0]}>' for e, s in enumerate(starpowder_list, start=1)])
         embed = di.Embed(
             title="Sternstaub 'Bestenliste'",
