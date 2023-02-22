@@ -1,25 +1,30 @@
 from interactions import Emoji
 
-class Emojis:
-    anime = Emoji(name="Anime", id=913417511150706738, animated=True).format
-    bfly = Emoji(name="aquabutterfly", id=971514781972455525, animated=True).format
-    check = Emoji(name="check", id=913416366470602753, animated=True).format
-    clock = Emoji(name="⏰").format
-    crone = Emoji(name="Krone", id=913415374278656100, animated=True).format
-    dance = Emoji(name="DANCE", id=913380327228059658, animated=True).format
-    drop = Emoji(name=":drop:", id=1018161555663229028).format
-    give = Emoji(name="Giveaway", id=913415646103109632, animated=True).format
-    loading = Emoji(name="laden", id=913488789303853056, animated=True).format
-    minecraft = Emoji(name="minecraft_herz", id=913381125831929876).format
-    pinsel = Emoji(name="pinsel", id=1021054535248134215).format
-    sleepy = Emoji(name="SleepyMoon", id=913418101440249886).format
-    starpowder = Emoji(name="sternenstaub", id=1021054585080655882).format
-    supply = Emoji(name="supplydrop", id=1023956853983563889).format
-    vip = Emoji(name="vip_rank", id=1021054499231633469).format
-    vote_no = Emoji(name="VoteNo", id=913420354578436096, animated=True).format
-    vote_yes = Emoji(name="VoteYes", id=913420308550127657, animated=True).format
-    welcome = Emoji(name="Willkommen", id=913417971219709993, animated=True).format
-    xp = Emoji(name="XP", id=971778030047477791).format
-    ribbon = Emoji(name="moon_ribbon", id=971514780705771560, animated=True).format
-    heart = Emoji(name="disco_heart", id=929823044480938054, animated=True).format
-    boost = Emoji(name="nitro", id=985294758148706415, animated=True).format
+class CustomEmoji(Emoji):
+    def __str__(self) -> str:
+        return self.format
+
+
+class Emojis:  
+    anime = CustomEmoji(name="Anime", id=913417511150706738, animated=True)
+    bfly = CustomEmoji(name="aquabutterfly", id=971514781972455525, animated=True)
+    check = CustomEmoji(name="check", id=913416366470602753, animated=True)
+    clock = CustomEmoji(name="⏰")
+    crone = CustomEmoji(name="Krone", id=913415374278656100, animated=True)
+    dance = CustomEmoji(name="DANCE", id=913380327228059658, animated=True)
+    drop = CustomEmoji(name="drop", id=1018161555663229028)
+    give = CustomEmoji(name="Giveaway", id=913415646103109632, animated=True)
+    loading = CustomEmoji(name="laden", id=913488789303853056, animated=True)
+    minecraft = CustomEmoji(name="minecraft_herz", id=913381125831929876)
+    pinsel = CustomEmoji(name="pinsel", id=1021054535248134215)
+    sleepy = CustomEmoji(name="SleepyMoon", id=913418101440249886)
+    starpowder = CustomEmoji(name="sternenstaub", id=1021054585080655882)
+    supply = CustomEmoji(name="supplydrop", id=1023956853983563889)
+    vip = CustomEmoji(name="vip_rank", id=1021054499231633469)
+    vote_no = CustomEmoji(name="VoteNo", id=913420354578436096, animated=True)
+    vote_yes = CustomEmoji(name="VoteYes", id=913420308550127657, animated=True)
+    welcome = CustomEmoji(name="Willkommen", id=913417971219709993, animated=True)
+    xp = CustomEmoji(name="XP", id=971778030047477791)
+    ribbon = CustomEmoji(name="moon_ribbon", id=971514780705771560, animated=True)
+    heart = CustomEmoji(name="disco_heart", id=929823044480938054, animated=True)
+    boost = CustomEmoji(name="nitro", id=985294758148706415, animated=True)
