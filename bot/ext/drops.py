@@ -221,7 +221,7 @@ class Drop_BoostCol(Drop):
     def __init__(self) -> None:
         self.text = "Booster Farbe"
         self.emoji = Emojis.pinsel
-        self.weight: float = 10.15
+        self.weight: float = 0.15
         self.support = False
 
     async def execute(self, but_ctx: di.ComponentContext):
