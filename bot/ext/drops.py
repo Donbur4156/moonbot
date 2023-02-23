@@ -65,7 +65,7 @@ class DropsHandler(di.Extension):
     async def get_emoji_embed(self, ctx: di.CommandContext):
         drops = Drops()
         droplist = drops.droplist
-        drop_text = "\n".join([f'{drop.text}: {drop.emoji}, {drop.weight}' for drop in droplist])
+        drop_text = "\n".join([f'{drop.text}: {drop.emoji}' for drop in droplist])
         embed = di.Embed(
             title=f"Drop Test {Emojis.supply}",
             description=drop_text
@@ -156,17 +156,16 @@ class DropsHandler(di.Extension):
 
 class Drops:
     def __init__(self) -> None:
-        self.droplist: list[Drop] = [Drop_VIP_Rank(), Drop_BoostCol(), Drop_StarPowder()]
-        self.weights = [d.weight for d in self.droplist]
+        self.droplist: list[Drop] = [Drop_VIP_Rank, Drop_BoostCol, Drop_StarPowder]
+        self.weights = [0.1, 0.15, 0.5]
 
     def _gen_drop(self):
-        return random.choices(population=self.droplist, weights=self.weights, k=1)[0]
+        return random.choices(population=self.droplist, weights=self.weights, k=1)[0]()
 
 class Drop:
     def __init__(self) -> None:
         self.text: str = None
         self.emoji: Drop_Emoji = None
-        self.weight: float = None
         self.support: bool = True
 
     async def execute(self, but_ctx: di.ComponentContext):
@@ -179,7 +178,6 @@ class Drop_XP_Booster(Drop):
     def __init__(self) -> None:
         self.text = "XP Booster"
         self.emoji = Emojis.xp
-        self.weight:float = 0.2
         self.support = True
         self.text_variants = ["Chat XP Booster", "Voice XP Booster", "Chat/Voice XP Booster"]
         self.text_weights = [5,3,2]
@@ -204,7 +202,6 @@ class Drop_VIP_Rank(Drop):
     def __init__(self) -> None:
         self.text = "VIP Rank"
         self.emoji = Emojis.vip
-        self.weight:float = 0.1
         self.support = False
 
     async def execute(self, but_ctx: di.ComponentContext):
@@ -221,7 +218,6 @@ class Drop_BoostCol(Drop):
     def __init__(self) -> None:
         self.text = "Booster Farbe"
         self.emoji = Emojis.pinsel
-        self.weight: float = 0.15
         self.support = False
 
     async def execute(self, but_ctx: di.ComponentContext):
@@ -255,7 +251,6 @@ class Drop_StarPowder(Drop):
     def __init__(self) -> None:
         self.text = "Sternenstaub"
         self.emoji = Emojis.starpowder
-        self.weight: float = 0.5
         self.support = False
         self.starpowder = StarPowder()
 
