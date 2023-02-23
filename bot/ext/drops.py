@@ -54,7 +54,7 @@ class DropsHandler(di.Extension):
         self._msg_goal = random.randint(a=drop_min, b=drop_max)
 
     @create_task(IntervalTrigger(3600))
-    def reduce_count(self):
+    async def reduce_count(self):
         self.count = max(self.count-1, 0)
 
     @di.extension_command(name="droptest", description="Test Command für Drop System", dm_permission=False)
