@@ -53,7 +53,7 @@ class Configs():
         return await di.get(client=self._client, obj=di.Channel, object_id=id)
     
     def get_special(self, name: str) -> int:
-        return self.specials.getint(name, fallback=0)
+        return self.specials.getint(name, fallback=None)
     
     def set_role(self, name: str, id: str) -> None:
         self.roles[name] = id

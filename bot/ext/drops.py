@@ -1,5 +1,7 @@
 import asyncio
 import logging
+from io import BytesIO
+import aiohttp
 import random
 import uuid
 
@@ -156,8 +158,8 @@ class DropsHandler(di.Extension):
 
 class Drops:
     def __init__(self) -> None:
-        self.droplist: list[Drop] = [Drop_VIP_Rank, Drop_BoostCol, Drop_StarPowder]
-        self.weights = [0.1, 0.15, 0.5]
+        self.droplist: list[Drop] = [Drop_VIP_Rank, Drop_BoostCol, Drop_StarPowder, Drop_Emoji]
+        self.weights = [0.1, 0.12, 0.5, 0.08]
 
     def _gen_drop(self):
         return random.choices(population=self.droplist, weights=self.weights, k=1)[0]()
@@ -165,7 +167,7 @@ class Drops:
 class Drop:
     def __init__(self) -> None:
         self.text: str = None
-        self.emoji: Drop_Emoji = None
+        self.emoji: di.Emoji = None
         self.support: bool = True
 
     async def execute(self, but_ctx: di.ComponentContext):
@@ -278,7 +280,29 @@ class Drop_StarPowder(Drop):
 class Drop_Emoji(Drop):
     def __init__(self) -> None:
         self.text = "Emoji"
-        self.emoji = di.Emoji(name="emojis", id=1035178714687864843)
+        self.emoji = Emojis.emojis
+        self.support = False
+
+    async def execute(self, but_ctx: di.ComponentContext):
+        return "In deinen DMs kannst du ein neues Server Emoji einreichen."
+    
+    async def execute_last(self, **kwargs):
+        ctx: di.ComponentContext = kwargs.pop("ctx", None)
+        button = di.Button(
+            style=di.ButtonStyle.SUCCESS,
+            label="Server Emoji erstellen",
+            custom_id="customemoji_create",
+            emoji=Emojis.emojis
+        )
+        description = f"{Emojis.emojis} **Custom Emoji** {Emojis.emojis}\n\n" \
+            f"Herzlichen Glückwunsch! Du hast einen Custom Emoji Drop eingesammelt " \
+            f"und kannst dein eigenes Emoji auf Moon Family {Emojis.crescent_moon} hinzufügen.\n\n" \
+            f"Benutze dazu den Button `Server Emoji erstellen`.\nEs öffnet sich ein Formular mit folgenden Eingaben:\n" \
+            f"{Emojis.arrow_r} **Name**: Der Name des neuen Emojis\n" \
+            f"{Emojis.arrow_r} **Bild**: Ein Link zu dem Bild des neuen Emojis; **Bildgröße:** 128x128 Pixel\n"
+        embed = di.Embed(description=description, color=0x43FA00)
+        await ctx.member.send(embeds=embed, components=button)
+
 
 class StarPowder:
     def __init__(self) -> None:
@@ -424,7 +448,119 @@ class UniqueRoleResponse(PersistenceExtension):
         await role.delete(guild_id=c.serverid)
         StarPowder().upd_starpowder(int(member.id), amount=2000)
 
+class EmojiResponse(PersistenceExtension):
+    def __init__(self, client:di.Client) -> None:
+        self.client = client
+        self.config: Configs = client.config
+
+    @di.extension_component("customemoji_create")
+    async def create_button(self, ctx: di.ComponentContext):
+        modal = di.Modal(
+            title="Erstelle ein neues Server Emoji",
+            custom_id="customemoji_modal",
+            components=[
+                di.TextInput(
+                    style=di.TextStyleType.SHORT,
+                    label="Name des Emojis",
+                    custom_id="name",
+                    min_length=2,
+                    max_length=20,
+                ),
+                di.TextInput(
+                    style=di.TextStyleType.SHORT,
+                    label="Link zum Bild",
+                    custom_id="image",
+                )
+            ]
+        )
+        await ctx.popup(modal=modal)
+
+    @di.extension_modal("customemoji_modal")
+    async def modal_response(self, ctx:di.CommandContext, name=str, link=str):
+        guild: di.Guild = await di.get(client=self.client, obj=di.Guild, object_id=c.serverid)
+        image = di.Image(file="any.png", fp=await self.download(link))
+        emoji = await guild.create_emoji(name=name, image=image)
+        components = ctx.message.components
+        components[0].components[0].disabled = True
+        await ctx.message.edit(components=components)
+        ctx_msg_id = ctx.message.id
+        ctx_msg_channel = ctx.message.channel_id
+        await ctx.send(embeds=di.Embed(description=f"Das Emoji {emoji.format} wird geprüft.\nNach der Prüfung erhältst du weitere Infos.", color=0xFAE500))
+        
+        team_channel = await self.config.get_channel("team_chat")
+        pers_custom_id_allow = PersistentCustomID(cipher=self.client, tag="allow_emoji", package=[int(emoji.id), int(ctx.user.id)])
+        pers_custom_id_deny = PersistentCustomID(cipher=self.client, tag="deny_emoji", package=[int(emoji.id), int(ctx.user.id), int(ctx_msg_id), int(ctx_msg_channel)])
+        but_allow = di.Button(
+            style=di.ButtonStyle.SUCCESS,
+            label="Annehmen",
+            custom_id=str(pers_custom_id_allow)
+        )
+        but_deny = di.Button(
+            style=di.ButtonStyle.DANGER,
+            label="Ablehnen",
+            custom_id=str(pers_custom_id_deny)
+        )
+        owner_role = await self.config.get_role("owner")
+        content = f"{owner_role.mention}, der User {ctx.user.mention} hat durch einen Drop das Emoji {emoji.format} erstellt und zur Überprüfung eingereicht.\n"
+        await team_channel.send(content=content, components=di.ActionRow(components=[but_allow, but_deny]))
+
+    def _check_perm(self, ctx: di.CommandContext):
+        owner_role_id = self.config.get_roleid("owner")
+        return owner_role_id in ctx.member.roles
+
+    @extension_persistent_component("allow_emoji")
+    async def allow_emoji(self, ctx: di.ComponentContext, package: list):
+        if not self._check_perm(ctx=ctx): 
+            await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
+            return False
+        member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=package[1])
+        emoji: di.Emoji = await di.get(client=self.client, obj=di.Emoji, parent_id=c.serverid, object_id=package[0])
+        await ctx.edit(components=None)
+        await ctx.send(f"Das neue Emoji {emoji.format} wurde genehmigt.")
+        await member.send(embeds=di.Embed(description=f"Dein Emoji {emoji.format} wurde genehmigt! Viel Spaß! {Emojis.check}", color=0x43FA00))
+        await self.delete_old()
+        self.add_new(emoji.id)
+        chat = await self.config.get_channel("chat")
+        await chat.send(f"Der User {member.mention} hat ein **neues Emoji** auf dem Server **hinzugefügt**: {emoji.format}")
+
+    @extension_persistent_component("deny_emoji")
+    async def deny_emoji(self, ctx: di.ComponentContext, package: list):
+        if not self._check_perm(ctx=ctx): 
+            await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
+            return False
+        member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=package[1])
+        emoji: di.Emoji = await di.get(client=self.client, obj=di.Emoji, parent_id=c.serverid, object_id=package[0])
+        await ctx.edit(components=None)
+        await ctx.send(f"Das Emoji `{emoji.format}` wurde gelöscht.\nDer User bekommt die Info sich bei weiteren Fragen an den Support zu wenden.")
+        await member.send(embeds=di.Embed(description=f"Dein Emoji {emoji.format} wurde abgelehnt. Bitte nimm ein anderes. {Emojis.vote_no}\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.RED))
+        await emoji.delete(guild_id=c.serverid)
+        msg_initial: di.Message = await di.get(client=self.client, obj=di.Message, object_id=package[2], parent_id=package[3])
+        components = msg_initial.components
+        components[0].components[0].disabled = False
+        await msg_initial.edit(components=components)
+    
+
+    async def delete_old(self):
+        emoji_old_id = self.config.get_special("custom_emoji")
+        if emoji_old_id:
+            await self.delete_emoji(int(emoji_old_id))
+
+    async def delete_emoji(self, id: int):
+        guild: di.Guild = await di.get(client=self.client, obj=di.Guild, object_id=c.serverid)
+        await guild.delete_emoji(id)
+
+    def add_new(self, id: int):
+        self.config.set_special(name="custom_emoji", value=str(id))
+
+    async def download(self, link):
+        async with aiohttp.ClientSession() as s, s.get(link) as response:
+            _bytes: bytes = await response.content.read()
+
+        return BytesIO(_bytes).read()
+
+
 def setup(client):
     DropsHandler(client)
     BoostColResponse(client)
     UniqueRoleResponse(client)
+    EmojiResponse(client)

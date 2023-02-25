@@ -7,12 +7,15 @@ class CustomEmoji(Emoji):
 
 class Emojis:  
     anime = CustomEmoji(name="Anime", id=913417511150706738, animated=True)
+    arrow_r = CustomEmoji(name="pfeil_fett", id=989669927751409755, animated=True)
     bfly = CustomEmoji(name="aquabutterfly", id=971514781972455525, animated=True)
     check = CustomEmoji(name="check", id=913416366470602753, animated=True)
     clock = CustomEmoji(name="⏰")
+    crescent_moon = CustomEmoji(name="🌙")
     crone = CustomEmoji(name="Krone", id=913415374278656100, animated=True)
     dance = CustomEmoji(name="DANCE", id=913380327228059658, animated=True)
     drop = CustomEmoji(name="drop", id=1018161555663229028)
+    emojis = CustomEmoji(name="emojis", id=1035178714687864843)
     give = CustomEmoji(name="Giveaway", id=913415646103109632, animated=True)
     loading = CustomEmoji(name="laden", id=913488789303853056, animated=True)
     minecraft = CustomEmoji(name="minecraft_herz", id=913381125831929876)
