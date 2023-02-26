@@ -108,7 +108,8 @@ class AdminCmds(di.Extension):
             {"name": "Drop Chat", "value": "drop_chat"},
             {"name": "Drop Log", "value": "drop_log"},
             {"name": "Team Chat", "value": "team_chat"},
-            {"name": "Boost Color", "value": "boost_col"}
+            {"name": "Boost Color", "value": "boost_col"},
+            {"name": "Reminder", "value": "schedule"},
         ]
         roles = [
             {"name": "Owner", "value": "owner"},
@@ -159,6 +160,7 @@ class AdminCmds(di.Extension):
             di.Choice(name="Drop Log", value="drop_log"),
             di.Choice(name="Team Chat", value="team_chat"),
             di.Choice(name="Boost Color", value="boost_col"),
+            di.Choice(name="Reminder", value="schedule"),
         ])
     @di.option(description="Channel")
     async def channels(self, ctx: di.CommandContext, type: str, channel: di.Channel):

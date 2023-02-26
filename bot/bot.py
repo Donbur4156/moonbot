@@ -36,6 +36,7 @@ bot.load("ext.modmail")
 bot.load("ext.msgreward")
 bot.load("ext.modcommands")
 bot.load("ext.milestones")
+bot.load("ext.schedules")
 
 
 @bot.event
