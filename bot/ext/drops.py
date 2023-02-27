@@ -78,6 +78,28 @@ class DropsHandler(di.Extension):
     async def get_count(self, ctx: di.CommandContext):
         await ctx.send(f"Counter: {self.count}\nGoal: {self._msg_goal}", ephemeral=True)
 
+    @droptest.subcommand(name="generate")
+    @di.option(name="channel")
+    @di.option(name="drop",
+        choices=[
+            di.Choice(name="VIP", value="vip"),
+            di.Choice(name="BoostColor", value="boost"),
+            di.Choice(name="StarPowder", value="starpwd"),
+            di.Choice(name="Emoji", value="emoji"),
+        ])
+    async def generate(self, ctx: di.CommandContext, channel: di.Channel = None, drop: str = None):
+        channel = channel or ctx.channel
+        if drop:
+            drops = {
+                "vip": Drop_VIP_Rank,
+                "boost": Drop_BoostCol,
+                "starpwd": Drop_StarPowder,
+                "emoji": Drop_Emoji
+            }
+            drop = drops.get(drop)()
+        await ctx.send(f"Drop generiert in {channel.mention}", ephemeral=True)
+        await self.drop(channel=channel, drop=drop)
+
     @di.extension_command(name="sternenstaub", description="Gibt deine Sternenstaub Menge zurück")
     async def starpowder_cmd(self, ctx: di.CommandContext):
         sql_amount = StarPowder().get_starpowder(int(ctx.user.id))
@@ -91,8 +113,8 @@ class DropsHandler(di.Extension):
     def _check_goal(self):
         return self.count >= self._msg_goal
 
-    async def drop(self):
-        drop: Drop = self.drops._gen_drop()
+    async def drop(self, channel: di.Channel = None, drop = None):
+        drop: Drop = drop or self.drops._gen_drop()
         logging.info(f"Drop generated: {drop.text}")
         embed = di.Embed(
             title=f"{Emojis.supply} Drop gelandet {Emojis.supply}",
@@ -106,7 +128,8 @@ class DropsHandler(di.Extension):
             custom_id="drop_get",
             emoji=Emojis.drop
         )
-        msg = await self._channel.send(embeds=embed, components=button)
+        channel = channel or self._channel
+        msg = await channel.send(embeds=embed, components=button)
     
         def check(but_ctx:di.ComponentContext):
             return msg.id._snowflake == but_ctx.message.id._snowflake
