@@ -130,6 +130,15 @@ class AdminCmds(di.Extension):
             {"name": "Boost Color Weiß", "value": "boost_col_white"},
             {"name": "Boost Color Türkis", "value": "boost_col_cyan"},
             {"name": "Boost Color Rot", "value": "boost_col_red"},
+            {"name": "Land Deutschland", "value": "country_ger"},
+            {"name": "Land Österreich", "value": "country_aut"},
+            {"name": "Land Schweiz", "value": "country_swi"},
+            {"name": "Land Andere", "value": "country_oth"},
+            {"name": "Ping Updates", "value": "ping_upd"},
+            {"name": "Ping Events", "value": "ping_eve"},
+            {"name": "Ping Umfrage", "value": "ping_umf"},
+            {"name": "Ping Giveaways", "value": "ping_giv"},
+            {"name": "Ping Talk", "value": "ping_tlk"},
         ]
         specials = [
             {"name": "Drop Minimum", "value": "drop_min"},
@@ -168,7 +177,7 @@ class AdminCmds(di.Extension):
         self._config.set_channel(name=type, id=str(channel.id))
         await ctx.send(f"Typ: {type}\nChannel: {channel.mention}")
 
-    @config.subcommand(description="Role Config")
+    @config.subcommand(description="Role Config General")
     @di.option(description="Role type",
         choices=[
             di.Choice(name="Owner", value="owner"),
@@ -180,6 +189,14 @@ class AdminCmds(di.Extension):
             di.Choice(name="Booster", value="booster"),
             di.Choice(name="Engel", value="engel"),
             di.Choice(name="Jubiläums Rolle", value="jub_role"),
+        ])
+    @di.option(description="Role")
+    async def roles_general(self, ctx: di.CommandContext, type: str, role: di.Role):
+        await self.roles(ctx, type, role)
+    
+    @config.subcommand(description="Role Config Boost Colors")
+    @di.option(description="Role type",
+        choices=[
             di.Choice(name="Boost Color Blau", value="boost_col_blue"),
             di.Choice(name="Boost Color Pink", value="boost_col_pink"),
             di.Choice(name="Boost Color Lila", value="boost_col_violet"),
@@ -191,6 +208,26 @@ class AdminCmds(di.Extension):
             di.Choice(name="Boost Color Rot", value="boost_col_red"),
         ])
     @di.option(description="Role")
+    async def roles_boost_colors(self, ctx: di.CommandContext, type: str, role: di.Role):
+        await self.roles(ctx, type, role)
+    
+    @config.subcommand(description="Role Config Pings")
+    @di.option(description="Role type",
+        choices=[
+            di.Choice(name="Land Deutschland", value="country_ger"),
+            di.Choice(name="Land Österreich", value="country_aut"),
+            di.Choice(name="Land Schweiz", value="country_swi"),
+            di.Choice(name="Land Andere", value="country_oth"),
+            di.Choice(name="Ping Updates", value="ping_upd"),
+            di.Choice(name="Ping Events", value="ping_eve"),
+            di.Choice(name="Ping Umfrage", value="ping_umf"),
+            di.Choice(name="Ping Giveaways", value="ping_giv"),
+            di.Choice(name="Ping Talk", value="ping_tlk"),
+        ])
+    @di.option(description="Role")
+    async def roles_pings(self, ctx: di.CommandContext, type: str, role: di.Role):
+        await self.roles(ctx, type, role)
+
     async def roles(self, ctx: di.CommandContext, type: str, role: di.Role):
         logging.info(f"/config/ set Role {type} with {role.name} ({role.id}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_role(name=type, id=str(role.id))

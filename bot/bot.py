@@ -25,7 +25,7 @@ pres = di.PresenceActivity(
     type=di.PresenceActivityType.GAME,
     name="discord.gg/moonfamily",
 )
-bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
+bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT | Intents.GUILD_VOICE_STATES, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
 logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 bot.dispatcher = EventDispatcher()
 config: Configs = config_setup(bot)
@@ -37,6 +37,7 @@ bot.load("ext.msgreward")
 bot.load("ext.modcommands")
 bot.load("ext.milestones")
 bot.load("ext.schedules")
+bot.load("ext.selfroles")
 
 
 @bot.event
