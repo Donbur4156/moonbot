@@ -22,7 +22,7 @@ class SelfRoles(di.Extension):
         text = f"{Emojis.star} __**Selfroles:**__ {Emojis.star}\n\n" \
             f"**Gib dir deine Rollen, wie sie zu dir passen.\n" \
             f"Wähle dein Land aus, in welchem du wohnst und gib dir die Ping Rollen, für die Sachen für die du gepingt werden willst.**\n\n" \
-            f"{Emojis.arrow_rr} Klicke auf den entsprechenden Button, um dir die Rolle zu geben.\n" \
+            f"{Emojis.arrow_r} Klicke auf den entsprechenden Button, um dir die Rolle zu geben.\n" \
             f"Wenn du erneut auf den Button klickst, dann wird dir die Rolle wieder entfernt.\n" \
             f"Bitte nutze nur die Rollen, welche auch zu dir passen.\nMissbrauch kann bestraft werden.\n\n"
         button_ger = di.Button(
@@ -86,7 +86,6 @@ class SelfRoles(di.Extension):
 
     @di.extension_command(name="talkping", description="Pingt die talkping Rolle")
     async def talkping(self, ctx: di.CommandContext):
-        member = await di.get(self.client, obj=di.Member, object_id=int(ctx.member.id), parent_id=c.serverid)
         if not ctx.member.voice_state or int(ctx.member.voice_state.guild_id) != c.serverid:
             text = f"Du kannst diesen Command nur benutzen, wenn du dich **in einem Voice Channel** befindest! {Emojis.load_orange}"
             embed = di.Embed(description=text, color=di.Color.YELLOW)
