@@ -45,3 +45,4 @@ class Emojis:
     time_is_up = CustomEmoji(name="time_is_up", id=929814504022360125, animated=True)
     load_orange = CustomEmoji(name="Load_orange", id=996123827501281360, animated=True)
     party = CustomEmoji(name="Party", id=913490674739974174, animated=True)
+    sound = CustomEmoji(name="🔊")

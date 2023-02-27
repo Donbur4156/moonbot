@@ -38,7 +38,7 @@ class SelfRoles(di.Extension):
             style=di.ButtonStyle.SUCCESS, label="Andere",
             emoji=Emojis.country_oth, custom_id="country_oth")
         buttons = di.ActionRow(components=[button_ger, button_aut, button_swi, button_oth])
-        embed = di.Embed(description=text, color=0x43FA00)
+        embed = di.Embed(description=text, color=di.Color.BLACK)
         await channel.send(embeds=embed, components=buttons)
         await ctx.send(f"Länder Selfrole Embed wurde im Channel {channel.mention} erstellt.")
 
@@ -60,9 +60,9 @@ class SelfRoles(di.Extension):
             emoji=Emojis.give, custom_id="ping_giv")
         button_tlk = di.Button(
             style=di.ButtonStyle.SUCCESS, label="Talkping",
-            emoji=Emojis.give, custom_id="ping_tlk")
+            emoji=Emojis.sound, custom_id="ping_tlk")
         buttons = di.ActionRow(components=[button_upd, button_eve, button_umf, button_giv, button_tlk])
-        embed = di.Embed(description=text, color=0x43FA00)
+        embed = di.Embed(description=text, color=0xFF1493)
         await channel.send(embeds=embed, components=buttons)
         await ctx.send(f"Ping Selfrole Embed wurde im Channel {channel.mention} erstellt.")
 
