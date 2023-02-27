@@ -43,6 +43,6 @@ class Emojis:
     join_vc = CustomEmoji(name="JoinVC", id=913419767145177108, animated=True)
     important = CustomEmoji(name="very_important", id=971514783134277662, animated=True)
     time_is_up = CustomEmoji(name="time_is_up", id=929814504022360125, animated=True)
-    load_orange = CustomEmoji(name="Load_orange", id=996123827501281360, animated=True)
+    load_orange = CustomEmoji(name="loading_orange", id=1079864430319374500, animated=True)
     party = CustomEmoji(name="Party", id=913490674739974174, animated=True)
     sound = CustomEmoji(name="🔊")
