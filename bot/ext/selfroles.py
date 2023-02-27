@@ -26,16 +26,16 @@ class SelfRoles(di.Extension):
             f"Wenn du erneut auf den Button klickst, dann wird dir die Rolle wieder entfernt.\n" \
             f"Bitte nutze nur die Rollen, welche auch zu dir passen.\nMissbrauch kann bestraft werden.\n\n"
         button_ger = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Deutschland",
+            style=di.ButtonStyle.SECONDARY, label="Deutschland",
             emoji=Emojis.country_ger, custom_id="country_ger")
         button_aut = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Österreich",
+            style=di.ButtonStyle.SECONDARY, label="Österreich",
             emoji=Emojis.country_aut, custom_id="country_aut")
         button_swi = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Schweiz",
+            style=di.ButtonStyle.SECONDARY, label="Schweiz",
             emoji=Emojis.country_swi, custom_id="country_swi")
         button_oth = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Andere",
+            style=di.ButtonStyle.SECONDARY, label="Andere",
             emoji=Emojis.country_oth, custom_id="country_oth")
         buttons = di.ActionRow(components=[button_ger, button_aut, button_swi, button_oth])
         embed = di.Embed(description=text, color=di.Color.BLACK)
@@ -47,19 +47,19 @@ class SelfRoles(di.Extension):
     async def selfroles_pings(self, ctx: di.CommandContext, channel: di.Channel):
         text = f"**Pings:** *Reagiere auf alles, wofür du gepingt werden willst.*"
         button_upd = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Updates",
+            style=di.ButtonStyle.SECONDARY, label="Updates",
             emoji=Emojis.inbox, custom_id="ping_upd")
         button_eve = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Events",
+            style=di.ButtonStyle.SECONDARY, label="Events",
             emoji=Emojis.gift, custom_id="ping_eve")
         button_umf = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Umfrage",
+            style=di.ButtonStyle.SECONDARY, label="Umfrage",
             emoji=Emojis.chart, custom_id="ping_umf")
         button_giv = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Giveaways",
+            style=di.ButtonStyle.SECONDARY, label="Giveaways",
             emoji=Emojis.give, custom_id="ping_giv")
         button_tlk = di.Button(
-            style=di.ButtonStyle.SUCCESS, label="Talkping",
+            style=di.ButtonStyle.SECONDARY, label="Talkping",
             emoji=Emojis.sound, custom_id="ping_tlk")
         buttons = di.ActionRow(components=[button_upd, button_eve, button_umf, button_giv, button_tlk])
         embed = di.Embed(description=text, color=0xFF1493)
