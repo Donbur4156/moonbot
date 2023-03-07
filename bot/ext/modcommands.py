@@ -113,6 +113,7 @@ class AdminCmds(di.Extension):
         ]
         roles = [
             {"name": "Owner", "value": "owner"},
+            {"name": "Admins", "value": "admin"},
             {"name": "Mods", "value": "mod"},
             {"name": "Shiny Moon", "value": "moon"},
             {"name": "VIP", "value": "vip"},
@@ -181,6 +182,7 @@ class AdminCmds(di.Extension):
     @di.option(description="Role type",
         choices=[
             di.Choice(name="Owner", value="owner"),
+            di.Choice(name="Admins", value="admin"),
             di.Choice(name="Mods", value="mod"),
             di.Choice(name="Shiny Moon", value="moon"),
             di.Choice(name="VIP", value="vip"),

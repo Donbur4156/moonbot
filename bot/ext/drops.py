@@ -526,12 +526,14 @@ class EmojiResponse(PersistenceExtension):
             custom_id=str(pers_custom_id_deny)
         )
         owner_role = await self.config.get_role("owner")
-        content = f"{owner_role.mention}, der User {ctx.user.mention} hat durch einen Drop das Emoji {emoji.format} erstellt und zur Überprüfung eingereicht.\n"
+        admin_role = await self.config.get_role("admin")
+        content = f"{owner_role.mention} {admin_role.mention}, der User {ctx.user.mention} hat durch einen Drop das Emoji {emoji.format} erstellt und zur Überprüfung eingereicht.\n"
         await team_channel.send(content=content, components=di.ActionRow(components=[but_allow, but_deny]))
 
     def _check_perm(self, ctx: di.CommandContext):
-        owner_role_id = self.config.get_roleid("owner")
-        return owner_role_id in ctx.member.roles
+        owner_check = self.config.get_roleid("owner") in ctx.member.roles
+        admin_check = self.config.get_roleid("admin") in ctx.member.roles
+        return any([owner_check, admin_check])
 
     @extension_persistent_component("allow_emoji")
     async def allow_emoji(self, ctx: di.ComponentContext, package: list):
