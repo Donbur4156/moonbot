@@ -110,7 +110,7 @@ class SelfRoles(di.Extension):
         text = f"{role_talkping.mention}, es befinden sich aktuell User in den Talks.\n" \
             f"Schaut gerne vorbei und lasst die Unterhaltung noch besser werden! {Emojis.party}\n" \
             f"> *(Alle Voicechannels bringen **2x XP**!)* {Emojis.join_vc}"
-        await ctx.send(text)
+        await ctx.send(text, allowed_mentions={"parse": ["roles"]})
 
 
 def setup(client: di.Client):
