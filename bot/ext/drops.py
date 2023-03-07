@@ -132,7 +132,7 @@ class DropsHandler(di.Extension):
         msg = await channel.send(embeds=embed, components=button)
     
         def check(but_ctx:di.ComponentContext):
-            return msg.id._snowflake == but_ctx.message.id._snowflake
+            return int(msg.id) == int(but_ctx.message.id)
         
         try:
             but_ctx: di.ComponentContext = await self._client.wait_for_component(components=button, check=check, timeout=600)
@@ -142,7 +142,7 @@ class DropsHandler(di.Extension):
             embed.description = f"Drop  {drop.emoji}`{drop.text}` wurde von {but_ctx.user.mention} eingesammelt."
             embed.color = 0x43FA00
             await msg.edit(embeds=embed, components=None)
-            await self._execute(drop=drop, but_ctx=but_ctx)
+            await self._execute(drop=drop, ctx=but_ctx)
 
         except asyncio.TimeoutError:
             logging.info("Drop abgelaufen")
@@ -152,23 +152,23 @@ class DropsHandler(di.Extension):
             embed.color = di.Color.RED
             await msg.edit(embeds=embed, components=None)
 
-    async def _execute(self, drop, but_ctx:di.ComponentContext):
+    async def _execute(self, drop, ctx:di.ComponentContext):
         drop: Drop = drop
-        drop_text = await drop.execute(but_ctx)
+        drop_text = await drop.execute(ctx=ctx)
         ref_id = str(uuid.uuid4().hex)[:8]
 
-        description = f"{but_ctx.user.username}, du hast den Drop  {drop.emoji}`{drop.text}` eingesammelt.\n{drop_text}"
+        description = f"{ctx.user.username}, du hast den Drop  {drop.emoji}`{drop.text}` eingesammelt.\n{drop_text}"
         embed_user = di.Embed(
             title="Drop eingesammelt",
             description=description,
             color=0x43FA00,
             footer=di.EmbedFooter(text="Drops ~ made with 💖 by Moon Family "),
         )
-        await but_ctx.send(embeds=embed_user, ephemeral=True)
+        await ctx.send(embeds=embed_user, ephemeral=True)
 
         if drop.support:
-            user: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=but_ctx.user.id)
-            time = but_ctx.id.timestamp.strftime("%d.%m.%Y %H:%M:%S")
+            user: di.Member = await di.get(client=self._client, obj=di.Member, parent_id=c.serverid, object_id=ctx.user.id)
+            time = ctx.id.timestamp.strftime("%d.%m.%Y %H:%M:%S")
             description = f"**Drop:** {drop.text}\n**User:** {user.user.username} ({user.mention})\n**Zeit:** {time}\n**Code:** {ref_id}"
             embed_log = di.Embed(
                 title="Log - Drop eingesammelt",
@@ -176,7 +176,7 @@ class DropsHandler(di.Extension):
             )
             await self._log_channel.send(embeds=embed_log)
 
-        await drop.execute_last(client=self._client, ctx=but_ctx, ref_id=ref_id)
+        await drop.execute_last(client=self._client, ctx=ctx, ref_id=ref_id)
 
 
 class Drops:
@@ -193,7 +193,7 @@ class Drop:
         self.emoji: di.Emoji = None
         self.support: bool = True
 
-    async def execute(self, but_ctx: di.ComponentContext):
+    async def execute(self, **kwargs):
         pass
 
     async def execute_last(self, **kwargs):
@@ -207,7 +207,7 @@ class Drop_XP_Booster(Drop):
         self.text_variants = ["Chat XP Booster", "Voice XP Booster", "Chat/Voice XP Booster"]
         self.text_weights = [5,3,2]
 
-    async def execute(self, but_ctx: di.ComponentContext):
+    async def execute(self, **kwargs):
         self.text = random.choices(population=self.text_variants, weights=self.text_weights, k=1)[0]
         return f"In deinen DMs erfährst du, wie du den Booster einlösen kannst."
 
@@ -229,7 +229,7 @@ class Drop_VIP_Rank(Drop):
         self.emoji = Emojis.vip
         self.support = False
 
-    async def execute(self, but_ctx: di.ComponentContext):
+    async def execute(self, **kwargs):
         return f"Die VIP Rolle wurde dir automatisch vergeben."
 
     async def execute_last(self, **kwargs):
@@ -245,7 +245,7 @@ class Drop_BoostCol(Drop):
         self.emoji = Emojis.pinsel
         self.support = False
 
-    async def execute(self, but_ctx: di.ComponentContext):
+    async def execute(self, **kwargs):
         return "In deinen DMs kannst du dir die neue Booster Farbe auswählen."
 
     async def execute_last(self, **kwargs):
@@ -279,10 +279,11 @@ class Drop_StarPowder(Drop):
         self.support = False
         self.starpowder = StarPowder()
 
-    async def execute(self, but_ctx: di.ComponentContext):
+    async def execute(self, **kwargs):
+        ctx: di.ComponentContext = kwargs.pop("ctx")
         self.amount = random.randint(a=10, b=50)
         self.text += f" ({self.amount})"
-        user_id = int(but_ctx.user.id._snowflake)
+        user_id = int(ctx.user.id)
         self.amount = self.starpowder.upd_starpowder(user_id, self.amount)
         return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
 
@@ -306,7 +307,7 @@ class Drop_Emoji(Drop):
         self.emoji = Emojis.emojis
         self.support = False
 
-    async def execute(self, but_ctx: di.ComponentContext):
+    async def execute(self, **kwargs):
         return "In deinen DMs kannst du ein neues Server Emoji einreichen."
     
     async def execute_last(self, **kwargs):
@@ -375,8 +376,9 @@ class BoostColResponse(PersistenceExtension):
             await member.remove_role(role=role_id, guild_id=c.serverid, reason="Drop Belohnung")
         role_id = self.config.get_roleid(role_colors[id][1])
         await member.add_role(role=role_id, guild_id=c.serverid, reason="Drop Belohnung")
-        await ctx.message.delete()
-        await member.send(embeds=di.Embed(description=f"Du hast dich für `{role_colors[id][2]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00))
+        embed = di.Embed(description=f"Du hast dich für `{role_colors[id][2]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
+        await ctx.disable_all_components()
+        await ctx.send(embeds=embed, ephemeral=di.MessageFlags.EPHEMERAL in ctx.message.flags)
 
 class UniqueRoleResponse(PersistenceExtension):
     def __init__(self, client:di.Client) -> None:
