@@ -3,10 +3,10 @@ import logging
 
 import config as c
 import interactions as di
-from util.objects import DcUser
 from configs import Configs
 from ext.drops import StarPowder
 from util.emojis import Emojis
+from util.objects import DcUser
 from whistle import EventDispatcher
 
 

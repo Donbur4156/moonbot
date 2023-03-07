@@ -1,10 +1,10 @@
 import logging
 from datetime import datetime
 
+import config as c
 import interactions as di
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
-import config as c
 from util.sql import SQL
 
 
