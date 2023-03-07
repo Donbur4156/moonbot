@@ -66,7 +66,7 @@ class DropsHandler(di.Extension):
     @droptest.subcommand(name="emojis")
     async def get_emoji_embed(self, ctx: di.CommandContext):
         drops = Drops()
-        droplist = drops.droplist
+        droplist: list[Drop] = [drop() for drop in drops.droplist]
         drop_text = "\n".join([f'{drop.text}: {drop.emoji}' for drop in droplist])
         embed = di.Embed(
             title=f"Drop Test {Emojis.supply}",
@@ -102,11 +102,8 @@ class DropsHandler(di.Extension):
 
     @di.extension_command(name="sternenstaub", description="Gibt deine Sternenstaub Menge zurück")
     async def starpowder_cmd(self, ctx: di.CommandContext):
-        sql_amount = StarPowder().get_starpowder(int(ctx.user.id))
-        if sql_amount:
-            text = f"Du hast bisher {sql_amount} {Emojis.starpowder} Sternenstaub eingesammelt."
-        else:
-            text = "Du hast biser noch kein Sternenstaub eingesammelt."
+        amount_sql = StarPowder().get_starpowder(int(ctx.user.id))
+        text = f"Du hast bisher {amount_sql} {Emojis.starpowder} Sternenstaub eingesammelt."
         await ctx.send(text, ephemeral=True)
 
 
@@ -333,17 +330,20 @@ class StarPowder:
         pass
 
     def upd_starpowder(self, user_id: int, amount: int):
-        sql_amount = self.get_starpowder(user_id)
-        if sql_amount:
-            amount += sql_amount
-            SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount, user_id,))
+        amount_sql = self.get_starpowder(user_id)
+        amount_total = amount + amount_sql
+        if amount_total == 0:
+            SQL(database=c.database).execute(stmt="DELETE FROM starpowder WHERE user_ID=?", var=(user_id,))
+            return amount_total
+        if amount_sql:
+            SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount_total, user_id,))
         else:
             SQL(database=c.database).execute(stmt="INSERT INTO starpowder(user_ID, amount) VALUES (?, ?)", var=(user_id, amount,))
-        return amount
+        return amount_total
 
-    def get_starpowder(self, user_id: int):
+    def get_starpowder(self, user_id: int) -> int:
         sql_amount = SQL(database=c.database).execute(stmt="SELECT amount FROM starpowder WHERE user_ID=?", var=(user_id,)).data_single
-        return sql_amount[0] if sql_amount else None
+        return sql_amount[0] if sql_amount else 0
 
     def getlist_starpowder(self):
         return SQL(database=c.database).execute(stmt="SELECT * FROM starpowder ORDER BY amount DESC").data_all
@@ -388,7 +388,7 @@ class UniqueRoleResponse(PersistenceExtension):
     @di.extension_component("customrole_create")
     async def create_button(self, ctx:di.ComponentContext):
         sql_amount = StarPowder().get_starpowder(user_id=int(ctx.user.id))
-        if not sql_amount or sql_amount < 2000:
+        if sql_amount < 2000:
             components = ctx.message.components
             components[0].components[0].disabled = True
             await ctx.message.edit(components=components)
