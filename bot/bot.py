@@ -63,7 +63,7 @@ async def create_vote_message():
         f"<@&1075849079638196395> Rolle für höhere Gewinnchancen bei Giveaways:\n" \
         f"**Voten:** https://top.gg/de/servers/903713782650527744/vote\n\n" \
         f"Vielen Dank und viel Spaß! {Emojis.sleepy} {Emojis.crone} {Emojis.anime}"
-    url = "https://cdn.discordapp.com/attachments/1009413427485216798/1070076437882736690/Moon_Family_Upvote_Button.png"
+    url = "https://cdn.discordapp.com/attachments/1009413427485216798/1082984742355468398/vote1.png"
     embed = di.Embed(
         title=f"Voten und Unterstützer werden {Emojis.minecraft}",
         description=text,
