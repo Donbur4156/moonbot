@@ -266,8 +266,12 @@ class Drop_BoostCol(Drop):
         row1 = di.ActionRow(components=[buttons[0], buttons[1], buttons[2]])
         row2 = di.ActionRow(components=[buttons[3], buttons[4], buttons[5]])
         row3 = di.ActionRow(components=[buttons[6], buttons[7], buttons[8]])
-
-        await ctx.member.send(embeds=di.Embed(description=content, color=0x43FA00), components=[row1, row2, row3])
+        components = [row1, row2, row3]
+        embed = di.Embed(description=content, color=0x43FA00)
+        try:
+            await ctx.member.send(embeds=embed, components=components)
+        except di.api.LibraryException:
+            await ctx.send(embeds=embed, components=components, ephemeral=True)
 
 class Drop_StarPowder(Drop):
     def __init__(self) -> None:
@@ -296,7 +300,10 @@ class Drop_StarPowder(Drop):
                 "Benutze dazu den Button `Rolle erstellen`\nEs öffnet sich ein Formular, in welchem du den Namen und die Farbe angibst.\n" \
                 "Die Farbe ist als HEX Zahl anzugeben (ohne #). Bsp.: E67E22 für Orange.\nHier der Color Picker von Google: https://g.co/kgs/CFpKnZ\n"
             embed = di.Embed(description=description, color=0x43FA00)
-            await ctx.member.send(embeds=embed, components=button)
+            try:
+                await ctx.member.send(embeds=embed, components=button)
+            except di.api.LibraryException: 
+                ctx.send(embeds=embed, components=button, ephemeral=True)
 
 class Drop_Emoji(Drop):
     def __init__(self) -> None:
@@ -322,7 +329,10 @@ class Drop_Emoji(Drop):
             f"{Emojis.arrow_r} **Name**: Der Name des neuen Emojis\n" \
             f"{Emojis.arrow_r} **Bild**: Ein Link zu dem Bild des neuen Emojis; **Bildgröße:** 128x128 Pixel\n"
         embed = di.Embed(description=description, color=0x43FA00)
-        await ctx.member.send(embeds=embed, components=button)
+        try:
+            await ctx.member.send(embeds=embed, components=button)
+        except di.api.LibraryException:
+            await ctx.send(embeds=embed, components=button, ephemeral=True)
 
 
 class StarPowder:
@@ -374,11 +384,11 @@ class BoostColResponse(PersistenceExtension):
             role_id = self.config.get_roleid(role[1])
             if not role_id: continue
             await member.remove_role(role=role_id, guild_id=c.serverid, reason="Drop Belohnung")
-        role_id = self.config.get_roleid(role_colors[id][1])
-        await member.add_role(role=role_id, guild_id=c.serverid, reason="Drop Belohnung")
+        role = await self.config.get_role(role_colors[id][1])
+        await member.add_role(role=role, guild_id=c.serverid, reason="Drop Belohnung")
         embed = di.Embed(description=f"Du hast dich für `{role_colors[id][2]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
         await ctx.disable_all_components()
-        await ctx.send(embeds=embed, ephemeral=di.MessageFlags.EPHEMERAL in ctx.message.flags)
+        await ctx.send(embeds=embed, ephemeral=check_ephemeral(ctx))
 
 class UniqueRoleResponse(PersistenceExtension):
     def __init__(self, client:di.Client) -> None:
@@ -389,12 +399,11 @@ class UniqueRoleResponse(PersistenceExtension):
     async def create_button(self, ctx:di.ComponentContext):
         sql_amount = StarPowder().get_starpowder(user_id=int(ctx.user.id))
         if sql_amount < 2000:
-            components = ctx.message.components
-            components[0].components[0].disabled = True
-            await ctx.message.edit(components=components)
+            await ctx.disable_all_components()
             embed = di.Embed(description="Du hast leider zu wenig Sternenstaub für eine individuelle Rolle.", color=di.Color.RED)
-            await ctx.send(embeds=embed)
+            await ctx.send(embeds=embed, ephemeral=check_ephemeral(ctx))
             return False
+        
         modal = di.Modal(
             title="Erstelle deine individuelle Rolle",
             custom_id="customrole_modal",
@@ -420,10 +429,9 @@ class UniqueRoleResponse(PersistenceExtension):
         color_int = int(color, 16)
         guild: di.Guild = await di.get(client=self.client, obj=di.Guild, object_id=c.serverid)
         new_role: di.Role = await guild.create_role(name=name, color=color_int)
-        components = ctx.message.components
-        components[0].components[0].disabled = True
-        await ctx.message.edit(components=components)
-        await ctx.send(embeds=di.Embed(description=f"Die Rolle `{name}` wird geprüft.\nNach der Prüfung erhältst du weitere Infos.", color=0xFAE500))
+        await disable_components(ctx.message)
+        embed = di.Embed(description=f"Die Rolle `{name}` wird geprüft.\nNach der Prüfung erhältst du weitere Infos.", color=0xFAE500)
+        await ctx.send(embeds=embed, ephemeral=check_ephemeral(ctx))
         
         team_channel = await self.config.get_channel("team_chat")
         pers_custom_id_allow = PersistentCustomID(cipher=self.client, tag="allow_role", package=[int(new_role.id), int(ctx.user.id)])
@@ -505,12 +513,11 @@ class EmojiResponse(PersistenceExtension):
         guild: di.Guild = await di.get(client=self.client, obj=di.Guild, object_id=c.serverid)
         image = di.Image(file="any.png", fp=await self.download(link))
         emoji = await guild.create_emoji(name=name, image=image)
-        components = ctx.message.components
-        components[0].components[0].disabled = True
-        await ctx.message.edit(components=components)
+        await disable_components(ctx.message)
         ctx_msg_id = ctx.message.id
         ctx_msg_channel = ctx.message.channel_id
-        await ctx.send(embeds=di.Embed(description=f"Das Emoji {emoji.format} wird geprüft.\nNach der Prüfung erhältst du weitere Infos.", color=0xFAE500))
+        embed = di.Embed(description=f"Das Emoji {emoji.format} wird geprüft.\nNach der Prüfung erhältst du weitere Infos.", color=0xFAE500)
+        await ctx.send(embeds=embed, ephemeral=check_ephemeral(ctx))
         
         team_channel = await self.config.get_channel("team_chat")
         pers_custom_id_allow = PersistentCustomID(cipher=self.client, tag="allow_emoji", package=[int(emoji.id), int(ctx.user.id)])
@@ -562,10 +569,7 @@ class EmojiResponse(PersistenceExtension):
         await member.send(embeds=di.Embed(description=f"Dein Emoji {emoji.format} wurde abgelehnt. Bitte nimm ein anderes. {Emojis.vote_no}\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.RED))
         await emoji.delete(guild_id=c.serverid)
         msg_initial: di.Message = await di.get(client=self.client, obj=di.Message, object_id=package[2], parent_id=package[3])
-        components = msg_initial.components
-        components[0].components[0].disabled = False
-        await msg_initial.edit(components=components)
-    
+        enable_components(msg_initial)
 
     async def delete_old(self):
         emoji_old_id = self.config.get_special("custom_emoji")
@@ -584,6 +588,17 @@ class EmojiResponse(PersistenceExtension):
             _bytes: bytes = await response.content.read()
 
         return BytesIO(_bytes).read()
+
+def check_ephemeral(ctx: di.CommandContext):
+    return di.MessageFlags.EPHEMERAL in ctx.message.flags
+
+async def disable_components(msg: di.Message):
+    msg.components[0].components[0].disabled = True
+    await msg.edit(components=msg.components)
+
+async def enable_components(msg: di.Message):
+    msg.components[0].components[0].disabled = False
+    await msg.edit(components=msg.components)
 
 
 def setup(client):
