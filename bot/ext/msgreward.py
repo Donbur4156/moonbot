@@ -97,8 +97,10 @@ class MsgXP(di.Extension):
     async def status(self, ctx: di.CommandContext, user: di.User = None):
         if user:
             dcuser = await DcUser(bot=self._client, dc_id=user.id)
+            mention_text = f"{dcuser.member.name} hat"
         else:
             dcuser = await DcUser(bot=self._client, ctx=ctx)
+            mention_text = "Du hast"
         logging.info(f"MSGREW/show status/{dcuser.dc_id} by {ctx.member.id}")
         user_data: User = self._get_user(user_id=dcuser.dc_id)
         if not user_data:
@@ -108,14 +110,10 @@ class MsgXP(di.Extension):
             )
             await ctx.send(embeds=embed, ephemeral=True)
             return
-        if int(self.role_boost.id) in dcuser.member.roles:
-            req_msgs = 15
-        else:
-            req_msgs = 30
+        req_msgs = 15 if int(self.role_boost.id) in dcuser.member.roles else 30
         msg_count = user_data.counter_msgs
         if msg_count >= req_msgs:
             await self.upgrade_user(user_id=int(dcuser.dc_id))
-        mention_text = f"{dcuser.member.name if user else 'Du'} {'hat' if user else 'hast'}"
         if msg_count >= req_msgs:
             success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
         else:
