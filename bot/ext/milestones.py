@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import logging
 
 import config as c
@@ -39,7 +39,7 @@ class Milestones(di.Extension):
     async def on_guild_member_add(self, member: di.Member):
         self.member_count += 1
         if self.check_next_member_ms():
-            self.reach_new_member_ms()
+            await self.reach_new_member_ms()
 
     @di.extension_listener()
     async def on_guild_member_remove(self, member: di.Member):
@@ -69,21 +69,21 @@ class Milestones(di.Extension):
     def check_next_member_ms(self):
         return self.member_count >= self.member_ms_next.membercount
 
-    def reach_new_member_ms(self):
+    async def reach_new_member_ms(self):
         self.member_ms_next.set_timestamp()
-        self.publish_member_ms()
+        await self.publish_member_ms()
         self.generate_member_ms()
 
     def generate_birthday_ms(self):
         self.birthday_ms: list[MilestoneBirthday] = []
         init_dc_timestamp = self._config.get_special(name="birthday_timestamp")
         self.birthday_ms.append(MilestoneBirthday(name="Servergründung", dc_timestamp=init_dc_timestamp))
-        dc_datetime = datetime.datetime.fromtimestamp(init_dc_timestamp)
+        dc_datetime = datetime.fromtimestamp(init_dc_timestamp)
         year_count = 0
         while True:
             year_count += 1
             dc_datetime = dc_datetime.replace(year=dc_datetime.year+1)
-            if dc_datetime > datetime.datetime.now():
+            if dc_datetime > datetime.now():
                 break
             self.birthday_ms.append(MilestoneBirthday(name=f"{year_count}. Geburtstag", dc_timestamp=int(dc_datetime.timestamp())))
         self.birthday_ms_next = MilestoneBirthday(name=f"{year_count}. Geburtstag", dc_timestamp=int(dc_datetime.timestamp()))
@@ -118,7 +118,7 @@ class MilestoneMembers():
         return f"{self.membercount} Mitglieder: {self.get_time_formated()}"
 
     def set_timestamp(self, timestamp: int = None):
-        self.dc_timestamp = timestamp or int(di.time())
+        self.dc_timestamp = timestamp or int(datetime.now().timestamp())
         stmt = "UPDATE milestones SET timestamp=? WHERE count=?"
         var = (self.dc_timestamp, self.membercount,)
         self._SQL.execute(stmt=stmt, var=var)
