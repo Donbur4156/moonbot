@@ -193,7 +193,7 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Role")
     async def roles_general(self, ctx: di.CommandContext, type: str, role: di.Role):
-        await self.roles(ctx, type, role)
+        await self.set_role(ctx, type, role)
     
     @config.subcommand(description="Role Config Boost Colors")
     @di.option(description="Role type",
@@ -210,7 +210,7 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Role")
     async def roles_boost_colors(self, ctx: di.CommandContext, type: str, role: di.Role):
-        await self.roles(ctx, type, role)
+        await self.set_role(ctx, type, role)
     
     @config.subcommand(description="Role Config Pings")
     @di.option(description="Role type",
@@ -227,9 +227,9 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Role")
     async def roles_pings(self, ctx: di.CommandContext, type: str, role: di.Role):
-        await self.roles(ctx, type, role)
+        await self.set_role(ctx, type, role)
 
-    async def roles(self, ctx: di.CommandContext, type: str, role: di.Role):
+    async def set_role(self, ctx: di.CommandContext, type: str, role: di.Role):
         logging.info(f"CONFIG/ROLE/SET/{type} with {role.name} ({role.id}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_role(name=type, id=str(role.id))
         await ctx.send(f"Typ: {type}\nRolle: {role.mention}")
