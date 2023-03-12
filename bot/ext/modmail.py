@@ -36,17 +36,17 @@ class Modmail(di.Extension):
     async def on_message_create(self, msg: di.Message):
         if msg.author.bot: return
         if not msg.guild_id and msg.author.id._snowflake != self._client.me.id._snowflake:
-            logging.info(f"MSG to Bot: {msg.author.username} ({msg.author.id}):'{msg.content}'")
+            logging.info(f"MODMAIL/USERMSG/ {msg.author.username} ({msg.author.id}): '{msg.content}'")
             await self.dm_bot(msg=msg)
         elif self._check_channel(channel_id=int(msg.channel_id)):
-            logging.info(f"MSG of Mod: {msg.author.username} ({msg.author.id}):'{msg.content}'")
+            logging.info(f"MODMAIL/MODMSG/ {msg.author.username} ({msg.author.id}): '{msg.content}'")
             await self.mod_react(msg=msg)
 
     @di.extension_command(description="Schließt dieses Ticket", scope=c.serverid)
     @di.option(description="Grund für Schließen des Tickets. (optional)")
     async def close_ticket(self, ctx: di.CommandContext, reason: str = None):
-        logging.info(f"{ctx.user.username} close ticket of channel '{ctx.channel.name}' with reason: '{reason}'")
-        await self.close_mail(ctx=ctx, reason=reason)
+        ticket_id = await self.close_mail(ctx=ctx, reason=reason)
+        logging.info(f"MODMAIL/CLOSE/{ticket_id}/Admin: {ctx.user.id}; Reason: '{reason}'")
 
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
@@ -74,7 +74,7 @@ class Modmail(di.Extension):
             parent_id=self._channel_def.parent_id,
             permission_overwrites=self._channel_def.permission_overwrites
         )
-        logging.info(f"created ticketchannel for {member.user.username}: '{name}'")
+        logging.info(f"MODMAIL/CREATE/{member.id}: '{name}'")
         self._SQL.execute(
             stmt="INSERT INTO tickets(user_ID, channel_ID) VALUES (?, ?)",
             var=(dcuser.dc_id, int(channel.id),))
@@ -192,6 +192,7 @@ class Modmail(di.Extension):
         )
         if dcuser.member: await dcuser.member.send(embeds=embed)
         await ctx.channel.delete()
+        return ticket_id
 
     async def _gen_files(self, msg: di.Message):
         return [di.File(filename=att.filename, fp=await download(msg, att)) for att in msg.attachments]

@@ -30,7 +30,7 @@ class AdminCmds(di.Extension):
     @di.extension_command(description="vergibt die Engelchen Rolle an einen User", dm_permission=False)
     @di.option(description="@User")
     async def engel(self, ctx: di.CommandContext, user: di.Member):
-        logging.info(f"/engel/ add Role 'engel' to {user.name} ({user.id}) by {ctx.member.name} ({ctx.member.id})")
+        logging.info(f"ENGEL/add Role to {user.name} ({user.id}) by {ctx.member.name} ({ctx.member.id})")
         await user.add_role(guild_id=ctx.guild_id, role=self.role_engel)
         text = f"{Emojis.check} {user.mention} ist nun ein Engelchen! {Emojis.bfly}"
         await ctx.send(text)
@@ -82,7 +82,7 @@ class AdminCmds(di.Extension):
     async def starpowder_add(self, ctx: di.CommandContext, user: di.Member, amount: int):
         amount_total = StarPowder().upd_starpowder(user_id=int(user.id), amount=amount)
         await ctx.send(f"Dem User {user.mention} wurden {amount} Sternenstaub hinzugefügt.\nDer User hat nun insgesamt {amount_total} Sternenstaub gesammelt.", ephemeral=True)
-        logging.info(f"/add_sternenstaub/ User: {user.mention} ({user.id}); amount: {amount}; new amount: {amount_total}; Admin ID: {ctx.user.id}")
+        logging.info(f"STARPOWDER/User: {user.mention} ({user.id}); amount: {amount}; new amount: {amount_total}; Admin ID: {ctx.user.id}")
 
     @starpowder.subcommand(name="getlist", description="Erstellt eine Liste mit allen Usern mit Sternenstaub.")
     async def starpowder_getlist(self, ctx: di.CommandContext):
@@ -100,7 +100,6 @@ class AdminCmds(di.Extension):
 
     @config.subcommand(description="Zeigt Config an")
     async def show(self, ctx: di.CommandContext):
-        logging.info(f"show config for {ctx.member.name} ({ctx.member.id})")
         channels = [
             {"name": "Chat", "value": "chat"},
             {"name": "Mail Default", "value": "mail_def"},
@@ -174,7 +173,7 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Channel")
     async def channels(self, ctx: di.CommandContext, type: str, channel: di.Channel):
-        logging.info(f"/config/ set Channel {type} with {channel.name} ({channel.id}) by {ctx.member.name} ({ctx.member.id})")
+        logging.info(f"CONFIG/CHANNEL/SET/{type} with {channel.name} ({channel.id}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_channel(name=type, id=str(channel.id))
         await ctx.send(f"Typ: {type}\nChannel: {channel.mention}")
 
@@ -231,7 +230,7 @@ class AdminCmds(di.Extension):
         await self.roles(ctx, type, role)
 
     async def roles(self, ctx: di.CommandContext, type: str, role: di.Role):
-        logging.info(f"/config/ set Role {type} with {role.name} ({role.id}) by {ctx.member.name} ({ctx.member.id})")
+        logging.info(f"CONFIG/ROLE/SET/{type} with {role.name} ({role.id}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_role(name=type, id=str(role.id))
         await ctx.send(f"Typ: {type}\nRolle: {role.mention}")
         
@@ -245,10 +244,9 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Special")
     async def specials(self, ctx: di.CommandContext, type: str, special: str):
-        logging.info(f"/config/ set special {type} with {special} ({special}) by {ctx.member.name} ({ctx.member.id})")
+        logging.info(f"CONFIG/SPECIAL/SET/{type} with {special} ({special}) by {ctx.member.name} ({ctx.member.id})")
         self._config.set_special(name=type, value=special)
         await ctx.send(f"Typ: {type}\nWert: {special}")
-
 
 
 class ModCmds(di.Extension):

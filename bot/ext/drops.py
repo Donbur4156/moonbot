@@ -112,7 +112,7 @@ class DropsHandler(di.Extension):
 
     async def drop(self, channel: di.Channel = None, drop = None):
         drop: Drop = drop or self.drops._gen_drop()
-        logging.info(f"Drop generated: {drop.text}")
+        logging.info(f"DROPS/Drop generated: {drop.text}")
         embed = di.Embed(
             title=f"{Emojis.supply} Drop gelandet {Emojis.supply}",
             description="Hey! Es ist soeben ein Drop gelandet! Wer ihn aufsammelt bekommt ihn! ",
@@ -133,7 +133,7 @@ class DropsHandler(di.Extension):
         
         try:
             but_ctx: di.ComponentContext = await self._client.wait_for_component(components=button, check=check, timeout=600)
-            logging.info(f"Drop eingesammelt von: {but_ctx.user.username} ({but_ctx.user.id})")
+            logging.info(f"DROPS/Drop eingesammelt von: {but_ctx.user.username} ({but_ctx.user.id})")
             embed = msg.embeds[0]
             embed.title = "Drop eingesammelt"
             embed.description = f"Drop  {drop.emoji}`{drop.text}` wurde von {but_ctx.user.mention} eingesammelt."
@@ -142,7 +142,7 @@ class DropsHandler(di.Extension):
             await self._execute(drop=drop, ctx=but_ctx)
 
         except asyncio.TimeoutError:
-            logging.info("Drop abgelaufen")
+            logging.info("DROPS/Drop abgelaufen")
             embed = msg.embeds[0]
             embed.title = "Drop abgelaufen"
             embed.description = "Drop ist nicht mehr verfügbar."
@@ -235,6 +235,7 @@ class Drop_VIP_Rank(Drop):
         config: Configs = client.config
         vip_role = await config.get_role("vip")
         await ctx.member.add_role(vip_role, c.serverid, reason="Drop Belohnung")
+        logging.info(f"DROPS/VIP/add Role to {ctx.member.id}")
 
 class Drop_BoostCol(Drop):
     def __init__(self) -> None:
@@ -270,8 +271,10 @@ class Drop_BoostCol(Drop):
         embed = di.Embed(description=content, color=0x43FA00)
         try:
             await ctx.member.send(embeds=embed, components=components)
+            logging.info(f"DROPS/BOOSTCOL/send Embed with Buttons via DM")
         except di.api.LibraryException:
             await ctx.send(embeds=embed, components=components, ephemeral=True)
+            logging.info(f"DROPS/BOOSTCOL/send Embed with Buttons via Ephemeral")
 
 class Drop_StarPowder(Drop):
     def __init__(self) -> None:
@@ -286,6 +289,7 @@ class Drop_StarPowder(Drop):
         self.text += f" ({self.amount})"
         user_id = int(ctx.user.id)
         self.amount = self.starpowder.upd_starpowder(user_id, self.amount)
+        logging.info(f"DROPS/STARPOWDER/add {self.amount} to {user_id}")
         return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
 
     async def execute_last(self, **kwargs):
@@ -302,8 +306,10 @@ class Drop_StarPowder(Drop):
             embed = di.Embed(description=description, color=0x43FA00)
             try:
                 await ctx.member.send(embeds=embed, components=button)
+                logging.info(f"DROPS/STARPOWDER/send Custom Role Embed via DM")
             except di.api.LibraryException: 
                 ctx.send(embeds=embed, components=button, ephemeral=True)
+                logging.info(f"DROPS/STARPOWDER/send Custom Role Embed via Ephemeral")
 
 class Drop_Emoji(Drop):
     def __init__(self) -> None:
@@ -331,8 +337,10 @@ class Drop_Emoji(Drop):
         embed = di.Embed(description=description, color=0x43FA00)
         try:
             await ctx.member.send(embeds=embed, components=button)
+            logging.info(f"DROPS/EMOJIS/send Emoji Embed via DM")
         except di.api.LibraryException:
             await ctx.send(embeds=embed, components=button, ephemeral=True)
+            logging.info(f"DROPS/EMOJIS/send Emoji Embed via Ephemeral")
 
 
 class StarPowder:
@@ -349,6 +357,7 @@ class StarPowder:
             SQL(database=c.database).execute(stmt="UPDATE starpowder SET amount=? WHERE user_ID=?", var=(amount_total, user_id,))
         else:
             SQL(database=c.database).execute(stmt="INSERT INTO starpowder(user_ID, amount) VALUES (?, ?)", var=(user_id, amount,))
+        logging.info(f"DROPS/STARPOWDER/update starpowder of user {user_id} by {amount}")
         return amount_total
 
     def get_starpowder(self, user_id: int) -> int:
@@ -389,6 +398,7 @@ class BoostColResponse(PersistenceExtension):
         embed = di.Embed(description=f"Du hast dich für `{role_colors[id][2]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
         await ctx.disable_all_components()
         await ctx.send(embeds=embed, ephemeral=check_ephemeral(ctx))
+        logging.info(f"DROPS/BOOSTCOL/add Role {role.name} to {member.id}")
 
 class UniqueRoleResponse(PersistenceExtension):
     def __init__(self, client:di.Client) -> None:
@@ -449,8 +459,9 @@ class UniqueRoleResponse(PersistenceExtension):
         owner_role = await self.config.get_role("owner")
         content = f"{owner_role.mention}, der User {ctx.user.mention} hat mit Sternenstaub die Rolle {new_role.mention} erstellt und zur Überprüfung eingereicht.\n"
         await team_channel.send(content=content, components=di.ActionRow(components=[but_allow, but_deny]))
-
+        logging.info(f"DROPS/CUSTOMROLE/send approval embed/Role: {new_role.name}; User: {ctx.user.id}")
         StarPowder().upd_starpowder(int(ctx.user.id), amount=-2000)
+        
 
     def _check_perm(self, ctx: di.CommandContext):
         owner_role_id = self.config.get_roleid("owner")
@@ -467,6 +478,7 @@ class UniqueRoleResponse(PersistenceExtension):
         await ctx.edit(components=None)
         await ctx.send(f"Dem User {member.mention} wurde die Rolle {role.mention} zugewiesen.")
         await member.send(embeds=di.Embed(description=f"Die Rolle `{role.name}` wurde genehmigt und dir erfolgreich zugewiesen.", color=0x43FA00))
+        logging.info(f"DROPS/CUSTOMROLE/allow role/Role: {role.name}; User: {member.id}; Admin: {ctx.user.id}")
 
     @extension_persistent_component("deny_role")
     async def deny_role(self, ctx: di.ComponentContext, package: list):
@@ -480,6 +492,7 @@ class UniqueRoleResponse(PersistenceExtension):
         await member.send(embeds=di.Embed(description=f"Die Rolle `{role.name}` wurde **nicht** genehmigt.\nDu erhältst die 2000 Sternenstaub zurück.\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.RED))
         await role.delete(guild_id=c.serverid)
         StarPowder().upd_starpowder(int(member.id), amount=2000)
+        logging.info(f"DROPS/CUSTOMROLE/deny role/Role: {role.name}; User: {member.id}; Admin: {ctx.user.id}")
 
 class EmojiResponse(PersistenceExtension):
     def __init__(self, client:di.Client) -> None:
@@ -536,6 +549,7 @@ class EmojiResponse(PersistenceExtension):
         admin_role = await self.config.get_role("admin")
         content = f"{owner_role.mention} {admin_role.mention}, der User {ctx.user.mention} hat durch einen Drop das Emoji {emoji.format} erstellt und zur Überprüfung eingereicht.\n"
         await team_channel.send(content=content, components=di.ActionRow(components=[but_allow, but_deny]))
+        logging.info(f"DROPS/CUSTOMEMOJI/send approval embed/Emoji: {emoji.id}; User: {ctx.user.id}")
 
     def _check_perm(self, ctx: di.CommandContext):
         owner_check = self.config.get_roleid("owner") in ctx.member.roles
@@ -556,6 +570,7 @@ class EmojiResponse(PersistenceExtension):
         self.add_new(emoji.id)
         chat = await self.config.get_channel("chat")
         await chat.send(f"Der User {member.mention} hat ein **neues Emoji** auf dem Server **hinzugefügt**: {emoji.format}")
+        logging.info(f"DROPS/CUSTOMEMOJI/allow Emoji/Emoji: {emoji.id}; User: {member.id}; Admin: {ctx.user.id}")
 
     @extension_persistent_component("deny_emoji")
     async def deny_emoji(self, ctx: di.ComponentContext, package: list):
@@ -570,6 +585,8 @@ class EmojiResponse(PersistenceExtension):
         await emoji.delete(guild_id=c.serverid)
         msg_initial: di.Message = await di.get(client=self.client, obj=di.Message, object_id=package[2], parent_id=package[3])
         enable_components(msg_initial)
+        logging.info(f"DROPS/CUSTOMEMOJI/deny Emoji/Emoji: {emoji.id}; User: {member.id}; Admin: {ctx.user.id}")
+
 
     async def delete_old(self):
         emoji_old_id = self.config.get_special("custom_emoji")

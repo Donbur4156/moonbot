@@ -47,6 +47,7 @@ async def on_start():
 
 @bot.event
 async def on_guild_member_add(member: di.Member):
+    logging.info(f"EVENT/Member Join/{member.name} ({member.id})")
     text = f"Herzlich Willkommen auf **Moon Family 🌙** {member.mention}! {Emojis.welcome} {Emojis.dance} {Emojis.crone}"
     channel = await config.get_channel("chat")
     await channel.send(text)

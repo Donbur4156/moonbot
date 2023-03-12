@@ -36,7 +36,7 @@ class DcUser:
                 self.member = None
         except Exception as err:
             self.member = None
-            logging.info(f"{err.__str__()}: {self.dc_id}")
+            logging.error(f"{err.__str__()}: {self.dc_id}")
 
     def initialize(self) -> bool:
         if not self.member:

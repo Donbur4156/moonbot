@@ -133,7 +133,7 @@ class Schedule(di.Extension):
                 id = option.value
                 if not id in self._sched_activ.keys():
                     await ctx.send(f"Die ID `{id}` konnte nicht gefunden werden.")
-                    logging.info(f"REMINDER//ERROR/ID not found/ {id}")
+                    logging.info(f"REMINDER/ERROR/ID not found/ {id}")
                     return False
                 break
         return True
@@ -242,7 +242,6 @@ class Schedule(di.Extension):
             text += f"\n**Text:**\n{rem_text}"
             embed.add_field(name=title, value=text)
         await ctx.send(embeds=embed)
-        logging.info(f"REMINDER//show/")
 
     @reminder.subcommand(name="delete")
     @di.option(description="Reminder ID") #id

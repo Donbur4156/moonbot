@@ -92,6 +92,7 @@ class Milestones(di.Extension):
     async def publish_member_ms(self):
         channel = await self._config.get_channel(name="chat")
         await channel.send(f"Wir haben einen neuen Meilenstein erreicht:\n{self.member_ms_next.get_text()}")
+        logging.info(f"MILESTONES/new member Milestone: {self.member_ms_next.membercount}")
     
     async def publish_birthday_ms(self):
         channel = await self._config.get_channel(name="chat")

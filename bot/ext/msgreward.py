@@ -56,6 +56,7 @@ class MsgXP(di.Extension):
                 req_msgs = [30]
             if user_data.counter_msgs in req_msgs:
                 await self.upgrade_user(user_id=int(msg.author.id))
+
         if msg.type in self._msgtypes_subs:
             member = msg.member
             member_iconurl = member.user.avatar_url
@@ -76,8 +77,10 @@ class MsgXP(di.Extension):
                 footer=di.EmbedFooter(text="Booste jetzt auch, um alle Boostervorteile zu nutzen!"),
                 thumbnail=di.EmbedImageStruct(url=member_iconurl)
             )
+            logging.info(f"BOOST/Level {boost_lvl} by {member.name} ({member.id})")
             channel = await msg.get_channel()
             await channel.send(embeds=embed)
+            
 
     def _add_boost(self, member: di.Member):
         boost_sql = self._SQL.execute(stmt="SELECT amount FROM booster WHERE user_ID=?", var=(int(member.id),)).data_single
@@ -96,7 +99,7 @@ class MsgXP(di.Extension):
             dcuser = await DcUser(bot=self._client, dc_id=user.id)
         else:
             dcuser = await DcUser(bot=self._client, ctx=ctx)
-        logging.info(f"show status for {dcuser.member.user.username} by {ctx.member.user.username}")
+        logging.info(f"MSGREW/show status/{dcuser.dc_id} by {ctx.member.id}")
         user_data: User = self._get_user(user_id=dcuser.dc_id)
         if not user_data:
             embed = di.Embed(
@@ -171,7 +174,7 @@ class MsgXP(di.Extension):
         if streak_data:
             dcuser = await DcUser(bot=self.client, dc_id=user_id)
             await self._remove_roles(dcuser)
-            logging.info(f"{dcuser.member.user.username} reached new streak: {streak_data}")
+            logging.info(f"MSGSTREAK/new/{dcuser.dc_id}: {streak_data}")
             await dcuser.member.add_role(guild_id=c.serverid, role=self._streak_roles.get(str(streak_data)))
 
         event = Event()
