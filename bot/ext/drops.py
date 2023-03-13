@@ -288,8 +288,8 @@ class Drop_StarPowder(Drop):
         self.amount = random.randint(a=10, b=50)
         self.text += f" ({self.amount})"
         user_id = int(ctx.user.id)
-        self.amount = self.starpowder.upd_starpowder(user_id, self.amount)
         logging.info(f"DROPS/STARPOWDER/add {self.amount} to {user_id}")
+        self.amount = self.starpowder.upd_starpowder(user_id, self.amount)
         return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
 
     async def execute_last(self, **kwargs):
