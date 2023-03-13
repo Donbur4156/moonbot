@@ -200,9 +200,9 @@ class MsgXP(di.Extension):
             if not user.last_day: continue
             last_day = datetime.strptime(user.last_day, "%Y-%m-%d").date()
             if (today - last_day).days > 1:
-                dcuser = await DcUser(bot=self._client, dc_id=user.user_id)
+                dcuser = await DcUser(bot=self._client, dc_id=user.id)
                 await self._remove_roles(dcuser)
-                self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user.user_id,))
+                self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user.id,))
         self._get_storage()
 
     async def _remove_roles(self, dcuser: DcUser):
@@ -214,7 +214,7 @@ class MsgXP(di.Extension):
 
 class User:
     def __init__(self, data:list) -> None:
-        self.user_id: int = data[0]
+        self.id: int = data[0]
         self.streak: int = data[1]
         self.counter_days: int = data[2]
         self.counter_msgs: int = data[3]
