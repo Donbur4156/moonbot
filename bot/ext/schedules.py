@@ -256,7 +256,7 @@ class Schedule(di.Extension):
         logging.info(f"REMINDER/{id}/delete")
 
     
-    async def __check_timeformat(self, ctx: di.CommandContext, time: str):
+    async def __check_timeformat(self, ctx: di.CommandContext, time: str): #TODO: Zeitformat variabel
         try:
             t = datetime.strptime(time, "%d.%m.%Y %H:%M")
         except ValueError:

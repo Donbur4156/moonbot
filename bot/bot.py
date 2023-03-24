@@ -54,6 +54,9 @@ async def on_guild_member_add(member: di.Member):
     await member.add_role(role=903715839545598022, guild_id=member.guild_id)
     await member.add_role(role=905466661237301268, guild_id=member.guild_id)
     await member.add_role(role=913534417123815455, guild_id=member.guild_id)
+    # TODO: Events als Class -> Leave Event als Abbruchbedingung
+    # TODO: add_role Zeitversetzt
+    # TODO: Welcome Message automatisch löschen bei Leave
 
 
 @aiocron.crontab('0 */6 * * *')
