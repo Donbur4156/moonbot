@@ -1,30 +1,22 @@
-import asyncio
+from __future__ import annotations
+
 import logging
 import random
-import uuid
 from datetime import datetime, timezone
-from io import BytesIO
 
-import aiohttp
 import config as c
 import dateparser
 import interactions as di
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.job import Job
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
-from interactions.ext.persistence import (PersistenceExtension,
-                                          PersistentCustomID,
-                                          extension_persistent_component,
-                                          extension_persistent_modal)
-from interactions.ext.tasks import IntervalTrigger, create_task
 from util.emojis import Emojis
 from util.objects import DcUser
 from util.sql import SQL
 from whistle import EventDispatcher
 
-TZ = "Europe/Berlin"
 
-class Giveaways(PersistenceExtension):
+class Giveaways(di.Extension):
     def __init__(self, client: di.Client) -> None:
         self.client: di.Client = client
         self.config: Configs = client.config
@@ -32,14 +24,33 @@ class Giveaways(PersistenceExtension):
         self.sql = SQL(database=c.database)
         self.giveaways: dict[int, Giveaway] = {}
         self.giveaways_running: dict[int, Giveaway] = {}
-        self.schedule = AsyncIOScheduler(timezone=TZ)
+        self.schedule = AsyncIOScheduler(timezone="Europe/Berlin")
         self._sched_activ: dict[int, dict[str, str]] = {}
+        self.permitted_roles: set[int] = []
 
-
+   
     @di.extension_listener
     async def on_start(self):
+        self.dispatcher.add_listener("config_update", self._run_load_config)
+        self.get_permitted_roles()
         await self.get_running_giveaways()
 
+    def _run_load_config(self, event):
+        self.get_permitted_roles()
+
+    def get_permitted_roles(self):
+        self.permitted_roles = {
+            self.config.get_roleid("admin"),
+            self.config.get_roleid("owner"),
+            self.config.get_roleid("eventmanager"),
+        }
+
+    async def check_perms_control(self, ctx: di.ComponentContext) -> bool:
+        if not self.permitted_roles.intersection(set(ctx.member.roles)):
+            await ctx.send("Du bist hierzu nicht berechtigt!", ephemeral=True)
+            return False
+        return True
+    
     async def get_running_giveaways(self):
         stmt = "SELECT * FROM giveaways WHERE closed=0"
         data = self.sql.execute(stmt=stmt).data_all
@@ -52,8 +63,7 @@ class Giveaways(PersistenceExtension):
             self.giveaways_running.update({g.post_message_id: g})
         self.schedule.start()
 
-    def add_schedule(self, giveaway):
-        giveaway: Giveaway = giveaway
+    def add_schedule(self, giveaway: Giveaway) -> bool:
         if giveaway.end_time < datetime.now(tz=timezone.utc):
             giveaway.close()
             return False
@@ -67,6 +77,7 @@ class Giveaways(PersistenceExtension):
 
     @giveaways_cmds.subcommand(name="generate", description="generiert ein neues Giveaway")
     async def giveaways_generate(self, ctx: di.CommandContext):
+        if not await self.check_perms_control(ctx): return False
         modal = di.Modal(custom_id="give_generate", title="Erstelle ein Giveaway",
             components=[
                 di.TextInput(
@@ -102,7 +113,6 @@ class Giveaways(PersistenceExtension):
             ])
         await ctx.popup(modal=modal)
 
-
     @di.extension_modal("give_generate")
     async def modal_givegenerate(self, ctx: di.CommandContext, duration: str, winner_amount: str, price: str, description: str):
         data = [None, None, price, description, duration, int(winner_amount), None, None, False]
@@ -114,17 +124,18 @@ class Giveaways(PersistenceExtension):
         self.giveaways.update({giveaway.id:giveaway})
         await ctx.send("Das Giveaway wurde generiert", ephemeral=True)
 
-    async def send_control_embed(self, ctx: di.CommandContext, giveaway):
+    async def send_control_embed(self, ctx: di.CommandContext, giveaway: Giveaway):
         embed, components = self.get_giveaway_control(giveaway)
         return await ctx.send(embeds=embed, components=components)
 
-    async def edit_control_embed(self, ctx: di.CommandContext, giveaway):
+    async def edit_control_embed(self, ctx: di.CommandContext, giveaway: Giveaway):
         embed, components = self.get_giveaway_control(giveaway)
         return await ctx.edit(embeds=embed, components=components)
 
 
     @di.extension_component("set_price")
     async def change_price(self, ctx: di.ComponentContext):
+        if not await self.check_perms_control(ctx): return False
         modal = di.Modal(custom_id="mod_set_price", title="Preis",
             components=[
                 di.TextInput(
@@ -148,6 +159,7 @@ class Giveaways(PersistenceExtension):
 
     @di.extension_component("set_description")
     async def change_description(self, ctx: di.ComponentContext):
+        if not await self.check_perms_control(ctx): return False
         modal = di.Modal(custom_id="mod_set_description", title="Beschreibung",
             components=[
                 di.TextInput(
@@ -171,6 +183,7 @@ class Giveaways(PersistenceExtension):
 
     @di.extension_component("set_duration")
     async def change_duration(self, ctx: di.ComponentContext):
+        if not await self.check_perms_control(ctx): return False
         modal = di.Modal(custom_id="mod_set_duration", title="Dauer",
             components=[
                 di.TextInput(
@@ -194,6 +207,7 @@ class Giveaways(PersistenceExtension):
 
     @di.extension_component("set_winner_amount")
     async def change_winner_amount(self, ctx: di.ComponentContext):
+        if not await self.check_perms_control(ctx): return False
         modal = di.Modal(custom_id="mod_set_winner_amount", title="Anzahl Gewinner",
             components=[
                 di.TextInput(
@@ -217,6 +231,7 @@ class Giveaways(PersistenceExtension):
 
     @di.extension_component("start")
     async def start_giveaway(self, ctx: di.CommandContext):
+        if not await self.check_perms_control(ctx): return False
         giveaway: Giveaway = self.get_giveaway(ctx)
         if not giveaway.start_able():
             await ctx.send("Das Giveaway konnte nicht gestartet werden. Möglicherweise fehlen Angaben oder die Dauer konnte nicht übersetzt werden.", ephemeral=True)
@@ -233,8 +248,10 @@ class Giveaways(PersistenceExtension):
         self.giveaways_running.update({giveaway.post_message_id:giveaway})
         return True
 
+
     @di.extension_component("stop")
     async def stop_giveaway(self, ctx: di.ComponentContext):
+        if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
         try:
             giveaway_message = await giveaway.get_post_message()
@@ -252,6 +269,7 @@ class Giveaways(PersistenceExtension):
 
     @di.extension_component("end")
     async def end_giveaway(self, ctx: di.ComponentContext):
+        if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
         await self.run_drawing(giveaway)
         if not giveaway.closed:
@@ -259,8 +277,8 @@ class Giveaways(PersistenceExtension):
             self.giveaways_running.pop(giveaway.post_message_id)
             giveaway.close()
 
-    async def run_drawing(self, giveaway):
-        giveaway: Giveaway = giveaway
+
+    async def run_drawing(self, giveaway: Giveaway):
         winners = giveaway.draw_winners()
 
         msg = await giveaway.get_post_message()
@@ -290,17 +308,11 @@ class Giveaways(PersistenceExtension):
         await ctx.edit(embeds = embed)
         await ctx.send("Du hast dich erfolgreich für das Gewinnspiel eingetragen.", ephemeral=True)
 
-    
-    def check_perms_control(self):
-        pass
 
-
-
-    def get_giveaway(self, ctx: di.CommandContext):
+    def get_giveaway(self, ctx: di.CommandContext) -> Giveaway:
         return self.giveaways.get(int(ctx.message.id)) or self.giveaways_running.get(int(ctx.message.id))
 
-    def get_giveaway_control(self, giveaway):
-        giveaway: Giveaway = giveaway
+    def get_giveaway_control(self, giveaway: Giveaway) -> tuple[di.Embed, di.Component]:
         description = f"Preis: {giveaway.price}\nBeschreibung:\n{giveaway.description}\n" \
             f"Dauer: {giveaway.duration}\nAnzahl Gewinner: {giveaway.winner_amount}"
         embed = di.Embed(title="Giveaway Einstellungen", description=description)
@@ -316,8 +328,7 @@ class Giveaways(PersistenceExtension):
 
         return embed, components
     
-    def get_giveaway_execute(self, giveaway):
-        giveaway: Giveaway = giveaway
+    def get_giveaway_execute(self, giveaway: Giveaway) -> tuple[di.Embed, di.Component]:
         description = f"Preis: {giveaway.price}\nBeschreibung:\n{giveaway.description}\n" \
             f"Dauer: {giveaway.duration}\nGewinner: {giveaway.get_winner_text()}"
         embed = di.Embed(title="Giveaway Auswertung", description=description)
@@ -329,9 +340,7 @@ class Giveaways(PersistenceExtension):
 
         return embed, components
 
-    
-    def get_giveaway_post(self, giveaway):
-        giveaway: Giveaway = giveaway
+    def get_giveaway_post(self, giveaway: Giveaway) -> tuple[di.Embed, di.Component]:
         time_end = giveaway.get_endtime_unix()
         description = f"{giveaway.description}\n\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nEinträge: {len(giveaway.entries)}\n" \
             f"Gewinner: {giveaway.winner_amount}"
@@ -340,15 +349,16 @@ class Giveaways(PersistenceExtension):
         button = di.Button(
             style=di.ButtonStyle.SECONDARY, label="",
             emoji=Emojis.tada, custom_id="giveaway_entry")
+        
         return embed, button
     
-    def get_giveaway_finished(self, giveaway):
-        giveaway: Giveaway = giveaway
+    def get_giveaway_finished(self, giveaway: Giveaway) -> di.Embed:
         time_end = giveaway.get_endtime_unix()
         description = f"{giveaway.description}\n\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nEinträge: {len(giveaway.entries)}\n" \
             f"Gewinner: {giveaway.get_winner_text()}"
 
         embed = di.Embed(title=giveaway.price, description=description)
+
         return embed
 
 
@@ -387,7 +397,7 @@ class Giveaway:
     def remove_schedule(self):
         if self.job: self.job.remove()
 
-    def sql_get_all(self):
+    def sql_get_all(self) -> list:
         stmt = "SELECT * FROM giveaways WHERE control_message_id=?"
         var = (self.id,)
         return self.sql.execute(stmt=stmt, var=var).data_single
@@ -400,7 +410,7 @@ class Giveaway:
     def parse_datetime(self) -> datetime:
         return dateparser.parse(date_string=f"in {self.duration} UTC", languages=['en', 'de'])
     
-    async def parse_datetime_fromnow(self):
+    async def parse_datetime_fromnow(self) -> datetime:
         now = datetime.now(tz=timezone.utc)
         delta = self.parse_datetime() - now
         msg = await self.get_post_message()
@@ -412,7 +422,7 @@ class Giveaway:
     def set_endtime(self):
         self.end_time = self.parse_datetime()
 
-    def get_endtime_unix(self):
+    def get_endtime_unix(self) -> int:
         return int(self.end_time.timestamp())
 
     async def get_post_message(self) -> di.Message:
@@ -421,7 +431,7 @@ class Giveaway:
     async def get_ctr_message(self) -> di.Message:
         return await di.get(self.client, obj=di.Message, object_id=self.id, parent_id=self.ctr_channel_id)
 
-    def start_able(self):
+    def start_able(self) -> bool:
         return bool(self.price and self.duration and self.winner_amount and self.parse_datetime())
     
     def sql_change_att(self, att, value):
@@ -468,7 +478,7 @@ class Giveaway:
         var = (self.id, dcuser.dc_id, int(datetime.now(tz=timezone.utc).timestamp()), dcuser.giveaway_plus,)
         self.sql.execute(stmt=stmt, var=var)
 
-    def get_entries(self):
+    def get_entries(self) -> dict[int, DcUser]:
         stmt = "SELECT * FROM giveaway_entries WHERE giveaway_id=?"
         var = (self.id,)
         entries = self.sql.execute(stmt=stmt, var=var).data_all
@@ -478,16 +488,16 @@ class Giveaway:
             self.entries.update({dcuser.dc_id:dcuser})
         return self.entries
 
-    def draw_winners(self):
+    def draw_winners(self) -> list[DcUser]:
         if not self.entries:
             return False
         weights = [user.giveaway_plus + 1 for user in self.entries.values()]
         self.winners = random.choices(population=list(self.entries.values()), weights=weights, k=self.winner_amount)
         return self.winners
     
-    def get_winner_text(self):
+    def get_winner_text(self) -> str:
         return ", ".join([u.mention for u in self.winners])
 
 
-def setup(client):
+def setup(client: di.Client):
     Giveaways(client)
