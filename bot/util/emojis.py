@@ -46,3 +46,4 @@ class Emojis:
     load_orange = CustomEmoji(name="loading_orange", id=1079864430319374500, animated=True)
     party = CustomEmoji(name="Party", id=913490674739974174, animated=True)
     sound = CustomEmoji(name="🔊")
+    tada = CustomEmoji(name="🎉")
