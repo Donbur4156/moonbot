@@ -109,6 +109,7 @@ class AdminCmds(di.Extension):
             {"name": "Team Chat", "value": "team_chat"},
             {"name": "Boost Color", "value": "boost_col"},
             {"name": "Reminder", "value": "schedule"},
+            {"name": "Giveaways", "value": "giveaway"},
         ]
         roles = [
             {"name": "Owner", "value": "owner"},
@@ -121,6 +122,7 @@ class AdminCmds(di.Extension):
             {"name": "Booster", "value": "booster"},
             {"name": "Engel", "value": "engel"},
             {"name": "Jubiläums Rolle", "value": "jub_role"},
+            {"name": "Giveaway +", "value": "giveaway_plus"},
             {"name": "Boost Color Blau", "value": "boost_col_blue"},
             {"name": "Boost Color Pink", "value": "boost_col_pink"},
             {"name": "Boost Color Lila", "value": "boost_col_violet"},
@@ -170,6 +172,7 @@ class AdminCmds(di.Extension):
             di.Choice(name="Team Chat", value="team_chat"),
             di.Choice(name="Boost Color", value="boost_col"),
             di.Choice(name="Reminder", value="schedule"),
+            di.Choice(name="Giveaways", value="giveaway"),
         ])
     @di.option(description="Channel")
     async def channels(self, ctx: di.CommandContext, type: str, channel: di.Channel):
@@ -190,6 +193,7 @@ class AdminCmds(di.Extension):
             di.Choice(name="Booster", value="booster"),
             di.Choice(name="Engel", value="engel"),
             di.Choice(name="Jubiläums Rolle", value="jub_role"),
+            di.Choice(name="Giveaway +", value="giveaway_plus"),
         ])
     @di.option(description="Role")
     async def roles_general(self, ctx: di.CommandContext, type: str, role: di.Role):
@@ -239,8 +243,6 @@ class AdminCmds(di.Extension):
         choices=[
             di.Choice(name="Drop Minimum", value="drop_min"),
             di.Choice(name="Drop Maximum", value="drop_max"),
-            di.Choice(name="Meilensteine Channel", value="milestone_channel"),
-            di.Choice(name="Meilensteine Message", value="milestone_message"),
         ])
     @di.option(description="Special")
     async def specials(self, ctx: di.CommandContext, type: str, special: str):
