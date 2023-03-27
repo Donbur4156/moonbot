@@ -14,7 +14,7 @@ from interactions.ext.persistence import (PersistenceExtension,
 from interactions.ext.tasks import IntervalTrigger, create_task
 from util.emojis import Emojis
 from util.sql import SQL
-from util.boostcolor import BoostRoles
+from util.boostroles import BoostRoles
 from whistle import EventDispatcher
 
 
@@ -250,8 +250,8 @@ class Drop_BoostColor(Drop):
     async def execute_last(self, **kwargs):
         ctx: di.ComponentContext = kwargs.pop("ctx", None)
         content = "**Booster Farbe:**\n\n:arrow_right: Wähle eine neue Farbe aus, mit welcher du im Chat angezeigt werden willst:\n"
-        boostcolor = BoostRoles(client=kwargs.pop("client"))
-        components = boostcolor.get_components_colors(tag="boost_col", member=ctx.member)
+        boostroles = BoostRoles(client=kwargs.pop("client"))
+        components = boostroles.get_components_colors(tag="boost_col", member=ctx.member)
         embed = di.Embed(description=content, color=0x43FA00)
         try:
             await ctx.member.send(embeds=embed, components=components)
@@ -356,14 +356,13 @@ class BoostColResponse(PersistenceExtension):
     def __init__(self, client: di.Client) -> None:
         self.client=client
         self.config: Configs = client.config
-        self.boostcolor = BoostRoles(client=client)
+        self.boostroles = BoostRoles(client=client)
 
     @extension_persistent_component("boost_col")
     async def boost_col_response(self, ctx: di.ComponentContext, id: str):
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=ctx.user.id)
-        await self.boostcolor.remove_all_roles(member=member, reason="Drop Belohnung")
-        role = await self.boostcolor.change_color_role(member=member, id=id, reason="Drop Belohnung")
-        embed = self.boostcolor.get_embed(role)
+        role = await self.boostroles.change_color_role(member=member, id=id, reason="Drop Belohnung")
+        embed = self.boostroles.get_embed_color(role)
         await ctx.disable_all_components()
         await ctx.send(embeds=embed, ephemeral=check_ephemeral(ctx))
         logging.info(f"DROPS/BOOSTCOL/add Role {role.name} to {member.id}")

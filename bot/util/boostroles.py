@@ -21,16 +21,16 @@ class BoostRoles:
             "9": [Emojis.red, "boost_col_red", "Rot"]
         }
         self.icons = {
-            "1": [Emojis.rose, "booost_icon_", "Rose1"],
-            "2": [Emojis.cap, "booost_icon_", "Cap"],
-            "3": [Emojis.rose2, "booost_icon_", "Rose2"],
-            "4": [Emojis.money, "booost_icon_", "Money"],
-            "5": [Emojis.whiterose, "booost_icon_", "Rose_White"],
-            "6": [Emojis.purpleheart, "booost_icon_", "Heart_Purple"],
-            "7": [Emojis.greenheart, "booost_icon_", "Heart_Green"],
-            "8": [Emojis.baseballbat, "booost_icon_", "BaseballBat"],
-            "9": [Emojis.mask1, "booost_icon_", "Mask"],
-            "10": [Emojis.pepper, "booost_icon_", "Pepper"],
+            "1": [Emojis.rose, "booost_icon_rose", "Rose1"],
+            "2": [Emojis.cap, "booost_icon_cap", "Cap"],
+            "3": [Emojis.rose2, "booost_icon_rose2", "Rose2"],
+            "4": [Emojis.money, "booost_icon_money", "Money"],
+            "5": [Emojis.whiterose, "booost_icon_rosewhite", "Rose_White"],
+            "6": [Emojis.purpleheart, "booost_icon_heartpurple", "Heart_Purple"],
+            "7": [Emojis.greenheart, "booost_icon_heartgreen", "Heart_Green"],
+            "8": [Emojis.baseballbat, "booost_icon_bat", "BaseballBat"],
+            "9": [Emojis.mask, "booost_icon_mask", "Mask"],
+            "10": [Emojis.pepper, "booost_icon_pepper", "Pepper"],
         }
 
     async def remove_all_roles(self, ref: dict, member: di.Member, reason: str = None):
@@ -47,17 +47,20 @@ class BoostRoles:
     async def change_color_role(self, member: di.Member, id: str, reason: str = None) -> di.Role:
         ref = self.colors
         await self.remove_all_roles(ref, member, reason)
-        role = await self.change_color_role(ref, member, id, reason)
+        role = await self.add_role(ref, member, id, reason)
         return role
     
     async def change_icon_role(self, member: di.Member, id: str, reason: str = None) -> di.Role:
         ref = self.icons
         await self.remove_all_roles(ref, member, reason)
-        role = await self.change_color_role(ref, member, id, reason)
+        role = await self.add_role(ref, member, id, reason)
         return role
 
-    def get_embed(self, role: di.Role):
+    def get_embed_color(self, role: di.Role):
         return di.Embed(description=f"Du hast dich für `{role.name}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
+    
+    def get_embed_icons(self, role: di.Role):
+        return di.Embed(description=f"Du hast dich für `{role.name}` entschieden und das neue Icon im Chat erhalten.", color=0x43FA00)
 
     def get_buttons(self, k, i, tag, member: di.Member = None, label: bool = True):
         pers_id = PersistentCustomID(cipher=self.client, tag=tag, package=k)

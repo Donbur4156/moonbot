@@ -4,7 +4,7 @@ import config as c
 import interactions as di
 from configs import Configs
 from util.emojis import Emojis
-from util.boostcolor import BoostRoles
+from util.boostroles import BoostRoles
 from interactions.ext.persistence import (PersistenceExtension,
                                           PersistentCustomID,
                                           extension_persistent_component)
@@ -15,7 +15,7 @@ class SelfRoles(PersistenceExtension):
         self.client = client
         self.config: Configs = client.config
         self.cooldown: datetime = None
-        self.boostcolor = BoostRoles(client=self.client)
+        self.boostroles = BoostRoles(client=self.client)
 
 
     @di.extension_command(name="selfroles")
@@ -76,22 +76,24 @@ class SelfRoles(PersistenceExtension):
             await ctx.member.add_role(guild_id=c.serverid, role=role, reason="Selfrole")
             await ctx.send(f"Du hast die Rolle {role.mention} erhalten.", ephemeral=True)
 
+
     @selfroles_cmd.subcommand()
     @di.option(name="channel", description="Channel, in dem der Post erstellt wird.")
     async def selfroles_boostcolor(self, ctx: di.CommandContext, channel: di.Channel):
         text = f"{Emojis.boost} | __**Booster Farbe:**__\n\n{Emojis.arrow_r} " \
             f"Hier könnt ihr euch eure Farbe aussuchen, mit welcher ihr im Chat angezeigt werden wollt.\n" \
-            f"(Es wird auch immer nur 1 Farbe angezeigt! Die anderen Farben werden entfernt.)"
-        components = self.boostcolor.get_components_colors(tag="boost_col_self")
+            f"(Es wird auch immer nur 1 Farbe angezeigt! Die anderen werden entfernt.)"
+        components = self.boostroles.get_components_colors(tag="boost_col_self")
         embed = di.Embed(description=text, color=0xFF1493)
         await channel.send(embeds=embed, components=components)
         await ctx.send(f"Boost Color Selfrole Embed wurde im Channel {channel.mention} erstellt.")
 
     @extension_persistent_component("boost_col_self")
     async def boostcolor_comp(self, ctx: di.ComponentContext, id: str):
-        await self.boostcolor.remove_all_roles(member=ctx.member, reason="Selfrole")
-        role = await self.boostcolor.change_color_role(member=ctx.member, id=id, reason="Selfrole")
-        embed = self.boostcolor.get_embed(role)
+        role = await self.boostroles.change_color_role(member=ctx.member, id=id, reason="Selfrole")
+        embed = self.boostroles.get_embed_color(role)
+        await ctx.send(embeds=embed, ephemeral=True)
+
         await ctx.send(embeds=embed, ephemeral=True)
 
 
