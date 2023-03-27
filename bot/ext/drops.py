@@ -12,9 +12,9 @@ from interactions.ext.persistence import (PersistenceExtension,
                                           PersistentCustomID,
                                           extension_persistent_component)
 from interactions.ext.tasks import IntervalTrigger, create_task
+from util.boostroles import BoostRoles
 from util.emojis import Emojis
 from util.sql import SQL
-from util.boostroles import BoostRoles
 from whistle import EventDispatcher
 
 

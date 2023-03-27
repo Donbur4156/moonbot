@@ -3,11 +3,10 @@ from datetime import datetime, timedelta
 import config as c
 import interactions as di
 from configs import Configs
-from util.emojis import Emojis
-from util.boostroles import BoostRoles
 from interactions.ext.persistence import (PersistenceExtension,
-                                          PersistentCustomID,
                                           extension_persistent_component)
+from util.boostroles import BoostRoles
+from util.emojis import Emojis
 
 
 class SelfRoles(PersistenceExtension):
