@@ -46,6 +46,7 @@ class Emojis:
     load_orange = CustomEmoji(name="loading_orange", id=1079864430319374500, animated=True)
     party = CustomEmoji(name="Party", id=913490674739974174, animated=True)
     sound = CustomEmoji(name="🔊")
+    aww = CustomEmoji(name="aww", id=982424711243890738, animated=True)
 
     rose = CustomEmoji(name="rose~1", id=990574819663810560)
     cap = CustomEmoji(name="cap", id=990574871975170098)
@@ -55,7 +56,7 @@ class Emojis:
     purpleheart = CustomEmoji(name="purpleheart", id=990575124535185448)
     greenheart = CustomEmoji(name="greenheart", id=990575154864226444)
     baseballbat = CustomEmoji(name="baseballbat", id=990575184266289222)
-    mask1 = CustomEmoji(name="mask~1", id=990575216944115733)
+    mask = CustomEmoji(name="mask~1", id=990575216944115733)
     pepper = CustomEmoji(name="pepper", id=990575244374863912)
 
     blue = CustomEmoji(name="🔵")

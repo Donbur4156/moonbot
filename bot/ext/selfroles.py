@@ -94,6 +94,21 @@ class SelfRoles(PersistenceExtension):
         embed = self.boostroles.get_embed_color(role)
         await ctx.send(embeds=embed, ephemeral=True)
 
+    @selfroles_cmd.subcommand()
+    @di.option(name="channel", description="Channel, in dem der Post erstellt wird.")
+    async def selfroles_boosticons(self, ctx: di.CommandContext, channel: di.Channel):
+        text = f"{Emojis.aww} | __**Booster Icons:**__\n\n{Emojis.arrow_r} " \
+            f"Hier könnt ihr euch ein Rollen Icon aussuchen, was hinter eurem Namen im Chat angezeigt wird.\n" \
+            f"(Es wird auch immer nur 1 Icon angezeigt! Die anderen werden entfernt.)"
+        components = self.boostroles.get_components_icons(tag="boost_icons_self")
+        embed = di.Embed(description=text, color=0xFF1493)
+        await channel.send(embeds=embed, components=components)
+        await ctx.send(f"Boost Icons Selfrole Embed wurde im Channel {channel.mention} erstellt.")
+
+    @extension_persistent_component("boost_icons_self")
+    async def boosticons_comp(self, ctx: di.ComponentContext, id: str):
+        role = await self.boostroles.change_icon_role(member=ctx.member, id=id, reason="Selfrole")
+        embed = self.boostroles.get_embed_icons(role)
         await ctx.send(embeds=embed, ephemeral=True)
 
 
