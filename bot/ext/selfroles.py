@@ -3,14 +3,18 @@ from datetime import datetime, timedelta
 import config as c
 import interactions as di
 from configs import Configs
+from interactions.ext.persistence import (PersistenceExtension,
+                                          extension_persistent_component)
+from util.boostroles import BoostRoles
 from util.emojis import Emojis
 
 
-class SelfRoles(di.Extension):
+class SelfRoles(PersistenceExtension):
     def __init__(self, client: di.Client) -> None:
         self.client = client
         self.config: Configs = client.config
         self.cooldown: datetime = None
+        self.boostroles = BoostRoles(client=self.client)
 
 
     @di.extension_command(name="selfroles")
@@ -26,45 +30,31 @@ class SelfRoles(di.Extension):
             f"{Emojis.arrow_r} Klicke auf den entsprechenden Button, um dir die Rolle zu geben.\n" \
             f"Wenn du erneut auf den Button klickst, dann wird dir die Rolle wieder entfernt.\n" \
             f"Bitte nutze nur die Rollen, welche auch zu dir passen.\nMissbrauch kann bestraft werden.\n\n"
-        button_ger = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Deutschland",
-            emoji=Emojis.country_ger, custom_id="country_ger")
-        button_aut = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Österreich",
-            emoji=Emojis.country_aut, custom_id="country_aut")
-        button_swi = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Schweiz",
-            emoji=Emojis.country_swi, custom_id="country_swi")
-        button_oth = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Andere",
-            emoji=Emojis.country_oth, custom_id="country_oth")
-        buttons = di.ActionRow(components=[button_ger, button_aut, button_swi, button_oth])
+        buttons_list = [
+            ["Deutschland", Emojis.country_ger, "country_ger"],
+            ["Österreich", Emojis.country_aut, "country_aut"],
+            ["Schweiz", Emojis.country_swi, "country_swi"],
+            ["Andere", Emojis.country_oth, "country_oth"],
+        ]
+        buttons = [di.Button(style=di.ButtonStyle.SECONDARY, label=b[0], emoji=b[1], custom_id=b[2]) for b in buttons_list]
         embed = di.Embed(description=text, color=di.Color.BLACK)
-        await channel.send(embeds=embed, components=buttons)
+        await channel.send(embeds=embed, components=di.ActionRow(components=buttons))
         await ctx.send(f"Länder Selfrole Embed wurde im Channel {channel.mention} erstellt.")
 
     @selfroles_cmd.subcommand(name="pings", description="Erstellt selfrole Post für Ping Rollen.")
     @di.option(name="channel", description="Channel, in dem der Post erstellt wird.")
     async def selfroles_pings(self, ctx: di.CommandContext, channel: di.Channel):
         text = f"**Pings:** *Reagiere auf alles, wofür du gepingt werden willst.*"
-        button_upd = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Updates",
-            emoji=Emojis.inbox, custom_id="ping_upd")
-        button_eve = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Events",
-            emoji=Emojis.gift, custom_id="ping_eve")
-        button_umf = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Umfrage",
-            emoji=Emojis.chart, custom_id="ping_umf")
-        button_giv = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Giveaways",
-            emoji=Emojis.give, custom_id="ping_giv")
-        button_tlk = di.Button(
-            style=di.ButtonStyle.SECONDARY, label="Talkping",
-            emoji=Emojis.sound, custom_id="ping_tlk")
-        buttons = di.ActionRow(components=[button_upd, button_eve, button_umf, button_giv, button_tlk])
+        buttons_list = [
+            ["Updates", Emojis.inbox, "ping_upd"],
+            ["Events", Emojis.gift, "ping_eve"],
+            ["Umfrage", Emojis.chart, "ping_umf"],
+            ["Giveaways", Emojis.give, "ping_giv"],
+            ["Talkping", Emojis.sound, "ping_tlk"],
+        ]
+        buttons = [di.Button(style=di.ButtonStyle.SECONDARY, label=b[0], emoji=b[1], custom_id=b[2]) for b in buttons_list]
         embed = di.Embed(description=text, color=0xFF1493)
-        await channel.send(embeds=embed, components=buttons)
+        await channel.send(embeds=embed, components=di.ActionRow(components=buttons))
         await ctx.send(f"Ping Selfrole Embed wurde im Channel {channel.mention} erstellt.")
 
     @di.extension_component("country_ger")
@@ -84,6 +74,42 @@ class SelfRoles(di.Extension):
         else:
             await ctx.member.add_role(guild_id=c.serverid, role=role, reason="Selfrole")
             await ctx.send(f"Du hast die Rolle {role.mention} erhalten.", ephemeral=True)
+
+
+    @selfroles_cmd.subcommand()
+    @di.option(name="channel", description="Channel, in dem der Post erstellt wird.")
+    async def selfroles_boostcolor(self, ctx: di.CommandContext, channel: di.Channel):
+        text = f"{Emojis.boost} | __**Booster Farbe:**__\n\n{Emojis.arrow_r} " \
+            f"Hier könnt ihr euch eure Farbe aussuchen, mit welcher ihr im Chat angezeigt werden wollt.\n" \
+            f"(Es wird auch immer nur 1 Farbe angezeigt! Die anderen werden entfernt.)"
+        components = self.boostroles.get_components_colors(tag="boost_col_self")
+        embed = di.Embed(description=text, color=0xFF1493)
+        await channel.send(embeds=embed, components=components)
+        await ctx.send(f"Boost Color Selfrole Embed wurde im Channel {channel.mention} erstellt.")
+
+    @extension_persistent_component("boost_col_self")
+    async def boostcolor_comp(self, ctx: di.ComponentContext, id: str):
+        role = await self.boostroles.change_color_role(member=ctx.member, id=id, reason="Selfrole")
+        embed = self.boostroles.get_embed_color(role)
+        await ctx.send(embeds=embed, ephemeral=True)
+
+    @selfroles_cmd.subcommand()
+    @di.option(name="channel", description="Channel, in dem der Post erstellt wird.")
+    async def selfroles_boosticons(self, ctx: di.CommandContext, channel: di.Channel):
+        text = f"{Emojis.aww} | __**Booster Icons:**__\n\n{Emojis.arrow_r} " \
+            f"Hier könnt ihr euch ein Rollen Icon aussuchen, was hinter eurem Namen im Chat angezeigt wird.\n" \
+            f"(Es wird auch immer nur 1 Icon angezeigt! Die anderen werden entfernt.)"
+        components = self.boostroles.get_components_icons(tag="boost_icons_self")
+        embed = di.Embed(description=text, color=0xFF1493)
+        await channel.send(embeds=embed, components=components)
+        await ctx.send(f"Boost Icons Selfrole Embed wurde im Channel {channel.mention} erstellt.")
+
+    @extension_persistent_component("boost_icons_self")
+    async def boosticons_comp(self, ctx: di.ComponentContext, id: str):
+        role = await self.boostroles.change_icon_role(member=ctx.member, id=id, reason="Selfrole")
+        embed = self.boostroles.get_embed_icons(role)
+        await ctx.send(embeds=embed, ephemeral=True)
+
 
     @di.extension_command(name="talkping", description="Pingt die talkping Rolle")
     async def talkping(self, ctx: di.CommandContext):
