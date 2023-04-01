@@ -137,6 +137,7 @@ class Giveaways(di.Extension):
     @di.extension_component("set_price")
     async def change_price(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
+        giveaway = self.get_giveaway(ctx)
         modal = di.Modal(custom_id="mod_set_price", title="Preis",
             components=[
                 di.TextInput(
@@ -145,6 +146,7 @@ class Giveaways(di.Extension):
                     custom_id="price",
                     min_length=1,
                     max_length=128,
+                    value=giveaway.price,
                 ),
             ])
         await ctx.popup(modal=modal)
@@ -162,6 +164,7 @@ class Giveaways(di.Extension):
     @di.extension_component("set_description")
     async def change_description(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
+        giveaway = self.get_giveaway(ctx)
         modal = di.Modal(custom_id="mod_set_description", title="Beschreibung",
             components=[
                 di.TextInput(
@@ -170,6 +173,7 @@ class Giveaways(di.Extension):
                     custom_id="description",
                     min_length=1,
                     max_length=128,
+                    value=giveaway.description,
                 ),
             ])
         await ctx.popup(modal=modal)
@@ -187,6 +191,7 @@ class Giveaways(di.Extension):
     @di.extension_component("set_duration")
     async def change_duration(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
+        giveaway = self.get_giveaway(ctx)
         modal = di.Modal(custom_id="mod_set_duration", title="Dauer",
             components=[
                 di.TextInput(
@@ -195,6 +200,7 @@ class Giveaways(di.Extension):
                     custom_id="duration",
                     min_length=1,
                     max_length=128,
+                    value=giveaway.duration,
                 ),
             ])
         await ctx.popup(modal=modal)
@@ -212,6 +218,7 @@ class Giveaways(di.Extension):
     @di.extension_component("set_winner_amount")
     async def change_winner_amount(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
+        giveaway = self.get_giveaway(ctx)
         modal = di.Modal(custom_id="mod_set_winner_amount", title="Anzahl Gewinner",
             components=[
                 di.TextInput(
@@ -220,6 +227,7 @@ class Giveaways(di.Extension):
                     custom_id="winner_amount",
                     min_length=1,
                     max_length=128,
+                    value=giveaway.winner_amount,
                 ),
             ])
         await ctx.popup(modal=modal)
