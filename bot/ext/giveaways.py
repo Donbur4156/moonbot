@@ -232,7 +232,7 @@ class Giveaways(di.Extension):
     @di.extension_modal("mod_set_winner_amount")
     async def mod_change_winner_amount(self, ctx: di.CommandContext, winner_amount: str):
         giveaway = self.get_giveaway(ctx)
-        giveaway.change_winner_amount(winner_amount)
+        giveaway.change_winner_amount(int(winner_amount))
         await self.edit_control_embed(ctx, giveaway)
         await ctx.send(f"Du hast die Anzahl der Gewinner auf **{giveaway.winner_amount}** geändert. {Emojis.vote_yes}", ephemeral=True)
         logging.info(f"GIVEAWAYS/change winneramount/id: {giveaway.id}, new: {giveaway.winner_amount} by {ctx.user.id}")
@@ -514,13 +514,14 @@ class Giveaway:
         return self.entries
 
     def draw_winners(self) -> list[DcUser]:
+        entries = self.entries.copy()
         for i in range(self.winner_amount):
-            if not self.entries:
+            if not entries:
                 return self.winners
-            weights = [user.giveaway_plus + 1 for user in self.entries.values()]
-            winner = random.choices(population=list(self.entries.values()), weights=weights)[0]
+            weights = [user.giveaway_plus + 1 for user in entries.values()]
+            winner = random.choices(population=list(entries.values()), weights=weights)[0]
             self.winners.append(winner)
-            self.entries.pop(winner.dc_id)
+            entries.pop(winner.dc_id)
         return self.winners
     
     def get_winner_text(self) -> str:
