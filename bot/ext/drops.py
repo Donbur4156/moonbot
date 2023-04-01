@@ -551,7 +551,7 @@ class EmojiResponse(PersistenceExtension):
         await member.send(embeds=di.Embed(description=f"Dein Emoji {emoji.format} wurde abgelehnt. Bitte nimm ein anderes. {Emojis.vote_no}\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.RED))
         await emoji.delete(guild_id=c.serverid)
         msg_initial: di.Message = await di.get(client=self.client, obj=di.Message, object_id=package[2], parent_id=package[3])
-        enable_components(msg_initial)
+        await enable_components(msg_initial)
         logging.info(f"DROPS/CUSTOMEMOJI/deny Emoji/Emoji: {emoji.id}; User: {member.id}; Admin: {ctx.user.id}")
 
 
