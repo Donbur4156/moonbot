@@ -42,7 +42,7 @@ class Modmail(di.Extension):
             logging.info(f"MODMAIL/MODMSG/ {msg.author.username} ({msg.author.id}): '{msg.content}'")
             await self.mod_react(msg=msg)
 
-    @di.extension_command(description="Schließt dieses Ticket", scope=c.serverid)
+    @di.extension_command(description="Schließt dieses Ticket", dm_permission=False)
     @di.option(description="Grund für Schließen des Tickets. (optional)")
     async def close_ticket(self, ctx: di.CommandContext, reason: str = None):
         ticket_id = await self.close_mail(ctx=ctx, reason=reason)

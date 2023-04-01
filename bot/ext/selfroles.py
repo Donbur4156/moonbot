@@ -17,7 +17,7 @@ class SelfRoles(PersistenceExtension):
         self.boostroles = BoostRoles(client=self.client)
 
 
-    @di.extension_command(name="selfroles")
+    @di.extension_command(name="selfroles", description="Erstellt Selfrole Embeds", dm_permission=False)
     async def selfroles_cmd(self, ctx: di.CommandContext):
         pass
 
@@ -111,7 +111,7 @@ class SelfRoles(PersistenceExtension):
         await ctx.send(embeds=embed, ephemeral=True)
 
 
-    @di.extension_command(name="talkping", description="Pingt die talkping Rolle")
+    @di.extension_command(name="talkping", description="Pingt die talkping Rolle", dm_permission=False)
     async def talkping(self, ctx: di.CommandContext):
         if not ctx.member.voice_state or int(ctx.member.voice_state.guild_id) != c.serverid:
             text = f"Du kannst diesen Command nur benutzen, wenn du dich **in einem Voice Channel** befindest! {Emojis.load_orange}"

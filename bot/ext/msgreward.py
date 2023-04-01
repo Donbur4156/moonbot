@@ -92,7 +92,7 @@ class MsgXP(di.Extension):
             self._SQL.execute(stmt="INSERT INTO booster (user_ID, amount) VALUES (?, ?)", var=(int(member.id), boost_amount,))
         return boost_amount
 
-    @di.extension_command(description="Persönlicher Status der Message Streak", scope=c.serverid)
+    @di.extension_command(description="Persönlicher Status der Message Streak", dm_permission=False)
     @di.option(description="Angabe eines anderen Users (optional)")
     async def status(self, ctx: di.CommandContext, user: di.User = None):
         if user:

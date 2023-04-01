@@ -129,7 +129,7 @@ class Schedule(di.Extension):
     def _sql_get_channel(self, id:int):
         return self.sql.execute(stmt="SELECT channel_id FROM sched_list WHERE id=?", var=(id,)).data_single
 
-    @di.extension_command()
+    @di.extension_command(description="Commands für Reminder", dm_permission=False)
     async def reminder(self, ctx: di.CommandContext):
         cmd_options = ctx.data.options[0].options
         for option in cmd_options:
