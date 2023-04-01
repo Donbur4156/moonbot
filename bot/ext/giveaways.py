@@ -123,6 +123,7 @@ class Giveaways(di.Extension):
         giveaway.sql_store()
         self.giveaways.update({giveaway.id:giveaway})
         await ctx.send("Das Giveaway wurde generiert", ephemeral=True)
+        logging.info(f"GIVEAWAYS/generate/ id: {giveaway.id}, price: {giveaway.price}, duration: {giveaway.duration}, winner_amount: {giveaway.winner_amount}, by {ctx.user.id}")
 
     async def send_control_embed(self, ctx: di.CommandContext, giveaway: Giveaway):
         embed, components = self.get_giveaway_control(giveaway)
@@ -155,6 +156,7 @@ class Giveaways(di.Extension):
         giveaway.change_price(price)
         await self.edit_control_embed(ctx, giveaway)
         await ctx.send(f"Preis geändert von '{old_price}' zu '{giveaway.price}'", ephemeral=True)
+        logging.info(f"GIVEAWAYS/change price/id: {giveaway.id}, new: {giveaway.price} by {ctx.user.id}")
 
 
     @di.extension_component("set_description")
@@ -179,6 +181,7 @@ class Giveaways(di.Extension):
         giveaway.change_description(description)
         await self.edit_control_embed(ctx, giveaway)
         await ctx.send(f"Beschreibung geändert von '{old_description}' zu '{giveaway.description}'", ephemeral=True)
+        logging.info(f"GIVEAWAYS/change description/id: {giveaway.id}, new: {giveaway.description} by {ctx.user.id}")
 
 
     @di.extension_component("set_duration")
@@ -203,6 +206,7 @@ class Giveaways(di.Extension):
         giveaway.change_duration(duration)
         await self.edit_control_embed(ctx, giveaway)
         await ctx.send(f"Dauer geändert von '{old_duration}' zu '{giveaway.duration}'", ephemeral=True)
+        logging.info(f"GIVEAWAYS/change duration/id: {giveaway.id}, new: {giveaway.duration} by {ctx.user.id}")
 
 
     @di.extension_component("set_winner_amount")
@@ -227,6 +231,7 @@ class Giveaways(di.Extension):
         giveaway.change_winner_amount(winner_amount)
         await self.edit_control_embed(ctx, giveaway)
         await ctx.send(f"Anzahl Gewinner geändert von '{old_winner_amount}' zu '{giveaway.winner_amount}'", ephemeral=True)
+        logging.info(f"GIVEAWAYS/change winneramount/id: {giveaway.id}, new: {giveaway.winner_amount} by {ctx.user.id}")
 
 
     @di.extension_component("start")
@@ -246,6 +251,7 @@ class Giveaways(di.Extension):
         embed, components = self.get_giveaway_execute(giveaway)
         await ctx.edit(embeds=embed, components=components)
         self.giveaways_running.update({giveaway.post_message_id:giveaway})
+        logging.info(f"GIVEAWAYS/start/id: {giveaway.id} by {ctx.user.id}")
         return True
 
 
@@ -265,6 +271,7 @@ class Giveaways(di.Extension):
         embed, components = self.get_giveaway_execute(giveaway)
         embed.title = "Giveaway abgebrochen!"
         await ctx.edit(embeds=embed, components=None)
+        logging.info(f"GIVEAWAYS/stop/id: {giveaway.id} by {ctx.user.id}")
 
 
     @di.extension_component("end")
@@ -276,6 +283,7 @@ class Giveaways(di.Extension):
             giveaway.remove_schedule()
             self.giveaways_running.pop(giveaway.post_message_id)
             giveaway.close()
+        logging.info(f"GIVEAWAYS/end early/id: {giveaway.id} by {ctx.user.id}")
 
 
     async def run_drawing(self, giveaway: Giveaway):
@@ -292,6 +300,7 @@ class Giveaways(di.Extension):
         msg_ctr = await giveaway.get_ctr_message()
         embed, components = self.get_giveaway_execute(giveaway)
         await msg_ctr.edit(embeds=embed, components=None)
+        logging.info(f"GIVEAWAYS/draw/id: {giveaway.id}, winners: {giveaway.get_winner_ids()}")
 
 
     @di.extension_component("giveaway_entry")
