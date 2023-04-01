@@ -514,14 +514,20 @@ class Giveaway:
         return self.entries
 
     def draw_winners(self) -> list[DcUser]:
-        if not self.entries:
-            return False
-        weights = [user.giveaway_plus + 1 for user in self.entries.values()]
-        self.winners = random.choices(population=list(self.entries.values()), weights=weights, k=self.winner_amount)
+        for i in range(self.winner_amount):
+            if not self.entries:
+                return self.winners
+            weights = [user.giveaway_plus + 1 for user in self.entries.values()]
+            winner = random.choices(population=list(self.entries.values()), weights=weights)[0]
+            self.winners.append(winner)
+            self.entries.pop(winner.dc_id)
         return self.winners
     
     def get_winner_text(self) -> str:
         return ", ".join([u.mention for u in self.winners])
+    
+    def get_winner_ids(self) -> list[int]:
+        return [u.dc_id for u in self.winners]
 
 
 def setup(client: di.Client):
