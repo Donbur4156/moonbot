@@ -44,8 +44,9 @@ class Modmail(di.Extension):
 
     @di.extension_command(description="Schließt dieses Ticket", dm_permission=False)
     @di.option(description="Grund für Schließen des Tickets. (optional)")
-    async def close_ticket(self, ctx: di.CommandContext, reason: str = None):
-        ticket_id = await self.close_mail(ctx=ctx, reason=reason)
+    @di.option(description="Legt fest, ob das Ticket geloggt werden soll. Default: True")
+    async def close_ticket(self, ctx: di.CommandContext, reason: str = None, log: bool = True):
+        ticket_id = await self.close_mail(ctx=ctx, reason=reason, log=log)
         logging.info(f"MODMAIL/CLOSE/{ticket_id}/Admin: {ctx.user.id}; Reason: '{reason}'")
 
     def _get_storage(self):
@@ -144,18 +145,39 @@ class Modmail(di.Extension):
             return True
         return False
 
-    async def close_mail(self, ctx: di.CommandContext, reason: str = None):
+    async def close_mail(self, ctx: di.CommandContext, reason: str = None, log: bool = True):
         #Schließt Ticket und Speichert Inhalt als Log
         if not self._check_channel(channel_id=int(ctx.channel_id)):
             await ctx.send("Dieser Channel ist kein aktives Ticket!", ephemeral=True)
             return
         user_id = self._get_userid_bychannel(channel_id=ctx.channel_id)
         dcuser = await DcUser(bot=self._client, dc_id=int(user_id))
-        ticket_id = self._SQL.execute(
-            stmt="INSERT INTO tickets_closed(user_ID) VALUES (?)",
-            var=(dcuser.dc_id,)).lastrowid
         self._SQL.execute(stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
         self._get_storage()
+
+        if log:
+            ticket_id = self._SQL.execute(
+                stmt="INSERT INTO tickets_closed(user_ID) VALUES (?)",
+                var=(dcuser.dc_id,)).lastrowid
+            filename = f"{c.logdir}ticket_{ticket_id}_{dcuser.dc_id}.txt"
+            with open(filename, "w", newline='', encoding="utf-8") as logfile:
+                logfile.write(await self.create_log_text(ctx=ctx, dcuser=dcuser, ticket_id=ticket_id, reason=reason))
+            with open(filename, "r", encoding="utf-8") as fp:
+                file = di.File(filename=filename, fp=fp)
+                await self._channel_log.send(files=file)
+        else: ticket_id = 0
+        
+        reason_text = f'**Grund:** {reason}\n' if reason else ''
+        embed = di.Embed(
+            title=":scroll: Ticket geschlossen :scroll:",
+            description=f"Dein aktuelles Ticket wurde durch den Moderator **{ctx.user.username}** geschlossen.\n{reason_text}\nDu kannst mit einer neuen Nachricht jederzeit ein neues eröffnen.",
+            color=di.Color.RED
+        )
+        if dcuser.member: await dcuser.member.send(embeds=embed)
+        await ctx.channel.delete()
+        return ticket_id
+
+    async def create_log_text(self, ctx: di.CommandContext, dcuser: DcUser, ticket_id:int, reason: str):
         messages = await ctx.channel.get_history(limit=100000)
         messages = messages[::-1]
         mods = []
@@ -171,28 +193,15 @@ class Modmail(di.Extension):
                 for embed in msg.embeds:
                     content += f"{embed.description}"
             msg_text += f"{time}: {author}\n{content}\n\n"
+
         mods = [f"{mod[1]} ({mod[0]})" for mod in mods]
         username = dcuser.member.name if dcuser.member else "------"
         head_text = f"(ID: {ticket_id}) Ticket Log für {username}\nUser ID: {dcuser.dc_id}\n"
-        head_text += "\nBeteiligte Moderatoren:\n" + "\n".join(mods)
+        head_text += "\nBeteiligte Moderatoren:\n" + '\n'.join(mods)
         head_text += f"\n\nGeschlossen durch {ctx.user.username}\n"
         if reason: head_text += f"Begründung:\n{reason}\n"
-        filename = f"{c.logdir}ticket_{ticket_id}_{dcuser.dc_id}.txt"
-        with open(filename, "w", newline='', encoding="utf-8") as logfile:
-            text = head_text + msg_text
-            logfile.write(text)
-        with open(filename, "r", encoding="utf-8") as fp:
-            file = di.File(filename=filename, fp=fp)
-            await self._channel_log.send(files=file)
-        reason_text = f'**Grund:** {reason}\n' if reason else ''
-        embed = di.Embed(
-            title=":scroll: Ticket geschlossen :scroll:",
-            description=f"Dein aktuelles Ticket wurde durch den Moderator **{ctx.user.username}** geschlossen.\n{reason_text}\nDu kannst mit einer neuen Nachricht jederzeit ein neues eröffnen.",
-            color=di.Color.RED
-        )
-        if dcuser.member: await dcuser.member.send(embeds=embed)
-        await ctx.channel.delete()
-        return ticket_id
+        return head_text + msg_text
+        
 
     async def _gen_files(self, msg: di.Message):
         return [di.File(filename=att.filename, fp=await download(msg, att)) for att in msg.attachments]
