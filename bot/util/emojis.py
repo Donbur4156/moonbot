@@ -47,3 +47,7 @@ class Emojis:
     party = CustomEmoji(name="Party", id=913490674739974174, animated=True)
     sound = CustomEmoji(name="🔊")
     tada = CustomEmoji(name="🎉")
+    money = CustomEmoji(name="money", id=990574898395111434)
+    page = CustomEmoji(name="📃")
+    online = CustomEmoji(name="Online", id=913430477459832872, animated=True)
+    moonfamily = CustomEmoji(name="MoonFamily", id=1069373465527853056)
