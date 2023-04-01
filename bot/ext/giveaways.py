@@ -71,7 +71,7 @@ class Giveaways(di.Extension):
         return True
 
 
-    @di.extension_command(name="giveaways", description="Commands für das Giveaway System")
+    @di.extension_command(name="giveaways", description="Commands für das Giveaway System", dm_permission=False)
     async def giveaways_cmds(self, ctx: di.CommandContext):
         pass
 
