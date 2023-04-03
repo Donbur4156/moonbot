@@ -58,7 +58,11 @@ class Schedule(di.Extension):
 
     def _del_schedule(self, id:int):
         self._sql_del_schedule(id=id)
-        if self._sched_activ.get(id):
+        job_data = self._sched_activ.get(id)
+        if job_data:
+            job_id = job_data.get("job_id", None)
+            if job_id:
+                self._schedule.remove_job(job_id=job_id)
             self._sched_activ.__delitem__(id)
 
 
@@ -125,7 +129,7 @@ class Schedule(di.Extension):
     def _sql_get_channel(self, id:int):
         return self.sql.execute(stmt="SELECT channel_id FROM sched_list WHERE id=?", var=(id,)).data_single
 
-    @di.extension_command()
+    @di.extension_command(description="Commands für Reminder", dm_permission=False)
     async def reminder(self, ctx: di.CommandContext):
         cmd_options = ctx.data.options[0].options
         for option in cmd_options:
@@ -252,7 +256,7 @@ class Schedule(di.Extension):
         logging.info(f"REMINDER/{id}/delete")
 
     
-    async def __check_timeformat(self, ctx: di.CommandContext, time: str):
+    async def __check_timeformat(self, ctx: di.CommandContext, time: str): #TODO: Zeitformat variabel
         try:
             t = datetime.strptime(time, "%d.%m.%Y %H:%M")
         except ValueError:

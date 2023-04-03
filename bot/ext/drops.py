@@ -12,6 +12,7 @@ from interactions.ext.persistence import (PersistenceExtension,
                                           PersistentCustomID,
                                           extension_persistent_component)
 from interactions.ext.tasks import IntervalTrigger, create_task
+from util.boostroles import BoostRoles
 from util.emojis import Emojis
 from util.sql import SQL
 from whistle import EventDispatcher
@@ -92,7 +93,7 @@ class DropsHandler(di.Extension):
         if drop:
             drops = {
                 "vip": Drop_VIP_Rank,
-                "boost": Drop_BoostCol,
+                "boost": Drop_BoostColor,
                 "starpwd": Drop_StarPowder,
                 "emoji": Drop_Emoji
             }
@@ -178,7 +179,7 @@ class DropsHandler(di.Extension):
 
 class Drops:
     def __init__(self) -> None:
-        self.droplist: list[Drop] = [Drop_VIP_Rank, Drop_BoostCol, Drop_StarPowder, Drop_Emoji]
+        self.droplist: list[Drop] = [Drop_VIP_Rank, Drop_BoostColor, Drop_StarPowder, Drop_Emoji]
         self.weights = [0.1, 0.12, 0.5, 0.08]
 
     def _gen_drop(self):
@@ -237,7 +238,7 @@ class Drop_VIP_Rank(Drop):
         await ctx.member.add_role(vip_role, c.serverid, reason="Drop Belohnung")
         logging.info(f"DROPS/VIP/add Role to {ctx.member.id}")
 
-class Drop_BoostCol(Drop):
+class Drop_BoostColor(Drop):
     def __init__(self) -> None:
         self.text = "Booster Farbe"
         self.emoji = Emojis.pinsel
@@ -249,25 +250,8 @@ class Drop_BoostCol(Drop):
     async def execute_last(self, **kwargs):
         ctx: di.ComponentContext = kwargs.pop("ctx", None)
         content = "**Booster Farbe:**\n\n:arrow_right: Wähle eine neue Farbe aus, mit welcher du im Chat angezeigt werden willst:\n"
-        role_colors = BoostCol.role_colors
-        buttons = []
-        client: di.Client = kwargs.pop("client")
-        config: Configs = client.config
-        for k, i in role_colors.items():
-            pers_id = PersistentCustomID(cipher=client, tag="boost_col", package=k)
-            button = di.Button(
-                style=di.ButtonStyle.SECONDARY,
-                label=i[2],
-                custom_id=str(pers_id),
-                emoji=di.Emoji(name=i[0])
-            )
-            if config.get_roleid(i[1]) in ctx.member.roles:
-                button.disabled = True
-            buttons.append(button)
-        row1 = di.ActionRow(components=[buttons[0], buttons[1], buttons[2]])
-        row2 = di.ActionRow(components=[buttons[3], buttons[4], buttons[5]])
-        row3 = di.ActionRow(components=[buttons[6], buttons[7], buttons[8]])
-        components = [row1, row2, row3]
+        boostroles = BoostRoles(client=kwargs.pop("client"))
+        components = boostroles.get_components_colors(tag="boost_col", member=ctx.member)
         embed = di.Embed(description=content, color=0x43FA00)
         try:
             await ctx.member.send(embeds=embed, components=components)
@@ -288,8 +272,8 @@ class Drop_StarPowder(Drop):
         self.amount = random.randint(a=10, b=50)
         self.text += f" ({self.amount})"
         user_id = int(ctx.user.id)
-        self.amount = self.starpowder.upd_starpowder(user_id, self.amount)
         logging.info(f"DROPS/STARPOWDER/add {self.amount} to {user_id}")
+        self.amount = self.starpowder.upd_starpowder(user_id, self.amount)
         return f"Du hast jetzt insgesamt {self.amount} Sternenstaub gesammelt.\n"
 
     async def execute_last(self, **kwargs):
@@ -367,35 +351,18 @@ class StarPowder:
     def getlist_starpowder(self):
         return SQL(database=c.database).execute(stmt="SELECT * FROM starpowder ORDER BY amount DESC").data_all
 
-class BoostCol:
-    role_colors = {
-        "1": ["🔵", "boost_col_blue", "Blau"],
-        "2": ["💗", "boost_col_pink", "Pink"],
-        "3": ["🟣", "boost_col_violet", "Lila"],
-        "4": ["🟡", "boost_col_yellow", "Gelb"],
-        "5": ["🟢", "boost_col_green", "Grün"],
-        "6": ["⚫", "boost_col_black", "Schwarz"],
-        "7": ["⚪", "boost_col_white", "Weiß"],
-        "8": ["🔹", "boost_col_cyan", "Türkis"],
-        "9": ["🔴", "boost_col_red", "Rot"]
-        }
 
 class BoostColResponse(PersistenceExtension):
     def __init__(self, client: di.Client) -> None:
         self.client=client
         self.config: Configs = client.config
+        self.boostroles = BoostRoles(client=client)
 
     @extension_persistent_component("boost_col")
     async def boost_col_response(self, ctx: di.ComponentContext, id: str):
-        role_colors = BoostCol.role_colors
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=ctx.user.id)
-        for role in role_colors.values():
-            role_id = self.config.get_roleid(role[1])
-            if not role_id: continue
-            await member.remove_role(role=role_id, guild_id=c.serverid, reason="Drop Belohnung")
-        role = await self.config.get_role(role_colors[id][1])
-        await member.add_role(role=role, guild_id=c.serverid, reason="Drop Belohnung")
-        embed = di.Embed(description=f"Du hast dich für `{role_colors[id][2]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
+        role = await self.boostroles.change_color_role(member=member, id=id, reason="Drop Belohnung")
+        embed = self.boostroles.get_embed_color(role)
         await ctx.disable_all_components()
         await ctx.send(embeds=embed, ephemeral=check_ephemeral(ctx))
         logging.info(f"DROPS/BOOSTCOL/add Role {role.name} to {member.id}")
@@ -584,7 +551,7 @@ class EmojiResponse(PersistenceExtension):
         await member.send(embeds=di.Embed(description=f"Dein Emoji {emoji.format} wurde abgelehnt. Bitte nimm ein anderes. {Emojis.vote_no}\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat an den Support wenden.", color=di.Color.RED))
         await emoji.delete(guild_id=c.serverid)
         msg_initial: di.Message = await di.get(client=self.client, obj=di.Message, object_id=package[2], parent_id=package[3])
-        enable_components(msg_initial)
+        await enable_components(msg_initial)
         logging.info(f"DROPS/CUSTOMEMOJI/deny Emoji/Emoji: {emoji.id}; User: {member.id}; Admin: {ctx.user.id}")
 
 

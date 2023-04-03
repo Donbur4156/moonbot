@@ -163,7 +163,7 @@ class AdminCmds(di.Extension):
         embed.add_field(name="Rollen", value=roles_general_text)
         embed.add_field(name="Rollen", value=roles_special_text)
         embed.add_field(name="Specials", value=specials_text)
-
+    #TODO: Boost Icons einfügen
         await ctx.send(embeds=embed)
 
     @config.subcommand(description="Channel Config")
@@ -220,6 +220,24 @@ class AdminCmds(di.Extension):
         ])
     @di.option(description="Role")
     async def roles_boost_colors(self, ctx: di.CommandContext, type: str, role: di.Role):
+        await self.set_role(ctx, type, role)
+    
+    @config.subcommand(description="Role Config Boost Icons")
+    @di.option(description="Role type",
+        choices=[
+            di.Choice(name="Boost Icon Rose 1", value="booost_icon_rose"),
+            di.Choice(name="Boost Icon Rose 2", value="booost_icon_rose2"),
+            di.Choice(name="Boost Icon Rose White", value="booost_icon_rosewhite"),
+            di.Choice(name="Boost Icon Cap", value="booost_icon_cap"),
+            di.Choice(name="Boost Icon Money", value="booost_icon_money"),
+            di.Choice(name="Boost Icon Heart Purple", value="booost_icon_heartpurple"),
+            di.Choice(name="Boost Icon Heart Green", value="booost_icon_heartgreen"),
+            di.Choice(name="Boost Icon Bat", value="booost_icon_bat"),
+            di.Choice(name="Boost Icon Mask", value="booost_icon_mask"),
+            di.Choice(name="Boost Icon Pepper", value="booost_icon_pepper"),
+        ])
+    @di.option(description="Role")
+    async def roles_boost_icons(self, ctx: di.CommandContext, type: str, role: di.Role):
         await self.set_role(ctx, type, role)
     
     @config.subcommand(description="Role Config Pings")
