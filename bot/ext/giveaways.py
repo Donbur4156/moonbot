@@ -85,7 +85,7 @@ class Giveaways(di.Extension):
                     label="Dauer",
                     custom_id="duration",
                     min_length=2,
-                    value="5 Sekunden"
+                    placeholder="bspw. '1 Minute', '5 Stunden', '3 Tage'",
                 ),
                 di.TextInput(
                     style=di.TextStyleType.SHORT,
@@ -94,7 +94,6 @@ class Giveaways(di.Extension):
                     min_length=1,
                     max_length=2,
                     value="1",
-                    
                 ),
                 di.TextInput(
                     style=di.TextStyleType.SHORT,
@@ -102,13 +101,13 @@ class Giveaways(di.Extension):
                     custom_id="price",
                     min_length=1,
                     max_length=128,
-                    value="Preis"
+                    placeholder="Name des Preises"
                 ),
                 di.TextInput(
                     style=di.TextStyleType.PARAGRAPH,
                     label="Beschreibung",
                     custom_id="description",
-                    value="Preise, Preise, Preise"
+                    placeholder="Beschreibung des Preises",
                 ),
             ])
         await ctx.popup(modal=modal)
