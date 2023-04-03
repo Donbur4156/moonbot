@@ -50,4 +50,5 @@ class Emojis:
     money = CustomEmoji(name="money", id=990574898395111434)
     page = CustomEmoji(name="📃")
     online = CustomEmoji(name="Online", id=913430477459832872, animated=True)
+    offline = CustomEmoji(name="Offline", id=913430476558041139, animated=True)
     moonfamily = CustomEmoji(name="MoonFamily", id=1069373465527853056)

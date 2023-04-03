@@ -47,7 +47,7 @@ class Giveaways(di.Extension):
 
     async def check_perms_control(self, ctx: di.ComponentContext) -> bool:
         if not self.permitted_roles.intersection(set(ctx.member.roles)):
-            await ctx.send("Du bist hierzu nicht berechtigt!", ephemeral=True)
+            await ctx.send("> Du bist hierzu nicht berechtigt!", ephemeral=True)
             return False
         return True
     
@@ -121,7 +121,7 @@ class Giveaways(di.Extension):
         giveaway.ctr_channel_id = int(msg.channel_id)
         giveaway.sql_store()
         self.giveaways.update({giveaway.id:giveaway})
-        await ctx.send(f"{Emojis.check} Das Giveaway wurde **erfolgreich** erstellt.", ephemeral=True)
+        await ctx.send(f"> {Emojis.check} Das Giveaway wurde **erfolgreich** erstellt.", ephemeral=True)
         logging.info(f"GIVEAWAYS/generate/ id: {giveaway.id}, price: {giveaway.price}, duration: {giveaway.duration}, winner_amount: {giveaway.winner_amount}, by {ctx.user.id}")
 
     async def send_control_embed(self, ctx: di.CommandContext, giveaway: Giveaway):
@@ -155,7 +155,7 @@ class Giveaways(di.Extension):
         giveaway = self.get_giveaway(ctx)
         giveaway.change_price(price)
         await self.edit_control_embed(ctx, giveaway)
-        await ctx.send(f"Du hast den Preis erfolgreich zu **{giveaway.price}** geändert. {Emojis.vote_yes}", ephemeral=True)
+        await ctx.send(f"> Du hast den Preis erfolgreich zu **{giveaway.price}** geändert. {Emojis.vote_yes}", ephemeral=True)
         logging.info(f"GIVEAWAYS/change price/id: {giveaway.id}, new: {giveaway.price} by {ctx.user.id}")
 
 
@@ -181,7 +181,7 @@ class Giveaways(di.Extension):
         giveaway = self.get_giveaway(ctx)
         giveaway.change_description(description)
         await self.edit_control_embed(ctx, giveaway)
-        await ctx.send(f"Du hast die Beschreibung erfolgreich aktualisiert. {Emojis.vote_yes}", ephemeral=True)
+        await ctx.send(f"> Du hast die Beschreibung erfolgreich aktualisiert. {Emojis.vote_yes}", ephemeral=True)
         logging.info(f"GIVEAWAYS/change description/id: {giveaway.id}, new: {giveaway.description} by {ctx.user.id}")
 
 
@@ -207,7 +207,7 @@ class Giveaways(di.Extension):
         giveaway = self.get_giveaway(ctx)
         giveaway.change_duration(duration)
         await self.edit_control_embed(ctx, giveaway)
-        await ctx.send(f"Du hast die Dauer des Giveaways auf **{giveaway.duration}** geändert. {Emojis.vote_yes}", ephemeral=True)
+        await ctx.send(f"> Du hast die Dauer des Giveaways auf **{giveaway.duration}** geändert. {Emojis.vote_yes}", ephemeral=True)
         logging.info(f"GIVEAWAYS/change duration/id: {giveaway.id}, new: {giveaway.duration} by {ctx.user.id}")
 
 
@@ -233,7 +233,7 @@ class Giveaways(di.Extension):
         giveaway = self.get_giveaway(ctx)
         giveaway.change_winner_amount(int(winner_amount))
         await self.edit_control_embed(ctx, giveaway)
-        await ctx.send(f"Du hast die Anzahl der Gewinner auf **{giveaway.winner_amount}** geändert. {Emojis.vote_yes}", ephemeral=True)
+        await ctx.send(f"> Du hast die Anzahl der Gewinner auf **{giveaway.winner_amount}** geändert. {Emojis.vote_yes}", ephemeral=True)
         logging.info(f"GIVEAWAYS/change winneramount/id: {giveaway.id}, new: {giveaway.winner_amount} by {ctx.user.id}")
 
 
@@ -242,11 +242,11 @@ class Giveaways(di.Extension):
         if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
         if not giveaway.start_able():
-            await ctx.send("Das Giveaway konnte nicht gestartet werden. Möglicherweise fehlen Angaben oder die Dauer konnte nicht übersetzt werden.", ephemeral=True)
+            await ctx.send("> Das Giveaway konnte nicht gestartet werden. Möglicherweise fehlen Angaben oder die Dauer konnte nicht übersetzt werden.", ephemeral=True)
             return False
 
         giveaway.set_endtime()
-        channel = await self.config.get_channel(name="giveaway")
+        channel = await self.config.get_channel("giveaway")
         embed, components = self.get_giveaway_post(giveaway)
         giveaway_ping = await self.config.get_role_mention("ping_giv")
         msg = await channel.send(content=f"{giveaway_ping}", embeds=embed, components=components, allowed_mentions={"parse": ["roles"]})
@@ -266,7 +266,7 @@ class Giveaways(di.Extension):
         try:
             giveaway_message = await giveaway.get_post_message()
         except di.LibraryException:
-            await ctx.send("Die Nachricht mit dem Giveaway konnte nicht gefunden werden. Eine mögliche Auslosung wird abgebrochen.", ephemeral=True)
+            await ctx.send("> Die Nachricht mit dem Giveaway konnte nicht gefunden werden. Eine mögliche Auslosung wird abgebrochen.", ephemeral=True)
         await giveaway_message.delete()
         self.giveaways.pop(giveaway.id)
         self.giveaways_running.pop(giveaway.post_message_id)
@@ -298,8 +298,8 @@ class Giveaways(di.Extension):
         await msg.edit(embeds=embed, components=None)
         
         if winners:
-            channel = await self.config.get_channel("chat")
-            text = f"Herzlichen Glückwunsch {giveaway.get_winner_text()}, {'ihr habt' if len(winners) > 1 else 'du hast'} {giveaway.price} gewonnen! " \
+            channel = await self.config.get_channel("giveaway")
+            text = f"> Herzlichen Glückwunsch {giveaway.get_winner_text()}, {'ihr habt' if len(winners) > 1 else 'du hast'} **{giveaway.price}** gewonnen! " \
                 f"{Emojis.give} {Emojis.crone} {Emojis.moonfamily}"
             await channel.send(text)
 
@@ -314,7 +314,7 @@ class Giveaways(di.Extension):
         giveaway = self.get_giveaway(ctx)
         if not giveaway:
             await ctx.message.disable_all_components()
-            await ctx.send("Dieses Gewinnspiel ist bereits abgelaufen.", ephemeral=True)
+            await ctx.send("> Dieses Gewinnspiel ist bereits abgelaufen.", ephemeral=True)
             return False
         dcuser = DcUser(member=ctx.member)
         dcuser.giveaway_plus = self.config.get_roleid("giveaway_plus") in dcuser.member.roles
@@ -322,7 +322,7 @@ class Giveaways(di.Extension):
         embed = self.get_giveaway_post(giveaway)[0]
         await ctx.edit(embeds = embed)
         give_role = await self.config.get_role("giveaway_plus")
-        await ctx.send(f"{Emojis.check} Du hast erfolgreich an dem Giveaway teilgenommen! Mit der {give_role.mention} Rolle erhältst du doppelte Gewinnchance.", ephemeral=True)
+        await ctx.send(f"> {Emojis.check} Du hast erfolgreich an dem Giveaway teilgenommen! Mit der {give_role.mention} Rolle erhältst du doppelte Gewinnchance.", ephemeral=True)
 
 
     def get_giveaway(self, ctx: di.CommandContext) -> Giveaway:
@@ -350,8 +350,8 @@ class Giveaways(di.Extension):
             f"Dauer: **{giveaway.duration}**\nGewinner: **{giveaway.winner_amount}**"
         embed = di.Embed(title="Giveaway frühzeitig beenden", description=description)
 
-        but_stop = di.Button(style=di.ButtonStyle.DANGER, label="Stop (ohne Auslosung)", custom_id="stop")
-        but_end = di.Button(style=di.ButtonStyle.SECONDARY, label="Auslosung (vorzeitig)", custom_id="end")
+        but_stop = di.Button(style=di.ButtonStyle.DANGER, emoji=Emojis.offline, label="Stop (ohne Auslosung)", custom_id="stop")
+        but_end = di.Button(style=di.ButtonStyle.SECONDARY, emoji=Emojis.arrow_r, label="Auslosung (vorzeitig)", custom_id="end")
 
         components = [but_stop, but_end]
 
