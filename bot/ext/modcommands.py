@@ -109,11 +109,13 @@ class AdminCmds(di.Extension):
             {"name": "Team Chat", "value": "team_chat"},
             {"name": "Boost Color", "value": "boost_col"},
             {"name": "Reminder", "value": "schedule"},
+            {"name": "Giveaways", "value": "giveaway"},
         ]
-        roles = [
+        roles_general = [
             {"name": "Owner", "value": "owner"},
             {"name": "Admins", "value": "admin"},
             {"name": "Mods", "value": "mod"},
+            {"name": "Eventmanager", "value": "eventmanager"},
             {"name": "Shiny Moon", "value": "moon"},
             {"name": "VIP", "value": "vip"},
             {"name": "MVP", "value": "mvp"},
@@ -121,6 +123,9 @@ class AdminCmds(di.Extension):
             {"name": "Booster", "value": "booster"},
             {"name": "Engel", "value": "engel"},
             {"name": "Jubiläums Rolle", "value": "jub_role"},
+            {"name": "Giveaway +", "value": "giveaway_plus"},
+        ]
+        roles_special = [
             {"name": "Boost Color Blau", "value": "boost_col_blue"},
             {"name": "Boost Color Pink", "value": "boost_col_pink"},
             {"name": "Boost Color Lila", "value": "boost_col_violet"},
@@ -145,7 +150,8 @@ class AdminCmds(di.Extension):
             {"name": "Drop Maximum", "value": "drop_max"},
         ]
         channels_text = "\n".join([f"{channel['name']}: {await self._config.get_channel_mention(channel['value'])}" for channel in channels])
-        roles_text = "\n".join([f"{role['name']}: {await self._config.get_role_mention(role['value'])}" for role in roles])
+        roles_general_text = "\n".join([f"{role['name']}: {await self._config.get_role_mention(role['value'])}" for role in roles_general])
+        roles_special_text = "\n".join([f"{role['name']}: {await self._config.get_role_mention(role['value'])}" for role in roles_special])
         specials_text = "\n".join([f"{special['name']}: {self._config.get_special(special['value'])}" for special in specials])
         
         embed = di.Embed(
@@ -154,7 +160,8 @@ class AdminCmds(di.Extension):
             footer=di.EmbedFooter(text="Änderungen als Admin mit /config [roles/channels/specials]")
         )
         embed.add_field(name="Channel", value=channels_text)
-        embed.add_field(name="Rollen", value=roles_text)
+        embed.add_field(name="Rollen", value=roles_general_text)
+        embed.add_field(name="Rollen", value=roles_special_text)
         embed.add_field(name="Specials", value=specials_text)
     #TODO: Boost Icons einfügen
         await ctx.send(embeds=embed)
@@ -170,6 +177,7 @@ class AdminCmds(di.Extension):
             di.Choice(name="Team Chat", value="team_chat"),
             di.Choice(name="Boost Color", value="boost_col"),
             di.Choice(name="Reminder", value="schedule"),
+            di.Choice(name="Giveaways", value="giveaway"),
         ])
     @di.option(description="Channel")
     async def channels(self, ctx: di.CommandContext, type: str, channel: di.Channel):
@@ -183,6 +191,7 @@ class AdminCmds(di.Extension):
             di.Choice(name="Owner", value="owner"),
             di.Choice(name="Admins", value="admin"),
             di.Choice(name="Mods", value="mod"),
+            di.Choice(name="Eventmanager", value="eventmanager"),
             di.Choice(name="Shiny Moon", value="moon"),
             di.Choice(name="VIP", value="vip"),
             di.Choice(name="MVP", value="mvp"),
@@ -190,6 +199,7 @@ class AdminCmds(di.Extension):
             di.Choice(name="Booster", value="booster"),
             di.Choice(name="Engel", value="engel"),
             di.Choice(name="Jubiläums Rolle", value="jub_role"),
+            di.Choice(name="Giveaway +", value="giveaway_plus"),
         ])
     @di.option(description="Role")
     async def roles_general(self, ctx: di.CommandContext, type: str, role: di.Role):
@@ -257,8 +267,6 @@ class AdminCmds(di.Extension):
         choices=[
             di.Choice(name="Drop Minimum", value="drop_min"),
             di.Choice(name="Drop Maximum", value="drop_max"),
-            di.Choice(name="Meilensteine Channel", value="milestone_channel"),
-            di.Choice(name="Meilensteine Message", value="milestone_message"),
         ])
     @di.option(description="Special")
     async def specials(self, ctx: di.CommandContext, type: str, special: str):

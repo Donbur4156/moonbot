@@ -46,8 +46,12 @@ class Emojis:
     load_orange = CustomEmoji(name="loading_orange", id=1079864430319374500, animated=True)
     party = CustomEmoji(name="Party", id=913490674739974174, animated=True)
     sound = CustomEmoji(name="🔊")
+    tada = CustomEmoji(name="🎉")
+    page = CustomEmoji(name="📃")
+    online = CustomEmoji(name="Online", id=913430477459832872, animated=True)
+    offline = CustomEmoji(name="Offline", id=913430476558041139, animated=True)
+    moonfamily = CustomEmoji(name="MoonFamily", id=1069373465527853056)
     aww = CustomEmoji(name="aww", id=982424711243890738, animated=True)
-
     rose = CustomEmoji(name="rose~1", id=990574819663810560)
     cap = CustomEmoji(name="cap", id=990574871975170098)
     rose2 = CustomEmoji(name="rose2", id=990574818120318986)
@@ -58,7 +62,6 @@ class Emojis:
     baseballbat = CustomEmoji(name="baseballbat", id=990575184266289222)
     mask = CustomEmoji(name="mask~1", id=990575216944115733)
     pepper = CustomEmoji(name="pepper", id=990575244374863912)
-
     blue = CustomEmoji(name="🔵")
     pink = CustomEmoji(name="💗")
     violet = CustomEmoji(name="🟣")

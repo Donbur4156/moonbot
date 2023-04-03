@@ -19,6 +19,7 @@ class DcUser:
             self.dc_id = int(member.id._snowflake)
         else: raise Exception("dcuser needs dc_id or a ctx Object for id!")
         self.mention = f"<@!{self.dc_id}>"
+        self.giveaway_plus: bool = False
 
     def __await__(self):
         async def closure():

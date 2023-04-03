@@ -38,6 +38,7 @@ bot.load("ext.modcommands")
 bot.load("ext.milestones")
 bot.load("ext.schedules")
 bot.load("ext.selfroles")
+bot.load("ext.giveaways")
 
 
 @bot.event
