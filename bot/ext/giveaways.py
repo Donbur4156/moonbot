@@ -368,7 +368,7 @@ class Giveaways(di.Extension):
         time_end = giveaway.get_endtime_unix()
         description = f"```{giveaway.description}```\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nEinträge: **{len(giveaway.entries)}**\n" \
             f"Gewinner: **{giveaway.winner_amount}**"
-        footer = di.EmbedFooter(text=f"{Emojis.moonfamily} Du willst doppelte Gewinnchance? Vote für Moon Family {Emojis.crescent_moon} und erhalte die Giveaway + Rolle!")
+        footer = di.EmbedFooter(text=f"Du willst doppelte Gewinnchance? Vote für Moon Family {Emojis.crescent_moon} und erhalte die Giveaway + Rolle!")
 
         embed = di.Embed(title=f"{Emojis.give} {giveaway.price} {Emojis.give}", description=description, color=0x740fd9, footer=footer)
         button = di.Button(
