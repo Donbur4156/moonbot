@@ -57,7 +57,7 @@ class BoostRoles:
         return role
 
     def get_embed_color(self, role: di.Role):
-        return di.Embed(description=f"Du hast dich für `{role.icon} {role.name}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
+        return di.Embed(description=f"Du hast dich für `{role.name}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
     
     def get_embed_icons(self, role: di.Role):
         return di.Embed(description=f"Du hast dich für `{role.icon}` entschieden und das neue Icon im Chat erhalten.", color=0x43FA00)
