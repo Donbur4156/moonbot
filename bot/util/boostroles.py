@@ -56,13 +56,13 @@ class BoostRoles:
         role = await self.add_role(ref, member, id, reason)
         return role
 
-    def get_embed_color(self, role: di.Role):
-        return di.Embed(description=f"Du hast dich für `{role.name}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
+    def get_embed_color(self, id: str):
+        return di.Embed(description=f"Du hast dich für `{self.colors[id][0]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
     
-    def get_embed_icons(self, role: di.Role):
-        return di.Embed(description=f"Du hast dich für `{role.unicode_emoji}` entschieden und das neue Icon im Chat erhalten.", color=0x43FA00)
+    def get_embed_icons(self, id: str):
+        return di.Embed(description=f"Du hast dich für `{self.icons[id][0]}` entschieden und das neue Icon im Chat erhalten.", color=0x43FA00)
 
-    def get_buttons(self, k, i, tag, member: di.Member = None, label: bool = True):
+    def get_button(self, k, i, tag, member: di.Member = None, label: bool = True):
         pers_id = PersistentCustomID(cipher=self.client, tag=tag, package=k)
         button = di.Button(
             style=di.ButtonStyle.SECONDARY,
@@ -75,7 +75,7 @@ class BoostRoles:
         return button
     
     def get_components_colors(self, tag: str, member: di.Member = None):
-        buttons = [self.get_buttons(k, i, tag, member=member) for k, i in self.colors.items()]
+        buttons = [self.get_button(k, i, tag, member=member) for k, i in self.colors.items()]
         return [
             di.ActionRow(components=buttons[0:3]),
             di.ActionRow(components=buttons[3:6]),
@@ -83,7 +83,7 @@ class BoostRoles:
         ]
     
     def get_components_icons(self, tag: str):
-        buttons = [self.get_buttons(k, i, tag, label=False) for k, i in self.icons.items()]
+        buttons = [self.get_button(k, i, tag, label=False) for k, i in self.icons.items()]
         return [
             di.ActionRow(components=buttons[0:5]),
             di.ActionRow(components=buttons[5:10]),

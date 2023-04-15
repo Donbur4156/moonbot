@@ -26,7 +26,6 @@ class Emojis:
     heart = CustomEmoji(name="disco_heart", id=929823044480938054, animated=True)
     boost = CustomEmoji(name="nitro", id=985294758148706415, animated=True)
     star = CustomEmoji(name="Stern", id=913415911237615626, animated=True)
-    arrow_rr = CustomEmoji(name="doppelterPfeilRechts", id=913419223596941352)
     country_ger = CustomEmoji(name="🇩🇪")
     country_aut = CustomEmoji(name="🇦🇹")
     country_swi = CustomEmoji(name="🇨🇭")
