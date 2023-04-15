@@ -569,7 +569,12 @@ class EmojiResponse(PersistenceExtension):
 
     async def delete_emoji(self, id: int):
         guild: di.Guild = await di.get(client=self.client, obj=di.Guild, object_id=c.serverid)
-        await guild.delete_emoji(id)
+        try:
+            await guild.delete_emoji(id)
+        except di.LibraryException as e:
+            logging.error(f"EMOJI not Exist ({id})")
+            return False
+        return True
 
     def add_new(self, id: int):
         self.config.set_special(name="custom_emoji", value=str(id))
