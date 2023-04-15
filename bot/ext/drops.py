@@ -101,6 +101,13 @@ class DropsHandler(di.Extension):
         await ctx.send(f"Drop generiert in {channel.mention}", ephemeral=True)
         await self.drop(channel=channel, drop=drop)
 
+    @droptest.subcommand(name="emojitest")
+    async def emojitest(self, ctx: di.CommandContext):
+        dict_emojis = Emojis.get_all()
+        emojis = [f"{v}" for n, v in dict_emojis.items()]
+        await ctx.send(" ".join(emojis[0:50]))
+        await ctx.channel.send(" ".join(emojis[50:]))
+
     @di.extension_command(name="sternenstaub", description="Gibt deine Sternenstaub Menge zurück")
     async def starpowder_cmd(self, ctx: di.CommandContext):
         amount_sql = StarPowder().get_starpowder(int(ctx.user.id))
