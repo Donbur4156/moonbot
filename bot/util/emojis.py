@@ -18,7 +18,7 @@ class Emojis:
     minecraft = CustomEmoji(name="minecraft_herz", id=913381125831929876)
     sleepy = CustomEmoji(name="SleepyMoon", id=913418101440249886)
     starpowder = CustomEmoji(name="sternenstaub", id=1021054585080655882)
-    vip = CustomEmoji(name="vip_rank", id=1021054499231633469)
+    vip = CustomEmoji(name="vip", id=1096849615095078922)
     vote_no = CustomEmoji(name="VoteNo", id=913420354578436096, animated=True)
     vote_yes = CustomEmoji(name="VoteYes", id=913420308550127657, animated=True)
     welcome = CustomEmoji(name="Willkommen", id=913417971219709993, animated=True)
