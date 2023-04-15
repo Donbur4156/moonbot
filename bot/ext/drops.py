@@ -369,7 +369,7 @@ class BoostColResponse(PersistenceExtension):
     async def boost_col_response(self, ctx: di.ComponentContext, id: str):
         member: di.Member = await di.get(client=self.client, obj=di.Member, parent_id=c.serverid, object_id=ctx.user.id)
         role = await self.boostroles.change_color_role(member=member, id=id, reason="Drop Belohnung")
-        embed = self.boostroles.get_embed_color(role)
+        embed = self.boostroles.get_embed_color(id)
         await ctx.disable_all_components()
         await ctx.send(embeds=embed, ephemeral=check_ephemeral(ctx))
         logging.info(f"DROPS/BOOSTCOL/add Role {role.name} to {member.id}")

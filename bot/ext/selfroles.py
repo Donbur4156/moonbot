@@ -90,7 +90,7 @@ class SelfRoles(PersistenceExtension):
     @extension_persistent_component("boost_col_self")
     async def boostcolor_comp(self, ctx: di.ComponentContext, id: str):
         role = await self.boostroles.change_color_role(member=ctx.member, id=id, reason="Selfrole")
-        embed = self.boostroles.get_embed_color(role)
+        embed = self.boostroles.get_embed_color(id)
         await ctx.send(embeds=embed, ephemeral=True)
 
     @selfroles_cmd.subcommand()
@@ -107,7 +107,7 @@ class SelfRoles(PersistenceExtension):
     @extension_persistent_component("boost_icons_self")
     async def boosticons_comp(self, ctx: di.ComponentContext, id: str):
         role = await self.boostroles.change_icon_role(member=ctx.member, id=id, reason="Selfrole")
-        embed = self.boostroles.get_embed_icons(role)
+        embed = self.boostroles.get_embed_icons(id)
         await ctx.send(embeds=embed, ephemeral=True)
 
 

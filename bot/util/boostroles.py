@@ -60,7 +60,7 @@ class BoostRoles:
         return di.Embed(description=f"Du hast dich für `{self.colors[id][0]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
     
     def get_embed_icons(self, id: str):
-        return di.Embed(description=f"Du hast dich für `{self.icons[id][0]}` entschieden und das neue Icon im Chat erhalten.", color=0x43FA00)
+        return di.Embed(description=f"Du hast dich für {self.icons[id][0]} entschieden und das neue Icon im Chat erhalten.", color=0x43FA00)
 
     def get_button(self, k, i, tag, member: di.Member = None, label: bool = True):
         pers_id = PersistentCustomID(cipher=self.client, tag=tag, package=k)
