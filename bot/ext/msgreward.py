@@ -117,16 +117,16 @@ class MsgXP(di.Extension):
         if msg_count >= req_msgs:
             success_text = f"{mention_text} das tägliche Mindestziel **erreicht**! :moon_cake:"
         else:
-            success_text = f"\n{mention_text} das tägliche Mindestziel __noch__ __nicht__ erreicht! <a:laden:913488789303853056>"
+            success_text = f"\n{mention_text} das tägliche Mindestziel __noch__ __nicht__ erreicht! {Emojis.loading}"
         if user_data and not user_data.expired:
             count = user_data.counter_days
-            streak_text = f"<a:cutehearts:985295531700023326> {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über {req_msgs} Nachrichten geschrieben. <a:cutehearts:985295531700023326>"
+            streak_text = f"{Emojis.cute_hearts} {mention_text} seit **{count} Tag{'en' if count != 1 else ''}** jeden Tag über {req_msgs} Nachrichten geschrieben. {Emojis.cute_hearts}"
         else:
             streak_text = ""
         description = f"{mention_text} heute {msg_count}`/`{req_msgs} *gezählte* Nachrichten in {self.channel_chat.mention} geschrieben!\n" \
             f"{success_text}\n\n{streak_text}"
         emb = di.Embed(
-            title=f"<:DailyReward:990693035543265290> Tägliche Belohnung <:DailyReward:990693035543265290>",
+            title=f"{Emojis.daily_rew} Tägliche Belohnung {Emojis.daily_rew}",
             description=description,
             color=0xFF00DD
         )
