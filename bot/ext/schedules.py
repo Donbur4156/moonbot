@@ -4,6 +4,7 @@ from datetime import datetime
 import config as c
 import interactions as di
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.job import Job
 from configs import Configs
 from util.sql import SQL
 
@@ -59,11 +60,13 @@ class Schedule(di.Extension):
     def _del_schedule(self, id:int):
         self._sql_del_schedule(id=id)
         job_data = self._sched_activ.get(id)
-        if job_data:
-            job_id = job_data.get("job_id", None)
-            if job_id:
-                self._schedule.remove_job(job_id=job_id)
-            self._sched_activ.__delitem__(id)
+        if not job_data: return
+        self._sched_activ.__delitem__(id)
+        job_id = job_data.get("job_id", None)
+        if not job_id: return
+        job: Job = self._schedule.get_job(job_id=job_id)
+        if not job: return
+        job.remove()
 
 
     def _sql_del_schedule(self, id: int):
@@ -144,7 +147,7 @@ class Schedule(di.Extension):
 
     @reminder.subcommand(name="add")
     @di.option(description="Benachrichtigungstext") #title
-    @di.option(description="Zeitpunkt; Format: 'TT:MM:JJJJ hh:mm'") #time
+    @di.option(description="Zeitpunkt; Format: 'TT.MM.JJJJ hh:mm'") #time
     @di.option(description="Channel, in dem der Reminder gepostet wird.") #channel
     @di.option(description="Rolle, welche gepingt werden soll; weitere mit '/reminder add_roles'") #role
     @di.option(description="User, welche gepingt werden soll; weitere mit '/reminder add_user'") #user
@@ -160,7 +163,7 @@ class Schedule(di.Extension):
 
     @reminder.subcommand(name="change_time")
     @di.option(description="ID des Reminders") #id
-    @di.option(description="neuer Zeitpunkt; Format: 'TT:MM:JJJJ hh:mm'") #time
+    @di.option(description="neuer Zeitpunkt; Format: 'TT.MM.JJJJ hh:mm'") #time
     async def reminder_changetime(self, ctx: di.CommandContext, base_res: di.BaseResult, id:int, time: str):
         if not base_res.result: return False
         if not await self.__check_timeformat(ctx=ctx, time=time): return False
