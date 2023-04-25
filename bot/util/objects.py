@@ -20,6 +20,7 @@ class DcUser:
         else: raise Exception("dcuser needs dc_id or a ctx Object for id!")
         self.mention = f"<@!{self.dc_id}>"
         self.giveaway_plus: bool = False
+        self.wlc_msg: di.Message = None
 
     def __await__(self):
         async def closure():
@@ -57,3 +58,11 @@ class DcUser:
         new_role = JSON.get_role(role_nr=streak_count)
         if new_role:
             await self.member.add_role(guild_id=c.serverid, role=new_role)
+
+    async def delete_wlc_msg(self):
+        if not self.wlc_msg: return False
+        try:
+            await self.wlc_msg.delete()
+            return True
+        except:
+            return False

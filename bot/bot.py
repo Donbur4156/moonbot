@@ -30,6 +30,7 @@ logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, for
 bot.dispatcher = EventDispatcher()
 config: Configs = config_setup(bot)
 bot.load("interactions.ext.persistence", cipher_key=c.cipher_key)
+bot.load("ext.events")
 bot.load("ext.drops")
 bot.load("ext.statusreward")
 bot.load("ext.modmail")
@@ -39,25 +40,6 @@ bot.load("ext.milestones")
 bot.load("ext.schedules")
 bot.load("ext.selfroles")
 bot.load("ext.giveaways")
-
-
-@bot.event
-async def on_start():
-    logging.info("Interactions are online!")
-
-
-@bot.event
-async def on_guild_member_add(member: di.Member):
-    logging.info(f"EVENT/Member Join/{member.name} ({member.id})")
-    text = f"Herzlich Willkommen auf **Moon Family 🌙** {member.mention}! {Emojis.welcome} {Emojis.dance} {Emojis.crone}"
-    channel = await config.get_channel("chat")
-    await channel.send(text)
-    await member.add_role(role=903715839545598022, guild_id=member.guild_id)
-    await member.add_role(role=905466661237301268, guild_id=member.guild_id)
-    await member.add_role(role=913534417123815455, guild_id=member.guild_id)
-    # TODO: Events als Class -> Leave Event als Abbruchbedingung
-    # TODO: add_role Zeitversetzt
-    # TODO: Welcome Message automatisch löschen bei Leave
 
 
 @aiocron.crontab('0 */6 * * *')
