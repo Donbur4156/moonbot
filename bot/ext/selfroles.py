@@ -16,6 +16,9 @@ class SelfRoles(PersistenceExtension):
         self.cooldown: datetime = None
         self.boostroles = BoostRoles(client=self.client)
 
+    @di.extension_listener()
+    async def on_start(self):
+        self.role_boost = await self.config.get_role("booster")
 
     @di.extension_command(name="selfroles", description="Erstellt Selfrole Embeds", dm_permission=False)
     async def selfroles_cmd(self, ctx: di.CommandContext):
@@ -89,9 +92,10 @@ class SelfRoles(PersistenceExtension):
 
     @extension_persistent_component("boost_col_self")
     async def boostcolor_comp(self, ctx: di.ComponentContext, id: str):
-        role = await self.boostroles.change_color_role(member=ctx.member, id=id, reason="Selfrole")
-        embed = self.boostroles.get_embed_color(id)
-        await ctx.send(embeds=embed, ephemeral=True)
+        if self.check_booster(ctx):
+            await self.boostroles.change_color_role(member=ctx.member, id=id, reason="Selfrole")
+            embed = self.boostroles.get_embed_color(id)
+            await ctx.send(embeds=embed, ephemeral=True)
 
     @selfroles_cmd.subcommand()
     @di.option(name="channel", description="Channel, in dem der Post erstellt wird.")
@@ -106,10 +110,18 @@ class SelfRoles(PersistenceExtension):
 
     @extension_persistent_component("boost_icons_self")
     async def boosticons_comp(self, ctx: di.ComponentContext, id: str):
-        role = await self.boostroles.change_icon_role(member=ctx.member, id=id, reason="Selfrole")
-        embed = self.boostroles.get_embed_icons(id)
-        await ctx.send(embeds=embed, ephemeral=True)
+        if self.check_booster(ctx):
+            role = await self.boostroles.change_icon_role(member=ctx.member, id=id, reason="Selfrole")
+            embed = self.boostroles.get_embed_icons(id)
+            await ctx.send(embeds=embed, ephemeral=True)
 
+    async def check_booster(self, ctx: di.ComponentContext):
+        if not int(self.role_boost.id) in ctx.member.roles:
+            text = f"> Hey, um dir eine Farbe oder ein Rollenicon auszusuchen, musst du {self.role_boost.mention} sein.\n" \
+                f"> Sobald du den Server boostest, erhältst du vollen Zugriff auf diese Funktion! {Emojis.nitro_flex}"
+            await ctx.send(text, ephemeral=True)
+            return False
+        return True
 
     @di.extension_command(name="talkping", description="Pingt die talkping Rolle", dm_permission=False)
     async def talkping(self, ctx: di.CommandContext):

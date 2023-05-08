@@ -50,7 +50,7 @@ class MsgXP(di.Extension):
         if int(msg.channel_id) == int(self.channel_chat.id) and not msg.author.bot:
             user_data = self.add_msg(msg=msg)
             if not user_data: return
-            if int(self.role_boost.id) in msg.member.roles:
+            if self.check_booster(member):
                 req_msgs = [15, 30]
             else:
                 req_msgs = [30]
@@ -110,7 +110,7 @@ class MsgXP(di.Extension):
             )
             await ctx.send(embeds=embed, ephemeral=True)
             return
-        req_msgs = 15 if int(self.role_boost.id) in dcuser.member.roles else 30
+        req_msgs = 15 if self.check_booster(dcuser.member) else 30
         msg_count = user_data.counter_msgs
         if msg_count >= req_msgs:
             await self.upgrade_user(user_id=int(dcuser.dc_id))
@@ -185,6 +185,9 @@ class MsgXP(di.Extension):
 
     def _check_user_exist(self, user_id: int):
         return user_id in self._userlist.keys()
+
+    def check_booster(self, member: di.Member) -> bool:
+        return int(self.role_boost.id) in member.roles
 
     def _add_user(self, user_id:int):
         self._SQL.execute(stmt="INSERT INTO msgrewards(user_ID) VALUES (?)", var=(user_id,))

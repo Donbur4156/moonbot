@@ -97,6 +97,7 @@ class Emojis:
     important = CustomEmoji(name="very_important",id=1096372591071076433, animated=True)
     zap = CustomEmoji(name="zap_logo",id=1096372604182478979)
     cute_hearts = CustomEmoji(name="cutehearts", id=985295531700023326, animated=True)
+    nitro_flex = CustomEmoji(name="Nitro_Flex", id=929813698430791780, animated=True)
 
     def get_all():
         return {att: val for att, val in Emojis.__dict__.items() if type(val) == CustomEmoji}
