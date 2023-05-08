@@ -114,7 +114,7 @@ class Giveaways(di.Extension):
 
     @di.extension_modal("give_generate")
     async def modal_givegenerate(self, ctx: di.CommandContext, duration: str, winner_amount: str, price: str, description: str):
-        data = [None, None, price, description, duration, int(winner_amount), None, None, False]
+        data = [None, None, price, description, duration, int(winner_amount), None, None, False, int(ctx.member.id)]
         giveaway = Giveaway(client=self.client, data=data)
         msg = await self.send_control_embed(ctx, giveaway)
         giveaway.id = int(msg.id)
@@ -366,8 +366,8 @@ class Giveaways(di.Extension):
 
     def get_giveaway_post(self, giveaway: Giveaway) -> tuple[di.Embed, di.Component]:
         time_end = giveaway.get_endtime_unix()
-        description = f"```{giveaway.description}```\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nEinträge: **{len(giveaway.entries)}**\n" \
-            f"Gewinner: **{giveaway.winner_amount}**"
+        description = f"```{giveaway.description}```\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nHost: {giveaway.get_hoster()}\n\n" \
+            f"Einträge: **{len(giveaway.entries)}**\nGewinner: **{giveaway.winner_amount}**"
         footer = di.EmbedFooter(text=f"Du willst doppelte Gewinnchance? Vote für Moon Family {Emojis.crescent_moon} und erhalte die Giveaway + Rolle!")
 
         embed = di.Embed(title=f"{Emojis.give} {giveaway.price} {Emojis.give}", description=description, color=0x740fd9, footer=footer)
@@ -379,8 +379,8 @@ class Giveaways(di.Extension):
     
     def get_giveaway_finished(self, giveaway: Giveaway) -> di.Embed:
         time_end = giveaway.get_endtime_unix()
-        description = f"```{giveaway.description}```\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nEinträge: **{len(giveaway.entries)}**\n" \
-            f"Gewinner: {giveaway.get_winner_text()}"
+        description = f"```{giveaway.description}```\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nHost: {giveaway.get_hoster()}\n\n" \
+            f"Einträge: **{len(giveaway.entries)}**\nGewinner: {giveaway.get_winner_text()}"
 
         embed = di.Embed(title=f"{Emojis.star} {giveaway.price} {Emojis.star}", description=description, color=0xe69c12)
 
@@ -417,6 +417,7 @@ class Giveaway:
         self.post_message_id: int = data[6]
         self.post_channel_id: int = data[7]
         self.closed: int = data[8]
+        self.host_id: int = data[9]
         if self.id: self.get_entries()
 
     def remove_schedule(self):
@@ -428,8 +429,8 @@ class Giveaway:
         return self.sql.execute(stmt=stmt, var=var).data_single
     
     def sql_store(self):
-        stmt = "INSERT INTO giveaways (control_message_id, control_channel_id, price, description, duration, winner_amount) VALUES (?,?,?,?,?,?)"
-        var = (self.id, self.ctr_channel_id, self.price, self.description, self.duration, self.winner_amount)
+        stmt = "INSERT INTO giveaways (control_message_id, control_channel_id, price, description, duration, winner_amount, host_id) VALUES (?,?,?,?,?,?,?)"
+        var = (self.id, self.ctr_channel_id, self.price, self.description, self.duration, self.winner_amount, self.host_id)
         self.sql.execute(stmt=stmt, var=var)
 
     def parse_datetime(self) -> datetime:
@@ -530,6 +531,8 @@ class Giveaway:
     def get_winner_ids(self) -> list[int]:
         return [u.dc_id for u in self.winners]
 
+    def get_hoster(self):
+        return f"<@{self.host_id}>" if self.host_id else ""
 
 def setup(client: di.Client):
     Giveaways(client)
