@@ -50,7 +50,7 @@ class MsgXP(di.Extension):
         if int(msg.channel_id) == int(self.channel_chat.id) and not msg.author.bot:
             user_data = self.add_msg(msg=msg)
             if not user_data: return
-            if self.check_booster(member):
+            if self.check_booster(msg.member):
                 req_msgs = [15, 30]
             else:
                 req_msgs = [30]
