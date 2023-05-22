@@ -22,7 +22,6 @@ class Emojis:
     vote_no = CustomEmoji(name="VoteNo", id=913420354578436096, animated=True)
     vote_yes = CustomEmoji(name="VoteYes", id=913420308550127657, animated=True)
     welcome = CustomEmoji(name="Willkommen", id=913417971219709993, animated=True)
-    ribbon = CustomEmoji(name="moon_ribbon", id=971514780705771560, animated=True)
     heart = CustomEmoji(name="disco_heart", id=929823044480938054, animated=True)
     boost = CustomEmoji(name="nitro", id=985294758148706415, animated=True)
     star = CustomEmoji(name="Stern", id=913415911237615626, animated=True)

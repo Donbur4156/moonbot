@@ -67,7 +67,7 @@ class MsgXP(di.Extension):
             text = f"**Moon Family 🌙** hat aktuell {boost_num} boosts!\n\n" \
                 f"{Emojis.boost} __***DANKE FÜR DEINEN BOOST!***__ {Emojis.boost}\n\n" \
                 f"Vielen Dank, das du den Server geboostet hast! " \
-                f"Du kannst dir nun in {self.channel_colors.mention} eine Farbe für deinen Namen und ein Rollenicon aussuchen! {Emojis.heart} {Emojis.ribbon}\n\n" \
+                f"Du kannst dir nun in {self.channel_colors.mention} eine Farbe für deinen Namen und ein Rollenicon aussuchen! {Emojis.heart} {Emojis.sleepy}\n\n" \
                 f"Booster: {member.mention}\n{member.name}'s Boosts: {member_boosts}\n\n" \
                 f"**Moon Family 🌙** ist aktuell Boost Level {boost_lvl} mit {boost_num} Boosts.\n\n Viel Spaß {Emojis.minecraft}"
             embed = di.Embed(
