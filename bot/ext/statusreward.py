@@ -4,25 +4,27 @@ import logging
 import config as c
 import interactions as di
 from configs import Configs
-from util.objects import DcUser
+from interactions import listen
+from interactions.api.events import PresenceUpdate
 from util.sql import SQL
 from whistle import EventDispatcher
 
 
 class StatusReward(di.Extension):
-    def __init__(self, client: di.Client) -> None:
+    def __init__(self, client: di.Client, **kwargs) -> None:
         self._client = client
+        self._config: Configs = kwargs.get("config")
+        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
+        self._logger: logging.Logger = kwargs.get("logger")
         self._SQL = SQL(database=c.database)
-        self._config: Configs = client.config
-        self._dispatcher: EventDispatcher = client.dispatcher
 
 
-    @di.extension_listener()
-    async def on_start(self):
+    @listen()
+    async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
         self._get_storage()
         await self._load_config()
-        self._guild: di.Guild = await di.get(client=self._client, obj=di.Guild, object_id=c.serverid)
+        self._guild: di.Guild = await self._client.fetch_guild(guild_id=c.serverid)
 
     def _run_load_config(self, event):
         asyncio.run(self._load_config())
@@ -35,34 +37,34 @@ class StatusReward(di.Extension):
         self._storage = self._SQL.execute(stmt="SELECT * FROM statusrewards").data_all
         self._storage_user = [stor[0] for stor in self._storage]
     
-    @di.extension_listener()
-    async def on_raw_presence_update(self, data: di.Presence):
-        if data.status in ['online', 'idle', 'dnd']:
-            check_moon = self._check_moonpres(data=data)
-            if int(data.user.id) in self._storage_user and not check_moon:
-                await self.remove_moonrole(user_id=int(data.user.id))
-            elif int(data.user.id) not in self._storage_user and check_moon:
-                await self.add_moonrole(user_id=int(data.user.id))
+    @listen()
+    async def on_raw_presence_update(self, event: PresenceUpdate):
+        if event.status in ['online', 'idle', 'dnd']:
+            check_moon = self._check_moonpres(event=event)
+            if int(event.user.id) in self._storage_user and not check_moon:
+                await self.remove_moonrole(user_id=int(event.user.id))
+            elif int(event.user.id) not in self._storage_user and check_moon:
+                await self.add_moonrole(user_id=int(event.user.id))
     
     async def add_moonrole(self, user_id: int):
-        dcuser = await DcUser(bot=self._client, dc_id=user_id)
-        await dcuser.member.add_role(role=self._moon_role, guild_id=c.serverid)
-        logging.info(f"STATUSREW/add Moon Role/{dcuser.member.user.username} ({dcuser.dc_id})")
-        self._SQL.execute(stmt="INSERT INTO statusrewards(user_ID) VALUES(?)", var=(dcuser.dc_id,))
+        member = await self._guild.fetch_member(member_id=user_id)
+        await member.add_role(role=self._moon_role)
+        self._logger.info(f"STATUSREW/add Moon Role/{member.user.username} ({member.id})")
+        self._SQL.execute(stmt="INSERT INTO statusrewards(user_ID) VALUES(?)", var=(member.id,))
         self._get_storage()
 
     async def remove_moonrole(self, user_id: int):
-        dcuser = await DcUser(bot=self._client, dc_id=user_id)
-        await dcuser.member.remove_role(role=self._moon_role, guild_id=c.serverid)
-        logging.info(f"STATUSREW/remove Moon Role/{dcuser.member.user.username} ({dcuser.dc_id})")
-        self._SQL.execute(stmt="DELETE FROM statusrewards WHERE user_ID=?", var=(dcuser.dc_id,))
+        member = await self._guild.fetch_member(member_id=user_id)
+        await member.remove_role(role=self._moon_role)
+        self._logger.info(f"STATUSREW/remove Moon Role/{member.user.username} ({member.id})")
+        self._SQL.execute(stmt="DELETE FROM statusrewards WHERE user_ID=?", var=(member.id,))
         self._get_storage()
 
-    def _check_moonpres(self, data: di.Presence):
-        for a in data.activities:
-            if a.type == 4 and a.name == "Custom Status" and a.state and "discord.gg/moonfamily" in a.state:
+    def _check_moonpres(self, event: PresenceUpdate):
+        for a in event.activities:
+            if all([a.type == 4, a.name == "Custom Status", a.state, "discord.gg/moonfamily" in a.state]):
                 return True
         return False
 
-def setup(client: di.Client):
-    StatusReward(client)
+def setup(client: di.Client, **kwargs):
+    StatusReward(client, **kwargs)

@@ -1,14 +1,13 @@
-import config as c
 import interactions as di
 from configs import Configs
-from interactions.ext.persistence import PersistentCustomID
+from util.color import Colors
 from util.emojis import Emojis
 
 
 class BoostRoles:
-    def __init__(self, client: di.Client = None) -> None:
-        self.client = client
-        self.config: Configs = client.config
+    def __init__(self, **kwargs) -> None:
+        self._client: di.Client = kwargs.get("_client")
+        self._config: Configs = kwargs.get("config")
         self.colors = {
             "1": [Emojis.blue, "boost_col_blue", "Blau"],
             "2": [Emojis.pink, "boost_col_pink", "Pink"],
@@ -35,56 +34,48 @@ class BoostRoles:
 
     async def remove_all_roles(self, ref: dict, member: di.Member, reason: str = None):
         for role in ref.values():
-            role_id = self.config.get_roleid(role[1])
-            if role_id and role_id in member.roles:
-                await member.remove_role(role=role_id, guild_id=c.serverid, reason=reason)
+            role_id = self._config.get_roleid(role[1])
+            if role_id and member.has_role(role_id):
+                await member.remove_role(role=role_id, reason=reason)
 
     async def add_role(self, ref: dict, member: di.Member, id: str, reason: str = None) -> di.Role:
-        role = await self.config.get_role(ref[id][1])
-        await member.add_role(role=role, guild_id=c.serverid, reason=reason)
+        role = await self._config.get_role(ref[id][1])
+        await member.add_role(role=role, reason=reason)
         return role
     
     async def change_color_role(self, member: di.Member, id: str, reason: str = None) -> di.Role:
         ref = self.colors
         await self.remove_all_roles(ref, member, reason)
-        role = await self.add_role(ref, member, id, reason)
-        return role
+        return await self.add_role(ref, member, id, reason)
     
     async def change_icon_role(self, member: di.Member, id: str, reason: str = None) -> di.Role:
         ref = self.icons
         await self.remove_all_roles(ref, member, reason)
-        role = await self.add_role(ref, member, id, reason)
-        return role
+        return await self.add_role(ref, member, id, reason)
 
     def get_embed_color(self, id: str):
-        return di.Embed(description=f"Du hast dich für `{self.colors[id][0]}` entschieden und die neue Farbe im Chat erhalten.", color=0x43FA00)
+        return di.Embed(
+            description=f"Du hast dich für `{self.colors[id][0]}` entschieden und die neue Farbe im Chat erhalten.", 
+            color=Colors.GREEN_WARM)
     
-    def get_embed_icons(self, id: str):
-        return di.Embed(description=f"Du hast dich für {self.icons[id][0]} entschieden und das neue Icon im Chat erhalten.", color=0x43FA00)
-
-    def get_button(self, k, i, tag, member: di.Member = None, label: bool = True):
-        pers_id = PersistentCustomID(cipher=self.client, tag=tag, package=k)
-        button = di.Button(
+    def get_embed_icon(self, id: str):
+        return di.Embed(
+            description=f"Du hast dich für {self.icons[id][0]} entschieden und das neue Icon im Chat erhalten.", 
+            color=Colors.GREEN_WARM)
+    
+    def get_button(self, index, values, tag, member: di.Member = None, label: bool = True):
+        return di.Button(
             style=di.ButtonStyle.SECONDARY,
-            label=i[2] if label else "",
-            custom_id=str(pers_id),
-            emoji=i[0]
+            label=values[2] if label else "",
+            custom_id=f"{tag}_{index}",
+            emoji=values[0],
+            disabled=(member and member.has_role(self._config.get_roleid(values[1])))
         )
-        if member and self.config.get_roleid(i[1]) in member.roles:
-            button.disabled = True
-        return button
     
     def get_components_colors(self, tag: str, member: di.Member = None):
         buttons = [self.get_button(k, i, tag, member=member) for k, i in self.colors.items()]
-        return [
-            di.ActionRow(components=buttons[0:3]),
-            di.ActionRow(components=buttons[3:6]),
-            di.ActionRow(components=buttons[6:9]),
-        ]
+        return di.spread_to_rows(*buttons, max_in_row=3)
     
     def get_components_icons(self, tag: str):
         buttons = [self.get_button(k, i, tag, label=False) for k, i in self.icons.items()]
-        return [
-            di.ActionRow(components=buttons[0:5]),
-            di.ActionRow(components=buttons[5:10]),
-        ]
+        return di.spread_to_rows(*buttons)
