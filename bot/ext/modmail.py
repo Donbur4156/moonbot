@@ -195,7 +195,7 @@ class Modmail(di.Extension):
         reason_text = f'**Grund:** {reason}\n' if reason else ''
         description = f"Dein aktuelles Ticket wurde durch den Moderator **{ctx.user.username}** " \
             f"geschlossen.\n{reason_text}\n" \
-            f"Du kannst mit einer neuen Nachricht jederzeit ein neues eröffnen.",
+            f"Du kannst mit einer neuen Nachricht jederzeit ein neues eröffnen."
         embed = di.Embed(
             title=":scroll: Ticket geschlossen :scroll:",
             description=description,
