@@ -55,11 +55,12 @@ extensions = [
 ]
 
 def load_extensions(client: di.Client, extensions: list[str], **load_kwargs):
-    if SENTRY_ENV:
-        sentry_args = {
-            "environment": SENTRY_ENV,
-        }
-        client.load_extension('interactions.ext.sentry', token=SENTRY_TOKEN, sentry_args=sentry_args)
+    # if SENTRY_ENV:
+    #     sentry_args = {
+    #         "environment": SENTRY_ENV,
+    #     }
+    #     client.load_extension('interactions.ext.sentry', token=SENTRY_TOKEN, sentry_args=sentry_args)
+    client.load_extension('interactions.ext.sentry', token=SENTRY_TOKEN)
     for ext in extensions:
         client.load_extension(name=f"ext.{ext}", **load_kwargs)
 
