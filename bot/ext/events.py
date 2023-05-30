@@ -43,10 +43,10 @@ class EventClass(di.Extension):
 
     @Task.create(
         OrTrigger(
-            TimeTrigger(hour=0),
-            TimeTrigger(hour=6),
-            TimeTrigger(hour=12),
-            TimeTrigger(hour=18),
+            TimeTrigger(hour=0, utc=False),
+            TimeTrigger(hour=6, utc=False),
+            TimeTrigger(hour=12, utc=False),
+            TimeTrigger(hour=18, utc=False),
         )
     )
     async def create_vote_message(self):
@@ -60,7 +60,7 @@ class EventClass(di.Extension):
         embed = di.Embed(
             title=f"Voten und Unterstützer werden {Emojis.minecraft}",
             description=text,
-            image=di.Attachment(url=url)
+            image=di.EmbedAttachment(url=url)
         )
         channel = await self._config.get_channel("chat")
         await channel.send(embed=embed)
