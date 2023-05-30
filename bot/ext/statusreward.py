@@ -62,8 +62,9 @@ class StatusReward(di.Extension):
 
     def _check_moonpres(self, event: PresenceUpdate):
         for a in event.activities:
-            if all([a.type == 4, a.name == "Custom Status", a.state, a.state.find("discord.gg/moonfamily") >= 0]):
-                return True
+            if all([a.type == 4, a.name == "Custom Status", a.state]):
+                if a.state.find("discord.gg/moonfamily") >= 0:
+                    return True
         return False
 
 def setup(client: di.Client, **kwargs):
