@@ -36,6 +36,7 @@ class MsgXP(di.Extension):
     async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
         await self._load_config()
+        self._reset.start()
 
     def _run_load_config(self, event):
         asyncio.run(self._load_config())

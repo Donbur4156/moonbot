@@ -18,6 +18,7 @@ class EventClass(di.Extension):
     @listen()
     async def on_startup(self):
         self._logger.info("Interactions are online!")
+        self.create_vote_message.start()
 
     @listen()
     async def on_guild_member_add(self, event: MemberAdd):
