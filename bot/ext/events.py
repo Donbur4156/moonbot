@@ -55,7 +55,7 @@ class EventClass(di.Extension):
         embed = di.Embed(
             title=f"Voten und Unterstützer werden {Emojis.minecraft}",
             description=text,
-            image=di.EmbedAttachment(url=url)
+            images=di.EmbedAttachment(url=url),
         )
         channel = await self._config.get_channel("chat")
         await channel.send(embed=embed)
