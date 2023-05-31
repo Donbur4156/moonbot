@@ -36,7 +36,7 @@ class MsgXP(di.Extension):
     async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
         await self._load_config()
-        self._reset.start()
+        Task(self._reset, TimeTrigger(hour=0, utc=False)).start()
 
     def _run_load_config(self, event):
         asyncio.run(self._load_config())
@@ -213,7 +213,6 @@ class MsgXP(di.Extension):
         self._SQL.execute(stmt="INSERT INTO msgrewards(user_ID) VALUES (?)", var=(user_id,))
         self._userlist[user_id] = User(data=[user_id,0,0,0,"",0])
 
-    @Task.create(TimeTrigger(hour=0, utc=False))
     async def _reset(self):
         self._SQL.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
         

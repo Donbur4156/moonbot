@@ -2,7 +2,7 @@ import logging
 
 import interactions as di
 from configs import Configs
-from interactions import OrTrigger, Task, TimeTrigger, listen
+from interactions import Task, TimeTrigger, listen
 from interactions.api.events import MemberAdd, MemberRemove
 from util.emojis import Emojis
 from util.objects import DcUser
@@ -18,7 +18,10 @@ class EventClass(di.Extension):
     @listen()
     async def on_startup(self):
         self._logger.info("Interactions are online!")
-        self.create_vote_message.start()
+        Task(self.create_vote_message, TimeTrigger(hour=0, utc=False)).start()
+        Task(self.create_vote_message, TimeTrigger(hour=6, utc=False)).start()
+        Task(self.create_vote_message, TimeTrigger(hour=12, utc=False)).start()
+        Task(self.create_vote_message, TimeTrigger(hour=18, utc=False)).start()
 
     @listen()
     async def on_guild_member_add(self, event: MemberAdd):
@@ -41,14 +44,6 @@ class EventClass(di.Extension):
         if dcuser:
             await dcuser.delete_wlc_msg()
 
-    @Task.create(
-        OrTrigger(
-            TimeTrigger(hour=0, utc=False),
-            TimeTrigger(hour=6, utc=False),
-            TimeTrigger(hour=12, utc=False),
-            TimeTrigger(hour=18, utc=False),
-        )
-    )
     async def create_vote_message(self):
         text = f"Hey! Du kannst voten! {Emojis.vote_yes}\n\n" \
             f"Wenn du aktiv für den Server stimmst, bekommst und behältst du die <@&939557486501969951> Rolle!\n" \

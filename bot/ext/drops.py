@@ -7,9 +7,9 @@ import uuid
 import config as c
 import interactions as di
 from configs import Configs
-from interactions import component_callback, listen, slash_option
+from interactions import (IntervalTrigger, Task, component_callback, listen,
+                          slash_option)
 from interactions.api.events import MessageCreate
-from interactions.ext.tasks import IntervalTrigger, create_task
 from util.boostroles import BoostRoles
 from util.color import Colors
 from util.customs import CustomEmoji, CustomRole
@@ -28,7 +28,6 @@ class DropsHandler(di.Extension):
         self._logger: logging.Logger = kwargs.get("logger")
         self._kwargs = kwargs
         self.drops = Drops()
-        self.reduce_count.start(self)
 
 
     @listen()
@@ -36,6 +35,7 @@ class DropsHandler(di.Extension):
         self._dispatcher.add_listener("config_update", self._run_load_config)
         self._reset()
         await self._load_config()
+        Task(self.reduce_count, IntervalTrigger(3600)).start()
 
     @listen()
     async def on_message_create(self, event: MessageCreate):
@@ -61,7 +61,6 @@ class DropsHandler(di.Extension):
         drop_max = self._config.get_special("drop_max")
         self._msg_goal = random.randint(a=drop_min, b=drop_max)
 
-    @create_task(IntervalTrigger(3600))
     async def reduce_count(self):
         self.count = max(self.count-1, 0)
 
