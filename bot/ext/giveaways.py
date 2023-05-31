@@ -64,7 +64,9 @@ class Giveaways(di.Extension):
         for g in self.giveaways.values():
             if not g.post_message_id: continue
             datetime = await g.parse_datetime_fromnow()
-            if not datetime: continue
+            if not datetime:
+                g.close()
+                continue
             if not self.add_schedule(g): continue
             self.giveaways_running.update({g.post_message_id: g})
         self.schedule.start()
