@@ -17,12 +17,12 @@ class StatusReward(di.Extension):
         self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
         self._logger: logging.Logger = kwargs.get("logger")
         self._SQL = SQL(database=c.database)
+        self._get_storage()
 
 
     @listen()
     async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
-        self._get_storage()
         await self._load_config()
         self._guild: di.Guild = await self._client.fetch_guild(guild_id=c.serverid)
 
@@ -37,7 +37,7 @@ class StatusReward(di.Extension):
         self._storage = self._SQL.execute(stmt="SELECT * FROM statusrewards").data_all
         self._storage_user = [stor[0] for stor in self._storage]
     
-    @listen()
+    @listen(delay_until_ready=True)
     async def on_raw_presence_update(self, event: PresenceUpdate):
         if event.status in ['online', 'idle', 'dnd']:
             check_moon = self._check_moonpres(event=event)
