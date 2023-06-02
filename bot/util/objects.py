@@ -37,15 +37,9 @@ class DcUser:
         return closure().__await__()
 
     async def get_member_obj(self) -> None:
-        try:
-            self.member = await self.bot.fetch_member(
-                guild_id=c.serverid, user_id=self.dc_id, force=True)
-            if not self.member.user:
-                self.member = None
-        except Exception as err:
-            self.member = None
-            logging.getLogger("moon_logger").error(f"{err.__str__()}: {self.dc_id}")
-
+        self.member = await self.bot.fetch_member(guild_id=c.serverid, user_id=self.dc_id, force=True)
+        return self.member
+    
     def initialize(self) -> bool:
         if not self.member:
             return False
