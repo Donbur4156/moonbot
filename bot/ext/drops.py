@@ -546,7 +546,7 @@ class EmojiResponse(di.Extension):
         await team_channel.send(content=content, components=di.ActionRow(but_allow, but_deny))
         self._logger.info(
             f"DROPS/CUSTOMEMOJI/send approval embed/Emoji: {emoji.id}; User: {modal_ctx.user.id}")
-        await emoji.edit(roles=di.to_snowflake_list([owner_role, admin_role]))
+        await emoji.edit(roles=[owner_role, admin_role])
 
 
     def _check_perm(self, member: di.Member):
