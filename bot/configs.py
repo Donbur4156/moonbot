@@ -2,16 +2,16 @@ from configparser import ConfigParser
 
 import config as c
 import interactions as di
-from whistle import Event, EventDispatcher
+from whistle import EventDispatcher
 
 
 class Configs():
-    def __init__(self, client: di.Client) -> None:
-        self._dispatcher: EventDispatcher = client.dispatcher
+    def __init__(self, client: di.Client, dispatcher: EventDispatcher) -> None:
+        self._client = client
+        self._dispatcher = dispatcher
         self._config = ConfigParser()
         self._filename = c.config
         self._read_config()
-        self._client = client
 
     def _read_config(self):
         self._config.read(self._filename)
@@ -26,14 +26,15 @@ class Configs():
             self._config.write(configfile)
 
     def _initial_config(self):
-        if not self._config.has_section("SECRETS"):
-            self._config.add_section("SECRETS")
-        if not self._config.has_section("CHANNEL"):
-            self._config.add_section("CHANNEL")
-        if not self._config.has_section("ROLES"):
-            self._config.add_section("ROLES")
-        if not self._config.has_section("SPECIALS"):
-            self._config.add_section("SPECIALS")
+        sections = [
+            "SECRETS",
+            "CHANNEL",
+            "ROLES",
+            "SPECIALS",
+        ]
+        for section in sections:
+            if not self._config.has_section(section):
+                self._config.add_section(section)
         self._write_config()
 
     def get_roleid(self, name: str):
@@ -43,14 +44,15 @@ class Configs():
         return self.channel.getint(name)
 
     async def get_role(self, name: str) -> di.Role:
-        id = self.get_roleid(name)
-        if not id: return None
-        return await di.get(client=self._client, obj=di.Role, object_id=id, parent_id=c.serverid)
+        if id := self.get_roleid(name): 
+            guild = await self._client.fetch_guild(c.serverid)
+            return await guild.fetch_role(id)
+        return None
     
-    async def get_channel(self, name: str) -> di.Channel:
-        id = self.get_channelid(name)
-        if not id: return None
-        return await di.get(client=self._client, obj=di.Channel, object_id=id)
+    async def get_channel(self, name: str) -> di.TYPE_ALL_CHANNEL:
+        if id := self.get_channelid(name): 
+            return await self._client.fetch_channel(id)
+        return None
     
     def get_special(self, name: str) -> int:
         return self.specials.getint(name, fallback=None)
@@ -71,21 +73,12 @@ class Configs():
         self._dispatch_update()
 
     def _dispatch_update(self):
-        event = Event()
-        self._dispatcher.dispatch("config_update", event)
+        self._dispatcher.dispatch("config_update")
 
     async def get_role_mention(self, name: str) -> di.Role.mention:
-        role = await self.get_role(name)
-        if not role: return ""
-        return role.mention
+        if role := await self.get_role(name): return role.mention
+        return ""
 
-    async def get_channel_mention(self, name: str) -> di.Channel.mention:
-        channel = await self.get_channel(name)
-        if not channel: return ""
-        return channel.mention
-
-
-
-def config_setup(client: di.Client):
-    client.config: Configs = Configs(client)
-    return client.config
+    async def get_channel_mention(self, name: str) -> di.BaseChannel.mention:
+        if channel := await self.get_channel(name): return channel.mention
+        return ""
