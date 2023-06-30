@@ -414,7 +414,8 @@ class UniqueRoleResponse(di.Extension):
         name = modal_ctx.responses["name"]
         color_int = int(modal_ctx.responses["color"], 16)
 
-        new_role: di.Role = await ctx.guild.create_role(name=name, color=color_int)
+        guild = self._client.get_guild(guild_id=c.serverid)
+        new_role: di.Role = await guild.create_role(name=name, color=color_int)
         customrole = CustomRole(
             role_id=int(new_role.id), user_id=int(modal_ctx.user.id), state="creating")
         await disable_components(modal_ctx.message)
