@@ -412,10 +412,10 @@ class UniqueRoleResponse(di.Extension):
         modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
 
         name = modal_ctx.responses["name"]
-        color_int = int(modal_ctx.responses["color"], 16)
+        color = di.Color(int(modal_ctx.responses["color"], 16))
 
         guild = self._client.get_guild(guild_id=c.serverid)
-        new_role: di.Role = await guild.create_role(name=name, color=color_int)
+        new_role: di.Role = await guild.create_role(name=name, color=color)
         customrole = CustomRole(
             role_id=int(new_role.id), user_id=int(modal_ctx.user.id), state="creating")
         await disable_components(modal_ctx.message)
@@ -458,7 +458,7 @@ class UniqueRoleResponse(di.Extension):
         role = await guild.fetch_role(role_id=customrole.role_id)
         await member.add_role(role=role, reason="benutzerdefinierte Rolle")
         await ctx.edit_origin(components=[])
-        await ctx.send(f"Dem User {member.mention} wurde die Rolle {role.mention} zugewiesen.")
+        await ctx.message.reply(f"Dem User {member.mention} wurde die Rolle {role.mention} zugewiesen.")
         await member.send(embed=di.Embed(
             description=f"Die Rolle `{role.name}` wurde genehmigt und dir erfolgreich zugewiesen.", 
             color=Colors.GREEN_WARM))
@@ -477,7 +477,7 @@ class UniqueRoleResponse(di.Extension):
         await ctx.edit_origin(components=[])
         text = f"Die Rolle `{role.name}` wurde gelöscht.\nDer User erhält seine 2000 Sternenstaub " \
             "zurück und bekommt die Info sich bei weiteren Fragen an den Support zu wenden."
-        await ctx.send(text)
+        await ctx.message.reply(text)
         embed_text = f"Die Rolle `{role.name}` wurde **nicht** genehmigt.\n" \
             f"Du erhältst die 2000 Sternenstaub zurück.\n\nWenn du Fragen hierzu hast, " \
             f"kannst du dich über diesen Chat an den Support wenden."
