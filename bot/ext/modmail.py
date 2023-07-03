@@ -165,9 +165,7 @@ class Modmail(di.Extension):
         await dcuser.member.send(embed=embed, files=files)
 
     def _check_channel(self, channel_id: int):
-        if channel_id in self._storage_channel:
-            return True
-        return False
+        return channel_id in self._storage_channel
 
     async def close_mail(self, ctx: di.SlashContext, reason: str = None, log: bool = True):
         #Schließt Ticket und Speichert Inhalt als Log
@@ -183,11 +181,12 @@ class Modmail(di.Extension):
             ticket_id = self._SQL.execute(
                 stmt="INSERT INTO tickets_closed(user_ID) VALUES (?)",
                 var=(dcuser.dc_id,)).lastrowid
-            filename = f"{c.logdir}ticket_{ticket_id}_{dcuser.dc_id}.txt"
-            with open(filename, "w", newline='', encoding="utf-8") as logfile:
+            filepath = c.logdir
+            filename = f"ticket_{ticket_id}_{dcuser.dc_id}.txt"
+            with open(filepath + filename, "w", newline='', encoding="utf-8") as logfile:
                 logfile.write(
                     await self.create_log_text(ctx=ctx, dcuser=dcuser, ticket_id=ticket_id, reason=reason))
-            with open(filename, "r", encoding="utf-8") as fp:
+            with open(filepath + filename, "r", encoding="utf-8") as fp:
                 file = di.File(file=fp, file_name=filename)
                 await self._channel_log.send(file=file)
         else: ticket_id = 0
@@ -209,7 +208,7 @@ class Modmail(di.Extension):
         messages = await ctx.channel.history(limit=0).fetch()
         mods = {}
         msg_text = "\n\n"
-        for msg in messages[1::-1]:
+        for msg in messages[-2::-1]:
             time = msg.timestamp.strftime("%d.%m.%Y %H:%M:%S")
             content = msg.content
             author = msg.author.username
