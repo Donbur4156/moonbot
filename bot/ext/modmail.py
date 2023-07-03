@@ -80,7 +80,7 @@ class Modmail(di.Extension):
         member = dcuser.member
         if not member:
             return False
-        name = f"{member.user.username}-{member.user.discriminator}"
+        name = f"{member.user.username}"
         channel = await self._guild.create_text_channel(
             name=name,
             topic=f"Ticket Channel von {member.user.username}",
