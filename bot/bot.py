@@ -26,7 +26,7 @@ moon_logger = create_logger(file_name=c.logdir + "Moon_Bot_LOGS.log", log_name="
 
 pres = Activity(
     type=ActivityType.GAME,
-    name="discord.gg/moonfamily",
+    name="ModMail Support",
 )
 intents = Intents.ALL | Intents.MESSAGE_CONTENT | Intents.GUILD_VOICE_STATES
 client = di.Client(token=TOKEN, intents=intents, activity=pres, 
