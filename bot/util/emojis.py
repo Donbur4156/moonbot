@@ -95,5 +95,10 @@ class Emojis:
     cute_hearts = PartialEmoji(name="cutehearts", id=985295531700023326, animated=True)
     nitro_flex = PartialEmoji(name="Nitro_Flex", id=929813698430791780, animated=True)
 
+    utility_8 = PartialEmoji(name="utility8", id=1121147730903961640)
+    spam = PartialEmoji(name="Spam", id=913420142669598731)
+    utility_4 = PartialEmoji(name="utility4", id=1121147727343001780, animated=True)
+
+
     def get_all():
         return {att: val for att, val in Emojis.__dict__.items() if type(val) == PartialEmoji}

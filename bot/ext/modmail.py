@@ -1,15 +1,20 @@
 import asyncio
 import logging
+import re
 
 import config as c
 import interactions as di
 from configs import Configs
-from interactions import listen, slash_command, slash_option
+from interactions import (component_callback, listen, slash_command,
+                          slash_option)
 from interactions.api.events import MessageCreate
 from util.color import Colors
+from util.decorator import user_option
+from util.emojis import Emojis
 from util.filehandling import download
 from util.objects import DcUser
 from util.sql import SQL
+from util.misc import callback_unsupported, has_any_role
 from whistle import EventDispatcher
 
 
@@ -24,6 +29,7 @@ class Modmail(di.Extension):
     @listen()
     async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
+        self._dispatcher.add_listener("storage_update", self._get_storage)
         self._get_storage()
         await self._load_config()
         self._guild = await self._client.fetch_guild(guild_id=c.serverid)
@@ -35,6 +41,11 @@ class Modmail(di.Extension):
         self._channel_def = await self._config.get_channel("mail_def")
         self._channel_log = await self._config.get_channel("mail_log")
         self._mod_role = await self._config.get_role("mod")
+        self._perm_roles = [
+            await self._config.get_role(role)
+            for role in ["owner", "admin", "srmoderator", "moderator"]
+        ]
+        self._perm_roles = [role for role in self._perm_roles if role]
 
     @listen()
     async def on_message_create(self, event: MessageCreate):
@@ -46,6 +57,26 @@ class Modmail(di.Extension):
         elif self._check_channel(channel_id=int(msg.channel.id)):
             self._logger.info(f"MODMAIL/MODMSG/ {msg.author.username} ({msg.author.id}): '{msg.content}'")
             await self.mod_react(msg=msg)
+
+    @slash_command(name="open_ticket", description="Öffnet ein neues Ticket mit einem User", dm_permission=False)
+    @user_option()
+    async def open_ticket(self, ctx: di.SlashContext, user: di.Member):
+        channel = await self._create_channel(member=user)
+        if not channel: await ctx.send("Ticket konnte nicht erstellt werden.")
+        try:
+            embed_user = di.Embed(
+                title=":scroll: Ticket geöffnet :scroll:",
+                description=f"Durch **{ctx.member.username}** wurde ein Ticket für dich erstellt.",
+                color=Colors.BLUE
+            )
+            await user.send(embed=embed_user)
+        except:
+            await channel.delete(reason="Ticket geschlossen; User erlaubt keine DM")
+            await ctx.send(f"Das Ticket konnte nicht erstellt werden, da der User {user.mention} keine DMs erlaubt.")
+            self._SQL.execute(stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
+            self._get_storage()
+            return False
+        await ctx.send(f"Das Ticket wurde erfolgreich erstellt. {channel.mention}")
 
     @slash_command(name="close_ticket", description="Schließt dieses Ticket", dm_permission=False)
     @slash_option(name="reason", description="Grund für Schließen des Tickets. (optional)",
@@ -60,11 +91,69 @@ class Modmail(di.Extension):
         ticket_id = await self.close_mail(ctx=ctx, reason=reason, log=log)
         self._logger.info(f"MODMAIL/CLOSE/{ticket_id}/Admin: {ctx.user.id}; Reason: '{reason}'")
 
+    @component_callback(re.compile(r"tickets_[a-z]+"))
+    async def callback_tickets(self, ctx: di.ComponentContext):
+        callback = ctx.custom_id[8:]
+        match callback:
+            case "close": await self.callback_close(ctx)
+            case "block": await self.ticket_block(ctx)
+            case "volunteer": await self.open_volunteers(ctx)
+    
+    async def callback_close(self, ctx: di.ComponentContext):
+        modal = di.Modal(
+            di.ShortText(label="Grund", custom_id="reason"),
+            title="Ticket schließen", custom_id="modal_close_ticket")
+        await ctx.send_modal(modal)
+
+        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+
+        reason = modal_ctx.responses["reason"]
+        await modal_ctx.send("Ticket geschlossen", ephemeral=True)
+        await self.close_mail(ctx=modal_ctx, reason=reason)
+
+    async def ticket_block(self, ctx: di.ComponentContext):
+        user_id = self._get_userid_bychannel(channel_id=int(ctx.channel.id))
+        self._SQL.execute(stmt="INSERT INTO tickets_blacklist(user_id) (?)", var=(user_id,))
+        self._user_blacklist.append(user_id)
+
+        reason = "Für Modmail gesperrt"
+        await self.close_mail(ctx=ctx, reason=reason)
+
+
+
+    async def open_volunteers(self, ctx: di.ComponentContext):
+        #TODO: disable Button after using
+        if not await self._check_perms(ctx): return False
+        volunteer_role = await self._config.get_role("volunteers")
+        if not volunteer_role:
+            await ctx.send("Die Volunteer Rolle wurde noch nicht festgelegt.")
+            return False
+        await ctx.channel.add_permission(
+            target=volunteer_role,
+            allow=[
+                di.Permissions.SEND_MESSAGES,
+                di.Permissions.VIEW_CHANNEL
+            ],
+            reason="open ticket for volunteers",
+        )
+        await ctx.send(f"Dieses Ticket wurde durch {ctx.user.mention} für {volunteer_role.mention} freigegeben.")
+
+
+    async def _check_perms(self, ctx: di.ComponentContext):
+        if not has_any_role(member=ctx.member, roles=self._perm_roles):
+            await ctx.send("> Du bist hierzu nicht berechtigt!", ephemeral=True)
+            return False
+        return True
+
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
         self._storage = self._SQL.execute(stmt="SELECT * FROM tickets").data_all
         self._storage_user: list[int] = [stor[1] for stor in self._storage]
         self._storage_channel: list[int] = [stor[2] for stor in self._storage]
+        self._user_blacklist: list[int] = [
+            stor[0] for stor in self._SQL.execute(stmt="SELECT * FROM tickets_blacklist").data_all
+        ]
+
     
     async def _get_channel_byuser(self, user_id: int) -> di.TYPE_ALL_CHANNEL:
         index = self._storage_user.index(user_id)
@@ -75,20 +164,20 @@ class Modmail(di.Extension):
         index = self._storage_channel.index(channel_id)
         return self._storage_user[index]
 
-    async def _create_channel(self, msg: di.Message) -> di.TYPE_GUILD_CHANNEL:
-        dcuser = await DcUser(bot=self._client, dc_id=int(msg.author.id))
+    async def _create_channel(self, msg: di.Message = None, member: di.Member = None) -> di.TYPE_GUILD_CHANNEL:
+        member_id = msg.author.id if msg else member.id
+        dcuser = await DcUser(bot=self._client, dc_id=int(member_id))
         member = dcuser.member
         if not member:
             return False
-        name = f"{member.user.username}"
         channel = await self._guild.create_text_channel(
-            name=name,
+            name=member.user.username,
             topic=f"Ticket Channel von {member.user.username}",
             permission_overwrites=self._channel_def.permission_overwrites,
             category=self._channel_def.category,
             reason=f"Create Ticket Channel for {member.username}",
         )
-        self._logger.info(f"MODMAIL/CREATE/{member.id}: '{name}'")
+        self._logger.info(f"MODMAIL/CREATE/{member.id}: '{member.user.username}'")
         self._SQL.execute(
             stmt="INSERT INTO tickets(user_ID, channel_ID) VALUES (?, ?)",
             var=(dcuser.dc_id, int(channel.id),))
@@ -96,44 +185,39 @@ class Modmail(di.Extension):
         description = f"**User:** {dcuser.mention}\n**User ID:** {dcuser.dc_id}\n" \
             f"**Account erstellt:** {member.created_at.strftime('%d.%m.%Y %H:%M:%S')}\n" \
             f"**Server beigetreten am:** {member.joined_at.strftime('%d.%m.%Y %H:%M:%S')}\n"
+        fields, files = gen_ticket_embedfields(dcuser.dc_id)
         embed = di.Embed(
             title=f"Ticket von {member.user.username}{f' (Nickname: {member.nick})' if member.nick else ''}",
-            description=description
+            description=description, fields=fields
         )
 
-        tickets = self._SQL.execute(
-            stmt="SELECT * FROM tickets_closed WHERE user_ID=?", 
-            var=(int(msg.author.id),)).data_all
-        files = []
-        if tickets:
-            ticket_ids = [str(t[0]) for t in tickets]
-            tickets_lost = []
-            for ticket in tickets:
-                filename = f"{c.logdir}ticket_{ticket[0]}_{ticket[1]}.txt"
-                try:
-                    files.append(di.File(file=filename))
-                except:
-                    tickets_lost.append(str(ticket[0]))
-            embed.add_field(name="Gefundene Ticket IDs des Users:", value=", ".join(ticket_ids))
-            if tickets_lost:
-                embed.add_field(
-                    name="Keine Logdatei gefunden zu diesen Ticket IDs:", 
-                    value=", ".join(tickets_lost))
+        components = di.ActionRow(
+            di.Button(style=di.ButtonStyle.RED, label="Ticket schließen",
+                      emoji=Emojis.utility_8, custom_id="tickets_close"),
+            di.Button(style=di.ButtonStyle.BLUE, label="User sperren",
+                      emoji=Emojis.spam, custom_id="tickets_block"),
+            di.Button(style=di.ButtonStyle.GREEN, label="für Volunteer freigeben",
+                      emoji=Emojis.utility_4, custom_id="tickets_volunteer"),
+        ) if msg else None
+        
         await channel.send(
             content=f"{self._mod_role.mention}, ein neues Ticket wurde erstellt:", 
-            embed=embed, files=files[-10:])
+            embed=embed, files=files[-10:], components=components)
 
-        embed_user = di.Embed(
-            title=":scroll: Ticket geöffnet :scroll:",
-            description="Es wurde ein Ticket für dich angelegt.\nEin Moderator wird sich zeitnah um dein Anliegen kümmern.",
-            color=Colors.BLUE
-        )
-        await msg.reply(embed=embed_user)
+        if msg: 
+            embed_user = di.Embed(
+                title=":scroll: Ticket geöffnet :scroll:",
+                description="Es wurde ein Ticket für dich angelegt.\nEin Moderator wird sich zeitnah um dein Anliegen kümmern.",
+                color=Colors.BLUE
+            )
+            await msg.reply(embed=embed_user)
+        
         return channel
 
     async def dm_bot(self, msg: di.Message):
         #User schreibt an Bot. Prüfung ob Thread läuft, sonst Neuanlage
         user_id = int(msg.author.id)
+        if user_id in self._user_blacklist: return False
         if user_id in self._storage_user:
             channel = await self._get_channel_byuser(user_id=user_id)
         else:
@@ -162,7 +246,10 @@ class Modmail(di.Extension):
             color=Colors.BLUE,
         )
         files = await self._gen_files(msg.attachments)
-        await dcuser.member.send(embed=embed, files=files)
+        try:
+            await dcuser.member.send(embed=embed, files=files)
+        except:
+            await msg.reply("Diese Nachricht konnte nicht zugestellt werden! Möglicherweise ist der User nicht mehr auf diesem Server oder erlaubt keine DMs mehr.")
 
     def _check_channel(self, channel_id: int):
         return channel_id in self._storage_channel
@@ -200,7 +287,9 @@ class Modmail(di.Extension):
             description=description,
             color=Colors.RED
         )
-        if dcuser.member: await dcuser.member.send(embed=embed)
+        if dcuser.member: 
+            try: await dcuser.member.send(embed=embed)
+            except: pass
         await ctx.channel.delete()
         return ticket_id
 
@@ -231,6 +320,31 @@ class Modmail(di.Extension):
 
     async def _gen_files(self, attachments: list[di.Attachment]):
         return [di.File(file=await download(att.url), file_name=att.filename) for att in attachments]
+
+def gen_ticket_embedfields(user_id: int):
+    tickets = SQL(database=c.database).execute(
+        stmt="SELECT * FROM tickets_closed WHERE user_ID=?", 
+        var=(user_id,)).data_all
+    files = []
+    fields = []
+    if tickets:
+        ticket_ids = [str(t[0]) for t in tickets]
+        tickets_lost = []
+        for ticket in tickets:
+            filename = f"{c.logdir}ticket_{ticket[0]}_{ticket[1]}.txt"
+            try:
+                files.append(di.File(file=filename))
+            except:
+                tickets_lost.append(str(ticket[0]))
+        fields.append(di.EmbedField(
+            name="Gefundene Ticket IDs des Users:", 
+            value=", ".join(ticket_ids)))
+        if tickets_lost:
+            fields.append(di.EmbedField(
+                name="Keine Logdatei gefunden zu diesen Ticket IDs:", 
+                value=", ".join(tickets_lost)))
+            
+    return fields, files
 
 def setup(client: di.Client, **kwargs):
     Modmail(client, **kwargs)
