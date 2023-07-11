@@ -1,16 +1,16 @@
 import asyncio
 import logging
 
-import interactions as di
-from bot.util.sql import SQL
-from configs import Configs
 import config as c
+import interactions as di
+from configs import Configs
 from ext.drops import StarPowder
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
 from util.color import Colors
 from util.decorator import role_option, user_option
 from util.emojis import Emojis
+from util.sql import SQL
 from whistle import EventDispatcher
 
 
