@@ -215,10 +215,10 @@ class Modmail(di.Extension):
     async def dm_bot(self, msg: di.Message):
         #User schreibt an Bot. Prüfung ob Thread läuft, sonst Neuanlage
         user_id = int(msg.author.id)
-        if user_id in self._user_blacklist: return False
         if user_id in self._storage_user:
             channel = await self._get_channel_byuser(user_id=user_id)
         else:
+            if user_id in self._user_blacklist: return False
             channel = await self._create_channel(msg=msg)
         if not channel: return False
         embed = di.Embed(
