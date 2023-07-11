@@ -143,7 +143,7 @@ class Modmail(di.Extension):
             return False
         return True
 
-    def _get_storage(self):
+    def _get_storage(self, event):
         #Liest Speicher aus und überführt in Cache
         self._storage = self._SQL.execute(stmt="SELECT * FROM tickets").data_all
         self._storage_user: list[int] = [stor[1] for stor in self._storage]
