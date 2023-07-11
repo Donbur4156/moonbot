@@ -248,7 +248,7 @@ class AdminCmds(di.Extension):
         required=True,
     )
     @role_option()
-    async def roles_general(self, ctx: di.SlashContext, type: str, role: di.Role):
+    async def roles_team(self, ctx: di.SlashContext, type: str, role: di.Role):
         await self.set_role(ctx, type, role)
     
     @config_cmds.subcommand(
