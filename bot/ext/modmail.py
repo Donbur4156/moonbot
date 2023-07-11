@@ -113,13 +113,11 @@ class Modmail(di.Extension):
 
     async def ticket_block(self, ctx: di.ComponentContext):
         user_id = self._get_userid_bychannel(channel_id=int(ctx.channel.id))
-        self._SQL.execute(stmt="INSERT INTO tickets_blacklist(user_id) (?)", var=(user_id,))
+        self._SQL.execute(stmt="INSERT INTO tickets_blacklist(user_id) VALUES (?)", var=(user_id,))
         self._user_blacklist.append(user_id)
 
         reason = "Für Modmail gesperrt"
         await self.close_mail(ctx=ctx, reason=reason)
-
-
 
     async def open_volunteers(self, ctx: di.ComponentContext):
         #TODO: disable Button after using
