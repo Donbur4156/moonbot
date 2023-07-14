@@ -29,13 +29,16 @@ class Modmail(di.Extension):
     @listen()
     async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
-        self._dispatcher.add_listener("storage_update", self._get_storage)
+        self._dispatcher.add_listener("storage_update", self._run_get_storage)
         self._get_storage()
         await self._load_config()
         self._guild = await self._client.fetch_guild(guild_id=c.serverid)
     
     def _run_load_config(self, event):
         asyncio.run(self._load_config())
+
+    def _run_get_storage(self, event):
+        self._get_storage()
 
     async def _load_config(self):
         self._channel_def = await self._config.get_channel("mail_def")
@@ -143,7 +146,7 @@ class Modmail(di.Extension):
             return False
         return True
 
-    def _get_storage(self, event):
+    def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
         self._storage = self._SQL.execute(stmt="SELECT * FROM tickets").data_all
         self._storage_user: list[int] = [stor[1] for stor in self._storage]
