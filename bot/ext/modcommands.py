@@ -1,14 +1,16 @@
 import asyncio
 import logging
 
+import config as c
 import interactions as di
 from configs import Configs
 from ext.drops import StarPowder
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
 from util.color import Colors
-from util.decorator import role_option
+from util.decorator import role_option, user_option
 from util.emojis import Emojis
+from util.sql import SQL
 from whistle import EventDispatcher
 
 
@@ -125,7 +127,11 @@ class AdminCmds(di.Extension):
         roles_general = [
             {"name": "Owner", "value": "owner"},
             {"name": "Admins", "value": "admin"},
-            {"name": "Mods", "value": "mod"},
+            {"name": "Team", "value": "mod"},
+            {"name": "SrModerator", "value": "srmoderator"},
+            {"name": "Moderator", "value": "moderator"},
+            {"name": "Supporter", "value": "supporter"},
+            {"name": "Developer", "value": "developer"},
             {"name": "Eventmanager", "value": "eventmanager"},
             {"name": "Shiny Moon", "value": "moon"},
             {"name": "VIP", "value": "vip"},
@@ -135,6 +141,7 @@ class AdminCmds(di.Extension):
             {"name": "Engel", "value": "engel"},
             {"name": "Jubiläums Rolle", "value": "jub_role"},
             {"name": "Giveaway +", "value": "giveaway_plus"},
+            {"name": "Volunteers", "value": "volunteer"},
         ]
         roles_special = [
             {"name": "Boost Color Blau", "value": "boost_col_blue"},
@@ -208,10 +215,6 @@ class AdminCmds(di.Extension):
     @config_cmds.subcommand(sub_cmd_name="roles_general", sub_cmd_description="Role Config General")
     @slash_option(name="type", description="Role type",
         choices=[
-            di.SlashCommandChoice(name="Owner", value="owner"),
-            di.SlashCommandChoice(name="Admins", value="admin"),
-            di.SlashCommandChoice(name="Mods", value="mod"),
-            di.SlashCommandChoice(name="Eventmanager", value="eventmanager"),
             di.SlashCommandChoice(name="Shiny Moon", value="moon"),
             di.SlashCommandChoice(name="VIP", value="vip"),
             di.SlashCommandChoice(name="MVP", value="mvp"),
@@ -226,6 +229,26 @@ class AdminCmds(di.Extension):
     )
     @role_option()
     async def roles_general(self, ctx: di.SlashContext, type: str, role: di.Role):
+        await self.set_role(ctx, type, role)
+
+    @config_cmds.subcommand(sub_cmd_name="roles_team", sub_cmd_description="Role Config Team")
+    @slash_option(name="type", description="Role type",
+        choices=[
+            di.SlashCommandChoice(name="Owner", value="owner"),
+            di.SlashCommandChoice(name="Admins", value="admin"),
+            di.SlashCommandChoice(name="SrModerator", value="srmoderator"),
+            di.SlashCommandChoice(name="Moderator", value="moderator"),
+            di.SlashCommandChoice(name="Supporter", value="supporter"),
+            di.SlashCommandChoice(name="Developer", value="developer"),
+            di.SlashCommandChoice(name="Team", value="mod"),
+            di.SlashCommandChoice(name="Eventmanager", value="eventmanager"),
+            di.SlashCommandChoice(name="Volunteers", value="volunteers"),
+        ],
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    @role_option()
+    async def roles_team(self, ctx: di.SlashContext, type: str, role: di.Role):
         await self.set_role(ctx, type, role)
     
     @config_cmds.subcommand(
@@ -323,6 +346,7 @@ class ModCmds(di.Extension):
         self._config: Configs = kwargs.get("config")
         self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
         self._logger: logging.Logger = kwargs.get("logger")
+        self._SQL = SQL(database=c.database)
 
     @listen()
     async def on_startup(self):
@@ -346,6 +370,17 @@ class ModCmds(di.Extension):
     async def test(self, ctx: di.SlashContext):
         text = f"Hier gibt es aktuell nichts zu sehen."
         await ctx.send(text)
+
+    @mod_cmds.subcommand(sub_cmd_name="remove_blacklist", sub_cmd_description="Entfernt einen User von der Modmail Blacklist")
+    @user_option()
+    async def remove_blacklist(self, ctx: di.SlashContext, user: di.Member):
+        blocked_user = [u[0] for u in self._SQL.execute(stmt="SELECT * FROM tickets_blacklist").data_all]
+        if int(user.id) in blocked_user:
+            self._SQL.execute(stmt="DELETE FROM tickets_blacklist WHERE user_id=?", var=(int(user.id),))
+            self._dispatcher.dispatch("storage_update")
+            await ctx.send(f"> Der User {user.mention} wurde von der Ticket Blacklist gelöscht.")
+            return True
+        await ctx.send(f"> Der User {user.mention} ist **nicht** auf der Ticket Blacklist.")
         
 
 def setup(client: di.Client, **kwargs):

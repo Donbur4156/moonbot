@@ -48,3 +48,15 @@ def reminderid_option():
         )(func)
 
     return wrapper
+
+def user_option():
+
+    def wrapper(func):
+        return slash_option(
+            name="user",
+            description="User",
+            opt_type=OptionType.USER,
+            required=True
+        )(func)
+    
+    return wrapper
