@@ -614,7 +614,7 @@ class EmojiResponse(di.Extension):
         guild = await self._client.fetch_guild(guild_id=c.serverid)
         try:
             await guild.get_custom_emoji(emoji_id=id).delete("neues Custom Emoji")
-        except di.errors.LibraryException:
+        except Exception:
             self._logger.error(f"EMOJI not Exist ({id})")
             return False
         return True
