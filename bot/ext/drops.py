@@ -522,6 +522,7 @@ class EmojiResponse(di.Extension):
         image = di.File(file=await download(link))
         emoji = await guild.create_custom_emoji(
             name=name, imagefile=image, reason="Custom Emoji erstellt")
+        self._logger.info(f"DROPS/CUSTOMEMOJI/create emoji: {emoji.id}")
         await disable_components(modal_ctx.message)
         customemoji = CustomEmoji(
             emoji_id=int(emoji.id), user_id=int(modal_ctx.user.id), state="creating", 
@@ -562,10 +563,10 @@ class EmojiResponse(di.Extension):
             await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
             return False
         customemoji = CustomEmoji(id=int(ctx.custom_id[12:]))
-        guild = await self._client.fetch_guild(guild_id=c.serverid)
+        guild = ctx.guild
         member = await guild.fetch_member(member_id=customemoji.user_id)
         emoji = await guild.fetch_custom_emoji(emoji_id=customemoji.emoji_id)
-        await emoji.edit(roles=[])
+        await emoji.edit(roles=[guild.default_role])
         msg = await ctx.edit_origin(components=[])
         await msg.reply(f"Das neue Emoji {emoji} wurde genehmigt.")
         await member.send(embed=di.Embed(
@@ -586,7 +587,7 @@ class EmojiResponse(di.Extension):
             await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
             return False
         customemoji = CustomEmoji(id=int(ctx.custom_id[11:]))
-        guild = await self._client.fetch_guild(guild_id=c.serverid)
+        guild = ctx.guild
         member = await guild.fetch_member(member_id=customemoji.user_id)
         emoji = await guild.fetch_custom_emoji(emoji_id=customemoji.emoji_id)
         msg = await ctx.edit_origin(components=[])
