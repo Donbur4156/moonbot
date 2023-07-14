@@ -100,7 +100,7 @@ class Modmail(di.Extension):
         match callback:
             case "close": await self.callback_close(ctx)
             case "block": await self.ticket_block(ctx)
-            case "volunteer": await self.open_volunteers(ctx)
+            case "volunteers": await self.open_volunteers(ctx)
     
     async def callback_close(self, ctx: di.ComponentContext):
         modal = di.Modal(
@@ -198,7 +198,7 @@ class Modmail(di.Extension):
             di.Button(style=di.ButtonStyle.BLUE, label="User sperren",
                       emoji=Emojis.spam, custom_id="tickets_block"),
             di.Button(style=di.ButtonStyle.GREEN, label="für Volunteer freigeben",
-                      emoji=Emojis.utility_4, custom_id="tickets_volunteer"),
+                      emoji=Emojis.utility_4, custom_id="tickets_volunteers"),
         ) if msg else None
         
         await channel.send(
