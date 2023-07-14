@@ -48,7 +48,7 @@ class EventClass(di.Extension):
             TimeTrigger(hour=0, utc=False),
             TimeTrigger(hour=6, utc=False),
             TimeTrigger(hour=12, utc=False),
-            TimeTrigger(hour=24, utc=False),
+            TimeTrigger(hour=18, utc=False),
     ))
     async def create_vote_message(self):
         text = f"Hey! Du kannst voten! {Emojis.vote_yes}\n\n" \
