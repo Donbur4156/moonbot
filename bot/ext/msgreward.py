@@ -66,7 +66,7 @@ class MsgXP(di.Extension):
             member_iconurl = member.avatar.url
             boost_num = msg.guild.premium_subscription_count
             boost_lvl = msg.guild.premium_tier
-            member_boosts = self._add_boost(member)
+            member_boosts = self._add_boost(int(member.id))
             text = f"**Moon Family 🌙** hat aktuell {boost_num} boosts!\n\n" \
                 f"{Emojis.boost} __***DANKE FÜR DEINEN BOOST!***__ {Emojis.boost}\n\n" \
                 f"Vielen Dank, das du den Server geboostet hast! " \
@@ -87,20 +87,20 @@ class MsgXP(di.Extension):
             await msg.channel.send(embed=embed)
             
 
-    def _add_boost(self, member: di.Member):
+    def _add_boost(self, member_id: int):
         boost_amount = 1
         boost_sql = self._SQL.execute(
             stmt="SELECT amount FROM booster WHERE user_ID=?", 
-            var=(int(member.id),)).data_single
-        if boost_sql:
-            boost_amount += boost_sql[0]
+            var=(member_id,)).data_single
+        if boost_sql and boost_sql[0]:
+            boost_amount += int(boost_sql[0])
             self._SQL.execute(
                 stmt="UPDATE booster SET amount=? WHERE user_ID=?", 
-                var=(boost_amount, int(member.id),))
+                var=(boost_amount, member_id,))
         else:
             self._SQL.execute(
                 stmt="INSERT INTO booster (user_ID, amount) VALUES (?, ?)", 
-                var=(int(member.id), boost_amount,))
+                var=(member_id, boost_amount,))
         return boost_amount
 
     @slash_command(name="status", description="Persönlicher Status der Message Streak", 
