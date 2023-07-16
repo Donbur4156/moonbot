@@ -11,6 +11,7 @@ from util.color import Colors
 from util.decorator import role_option, user_option
 from util.emojis import Emojis
 from util.sql import SQL
+from ext.modmail import get_modmail_blacklist
 from whistle import EventDispatcher
 
 
@@ -381,6 +382,21 @@ class ModCmds(di.Extension):
             await ctx.send(f"> Der User {user.mention} wurde von der Ticket Blacklist gelöscht.")
             return True
         await ctx.send(f"> Der User {user.mention} ist **nicht** auf der Ticket Blacklist.")
+
+    @mod_cmds.subcommand(sub_cmd_name="get_blacklist", sub_cmd_description="Erstellt eine Liste mit Usern, die für Modmail gesperrt sind")
+    async def get_blacklist(self, ctx: di.SlashContext):
+        blocked_user = get_modmail_blacklist()
+        if not blocked_user:
+            await ctx.send("> Aktuell sind keine User für den Modmail Support gesperrt.")
+            return False
+        mentions = "\n".join([f'<@{user}>' for user in blocked_user])
+        await ctx.send(
+            embed=di.Embed(
+                title="Modmail Blacklist",
+                description=f"Für den Modmail Support sind folgende User gesperrt:\n{mentions}",
+                color=Colors.ORANGE,
+            ),
+        )
         
 
 def setup(client: di.Client, **kwargs):

@@ -120,7 +120,7 @@ class Modmail(di.Extension):
         self._user_blacklist.append(user_id)
 
         reason = "Für Modmail gesperrt"
-        await self.close_mail(ctx=ctx, reason=reason)
+        await self.close_mail(ctx=ctx, reason=reason, blocked=True)
 
     async def open_volunteers(self, ctx: di.ComponentContext):
         #TODO: disable Button after using
@@ -151,9 +151,7 @@ class Modmail(di.Extension):
         self._storage = self._SQL.execute(stmt="SELECT * FROM tickets").data_all
         self._storage_user: list[int] = [stor[1] for stor in self._storage]
         self._storage_channel: list[int] = [stor[2] for stor in self._storage]
-        self._user_blacklist: list[int] = [
-            stor[0] for stor in self._SQL.execute(stmt="SELECT * FROM tickets_blacklist").data_all
-        ]
+        self._user_blacklist: list[int] = get_modmail_blacklist()
 
     
     async def _get_channel_byuser(self, user_id: int) -> di.TYPE_ALL_CHANNEL:
@@ -255,7 +253,7 @@ class Modmail(di.Extension):
     def _check_channel(self, channel_id: int):
         return channel_id in self._storage_channel
 
-    async def close_mail(self, ctx: di.SlashContext, reason: str = None, log: bool = True):
+    async def close_mail(self, ctx: di.SlashContext, reason: str = None, log: bool = True, blocked = False):
         #Schließt Ticket und Speichert Inhalt als Log
         if not self._check_channel(channel_id=int(ctx.channel_id)):
             await ctx.send("Dieser Channel ist kein aktives Ticket!", ephemeral=True)
@@ -281,8 +279,9 @@ class Modmail(di.Extension):
         
         reason_text = f'**Grund:** {reason}\n' if reason else ''
         description = f"Dein aktuelles Ticket wurde durch den Moderator **{ctx.user.username}** " \
-            f"geschlossen.\n{reason_text}\n" \
-            f"Du kannst mit einer neuen Nachricht jederzeit ein neues eröffnen."
+            f"geschlossen.\n{reason_text}"
+        if not blocked:
+            description += "\nDu kannst mit einer neuen Nachricht jederzeit ein neues eröffnen."
         embed = di.Embed(
             title=":scroll: Ticket geschlossen :scroll:",
             description=description,
@@ -346,6 +345,12 @@ def gen_ticket_embedfields(user_id: int):
                 value=", ".join(tickets_lost)))
             
     return fields, files
+
+def get_modmail_blacklist():
+    return [
+        int(u[0]) for u 
+        in SQL(database=c.database).execute(stmt="SELECT * FROM tickets_blacklist").data_all
+    ]
 
 def setup(client: di.Client, **kwargs):
     Modmail(client, **kwargs)
