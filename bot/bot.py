@@ -44,7 +44,7 @@ util_kwargs = {
 extensions = [
     "events",
     "drops",
-    "statusreward",
+    # "statusreward",
     "modmail",
     "msgreward",
     "modcommands",
