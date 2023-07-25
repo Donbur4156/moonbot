@@ -21,8 +21,8 @@ TOKEN = c.token
 SENTRY_TOKEN = c.sentry_token
 SENTRY_ENV = c.sentry_env
 
-di_logger = create_logger(file_name=c.logdir + "interactions.log", log_name="interactions_logger")
-moon_logger = create_logger(file_name=c.logdir + "Moon_Bot_LOGS.log", log_name="moon_logger")
+di_logger = create_logger(file_name=c.logdir + "interactions.log", log_name="interactions_logger", log_level=c.logginglevel)
+moon_logger = create_logger(file_name=c.logdir + "Moon_Bot_LOGS.log", log_name="moon_logger", log_level=c.logginglevel)
 
 pres = Activity(
     type=ActivityType.GAME,
@@ -63,3 +63,5 @@ def load_extensions(client: di.Client, extensions: list[str], **load_kwargs):
 if __name__ == "__main__":
     load_extensions(client=client, extensions=extensions, **util_kwargs)
     client.start()
+
+#TODO: Community Highlights (Nachrichten mit Stern in einem Highlight Kanal reposten)
