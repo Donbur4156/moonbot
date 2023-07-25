@@ -201,7 +201,9 @@ class Modmail(di.Extension):
         
         await channel.send(
             content=f"{self._mod_role.mention}, ein neues Ticket wurde erstellt:", 
-            embed=embed, files=files[-10:], components=components)
+            embed=embed, files=files[-10:], components=components,
+            allowed_mentions={"parse": ["roles"] if msg else []},
+        )
 
         if msg: 
             embed_user = di.Embed(
