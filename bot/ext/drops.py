@@ -15,7 +15,8 @@ from util.color import Colors
 from util.customs import CustomEmoji, CustomRole
 from util.emojis import Emojis
 from util.filehandling import download
-from util.misc import check_ephemeral, disable_components, enable_component
+from util.misc import (check_ephemeral, create_emoji, disable_components,
+                       enable_component)
 from util.sql import SQL
 from whistle import EventDispatcher
 
@@ -515,13 +516,26 @@ class EmojiResponse(di.Extension):
 
         name = modal_ctx.responses["name"]
         link = modal_ctx.responses["image"]
-        owner_role = await self._config.get_role("owner")
-        admin_role = await self._config.get_role("admin")
 
-        guild = await self._client.fetch_guild(c.serverid)
-        image = di.File(file=await download(link))
-        emoji = await guild.create_custom_emoji(
-            name=name, imagefile=image, reason="Custom Emoji erstellt")
+        file = await download(link)
+        if not file:
+            return await modal_ctx.send(
+                embed=di.Embed(
+                    description=f"Leider konnte unter dem angegebenen Link ``` {link} ``` kein Bild gefunden werden.\n"
+                        f"Versuche es erneut mit einem anderen Link oder wende dich über Modmail an das Team.",
+                    color=di.BrandColors.RED,
+                )
+            )
+        image = di.File(file=file)
+        emoji = await create_emoji(client=self._client, name=name, image=image)
+        if not emoji:
+            return await modal_ctx.send(
+                embed=di.Embed(
+                    description=f"Leider konnte das Emoji nicht erstellt werden.\n"
+                        f"Versuche es erneut oder wende dich bei Problemen über Modmail an das Team.",
+                    color=di.BrandColors.RED,
+                )
+            )
         self._logger.info(f"DROPS/CUSTOMEMOJI/create emoji: {emoji.id}")
         await disable_components(modal_ctx.message)
         customemoji = CustomEmoji(
@@ -543,6 +557,8 @@ class EmojiResponse(di.Extension):
             label="Ablehnen",
             custom_id=f"deny_emoji_{customemoji.id}"
         )
+        owner_role = await self._config.get_role("owner")
+        admin_role = await self._config.get_role("admin")
         content = f"{owner_role.mention} {admin_role.mention}, der User {modal_ctx.user.mention} " \
             f"hat durch einen Drop das Emoji {emoji} erstellt und zur Überprüfung eingereicht.\n"
         await team_channel.send(content=content, components=di.ActionRow(but_allow, but_deny))

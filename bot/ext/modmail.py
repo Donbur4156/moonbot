@@ -14,7 +14,7 @@ from util.emojis import Emojis
 from util.filehandling import download
 from util.objects import DcUser
 from util.sql import SQL
-from util.misc import callback_unsupported, has_any_role
+from util.misc import has_any_role
 from whistle import EventDispatcher
 
 

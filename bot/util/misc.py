@@ -1,4 +1,8 @@
-from interactions import (Client, ComponentContext, Member, Message,
+import logging
+
+import config as c
+import interactions as di
+from interactions import (Client, ComponentContext, File, Member, Message,
                           MessageFlags, Role, SlashContext, to_snowflake,
                           utils)
 
@@ -24,3 +28,14 @@ async def callback_unsupported(ctx: ComponentContext):
 
 def has_any_role(member: Member, roles: list[Role]) -> bool:
     return any(to_snowflake(role) in member._role_ids for role in roles)
+
+async def create_emoji(client: Client, name: str, image: File):
+    guild = await client.fetch_guild(c.serverid)
+    try:
+        return await guild.create_custom_emoji(
+        name=name, imagefile=image, reason="Custom Emoji erstellt")
+    except di.errors.HTTPException as e:
+        logging.getLogger("moon_logger").error(
+            e
+        )
+        return None
