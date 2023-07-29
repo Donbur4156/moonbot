@@ -512,10 +512,15 @@ class EmojiResponse(di.Extension):
         )
         await ctx.send_modal(modal)
 
-        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+        try:
+            modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+            name = modal_ctx.responses["name"]
+            link = modal_ctx.responses["image"]
+        except:
+            return
 
-        name = modal_ctx.responses["name"]
-        link = modal_ctx.responses["image"]
+        self._logger.info("mod: %s", modal_ctx.token)
+        self._logger.info("but: %s", ctx.token)
 
         file = await download(link)
         if not file:
