@@ -30,18 +30,22 @@ class EventClass(di.Extension):
     def set_wlc_msgs(self, event=None):
         self.wlc_msgs = read_txt()
 
+    def gen_wlc_msg(self, member_mention: str):
+        return (
+            random.choice(self.wlc_msgs).format(user=member_mention)
+            if self.wlc_msgs else
+            f"Herzlich Willkommen auf **Moon Family 🌙** {member_mention}! "
+            f"{Emojis.welcome} {Emojis.dance} {Emojis.crone}"
+        )
+
     @listen()
     async def on_guild_member_add(self, event: MemberAdd):
         if int(event.guild.id) != c.serverid: return False
         member = event.member
         self._logger.info(f"EVENT/Member Join/{member.username} ({member.id})")
         dcuser = DcUser(member=member)
-        text = (random.choice(self.wlc_msgs).format(user=member.mention)
-                if self.wlc_msgs else
-                f"Herzlich Willkommen auf **Moon Family 🌙** {member.mention}! "
-                f"{Emojis.welcome} {Emojis.dance} {Emojis.crone}")
         channel = await self._config.get_channel("chat")
-        dcuser.wlc_msg = await channel.send(text)
+        dcuser.wlc_msg = await channel.send(self.gen_wlc_msg(member.mention))
         self.joined_member.update({int(member.id): dcuser})
         await member.add_roles(roles=[903715839545598022, 905466661237301268, 913534417123815455])
         # TODO: add_role Zeitversetzt evtl. erst wenn nicht mehr pending
