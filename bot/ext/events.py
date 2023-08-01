@@ -1,12 +1,15 @@
 import logging
+import random
 
 import config as c
 import interactions as di
 from configs import Configs
+from ext.welcomemsgs import read_txt
 from interactions import OrTrigger, Task, TimeTrigger, listen
 from interactions.api.events import MemberAdd, MemberRemove
 from util.emojis import Emojis
 from util.objects import DcUser
+from whistle import EventDispatcher
 
 
 class EventClass(di.Extension):
@@ -14,12 +17,18 @@ class EventClass(di.Extension):
         self._client = client
         self._config: Configs = kwargs.get("config")
         self._logger: logging.Logger = kwargs.get("logger")
+        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
         self.joined_member: dict[int, DcUser] = {}
 
     @listen()
     async def on_startup(self):
         self._logger.info("Interactions are online!")
         self.create_vote_message.start()
+        self.set_wlc_msgs()
+        self._dispatcher.add_listener("wlcmsgs_update", self.set_wlc_msgs)
+
+    def set_wlc_msgs(self, event=None):
+        self.wlc_msgs = read_txt()
 
     @listen()
     async def on_guild_member_add(self, event: MemberAdd):
@@ -27,8 +36,10 @@ class EventClass(di.Extension):
         member = event.member
         self._logger.info(f"EVENT/Member Join/{member.username} ({member.id})")
         dcuser = DcUser(member=member)
-        text = f"Herzlich Willkommen auf **Moon Family 🌙** {member.mention}! " \
-            f"{Emojis.welcome} {Emojis.dance} {Emojis.crone}"
+        text = (random.choice(self.wlc_msgs).format(user=member.mention)
+                if self.wlc_msgs else
+                f"Herzlich Willkommen auf **Moon Family 🌙** {member.mention}! "
+                f"{Emojis.welcome} {Emojis.dance} {Emojis.crone}")
         channel = await self._config.get_channel("chat")
         dcuser.wlc_msg = await channel.send(text)
         self.joined_member.update({int(member.id): dcuser})

@@ -52,6 +52,7 @@ extensions = [
     "schedules",
     "selfroles",
     "giveaways",
+    "welcomemsgs",
 ]
 
 def load_extensions(client: di.Client, extensions: list[str], **load_kwargs):
