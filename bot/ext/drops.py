@@ -584,17 +584,17 @@ class EmojiResponse(di.Extension):
             await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
             return False
         customemoji = CustomEmoji(id=int(ctx.custom_id[12:]))
+        msg = await ctx.edit_origin(components=[])
         guild = ctx.guild
         member = await guild.fetch_member(member_id=customemoji.user_id)
         emoji = await guild.fetch_custom_emoji(emoji_id=customemoji.emoji_id)
         await emoji.edit(roles=[guild.default_role])
-        msg = await ctx.edit_origin(components=[])
+        if not await self.delete_old(int(emoji.id)): return False # verhindert doppelte Genehmigung
+        self.add_new(emoji.id)
         await msg.reply(f"Das neue Emoji {emoji} wurde genehmigt.")
         await member.send(embed=di.Embed(
             description=f"Dein Emoji {emoji} wurde genehmigt! Viel Spaß! {Emojis.check}", 
             color=Colors.GREEN_WARM))
-        await self.delete_old()
-        self.add_new(emoji.id)
         chat = await self._config.get_channel("chat")
         await chat.send(
             f"Der User {member.mention} hat ein **neues Emoji** auf dem Server **hinzugefügt**: {emoji}")
@@ -628,14 +628,17 @@ class EmojiResponse(di.Extension):
         customemoji.set_state("denied")
 
 
-    async def delete_old(self):
+    async def delete_old(self, old_emoji_id: int):
         if emoji_id := self._config.get_special("custom_emoji"):
-            await self.delete_emoji(int(emoji_id))
+            if emoji_id == old_emoji_id:
+                return False
+            await self.delete_emoji(emoji_id)
+        return True
 
     async def delete_emoji(self, id: int):
         guild = await self._client.fetch_guild(guild_id=c.serverid)
         try:
-            await guild.get_custom_emoji(emoji_id=id).delete("neues Custom Emoji")
+            await guild.fetch_custom_emoji(emoji_id=id).delete("neues Custom Emoji")
         except Exception:
             self._logger.error(f"EMOJI not Exist ({id})")
             return False
