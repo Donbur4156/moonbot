@@ -7,7 +7,8 @@ import interactions as di
 from configs import Configs
 from deepdiff import DeepDiff
 from ext.welcomemsgs import read_txt
-from interactions import OrTrigger, Task, TimeTrigger, listen
+from interactions import (ContextMenuContext, OrTrigger, Task, TimeTrigger,
+                          listen, user_context_menu)
 from interactions.api.events import MemberAdd, MemberRemove, MemberUpdate
 from util.emojis import Emojis
 from util.objects import DcUser
@@ -59,17 +60,24 @@ class EventClass(di.Extension):
         self.sql.execute(stmt="DELETE FROM new_members WHERE user_id=?", var=(member_id,))
         self.new_members.discard(member_id)
 
+    @user_context_menu(name="add default roles", dm_permission=False, default_member_permissions=di.Permissions.MODERATE_MEMBERS)
+    async def add_default_roles_ctx(self, ctx: ContextMenuContext):
+        await self.add_default_roles(ctx.target) 
+        self._logger.info(f"USERCTX/add default roles/{ctx.target.username} ({ctx.target.id}) Teammember: {ctx.member.id}")
+
+    async def add_default_roles(self, member: di.Member):
+        await member.add_roles(roles=[903715839545598022, 905466661237301268, 913534417123815455])
 
     @listen()
     async def on_guild_member_update(self, event: MemberUpdate):
         diffs = DeepDiff(event.before, event.after, exclude_paths="root.top_role", ignore_type_in_groups=[str, int, NoneType])
         self._logger.debug(f"EVENT/MEMBERUPDATE/{event.after.id}; Diff: {diffs}")
-        if (int(event.after.id) not in self.new_members
+        if (int(event.after.id) in self.new_members
             and event.before.pending 
             and not event.after.pending):
             member = event.after
             self.del_new_member(int(member.id))
-            await member.add_roles(roles=[903715839545598022, 905466661237301268, 913534417123815455])
+            await self.add_default_roles(member)
             self._logger.info(f"EVENT/Member end pending/{member.username} ({member.id})")
 
 
