@@ -21,8 +21,8 @@ TOKEN = c.token
 SENTRY_TOKEN = c.sentry_token
 SENTRY_ENV = c.sentry_env
 
-di_logger = create_logger(file_name=c.logdir + "interactions.log", log_name="interactions_logger", log_level=c.logginglevel)
-moon_logger = create_logger(file_name=c.logdir + "Moon_Bot_LOGS.log", log_name="moon_logger", log_level=c.logginglevel)
+di_logger = create_logger(file_name=c.logdir + "interactions.log", log_name="interactions_logger", log_level=c.logginglevel_di)
+moon_logger = create_logger(file_name=c.logdir + "Moon_Bot_LOGS.log", log_name="moon_logger", log_level=c.logginglevel_moon)
 
 pres = Activity(
     type=ActivityType.GAME,
