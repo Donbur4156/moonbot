@@ -90,6 +90,7 @@ class EventClass(di.Extension):
         member = event.member
         self._logger.info(f"EVENT/MEMBER Left/{member.username} ({member.id})")
         dcuser = self.joined_member.pop(int(member.id), None)
+        self.del_new_member(int(member.id))
         if dcuser:
             await dcuser.delete_wlc_msg()
 
