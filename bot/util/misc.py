@@ -2,9 +2,9 @@ import logging
 
 import config as c
 import interactions as di
-from interactions import (Client, ComponentContext, File, Member, Message,
-                          MessageFlags, Role, SlashContext, to_snowflake,
-                          utils)
+from interactions import (EMBED_FIELD_VALUE_LENGTH, Client, ComponentContext,
+                          EmbedField, File, Member, Message, MessageFlags,
+                          Role, SlashContext, to_snowflake, utils)
 
 
 async def disable_components(msg: Message):
@@ -39,3 +39,14 @@ async def create_emoji(client: Client, name: str, image: File):
             e
         )
         return None
+
+def split_to_fields(content: list, max_line_length: int) -> list[EmbedField]:
+    fields = []
+    while content:
+        fieldcontent = []
+        while len(str(fieldcontent)) < (EMBED_FIELD_VALUE_LENGTH-max_line_length) and content:
+            fieldcontent.append(content.pop(0))
+        fields.append(
+            EmbedField(name="\u200b", value="\n".join(fieldcontent))
+        )
+    return fields

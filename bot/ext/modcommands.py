@@ -10,6 +10,7 @@ from interactions import (component_callback, listen, slash_command,
 from util.color import Colors
 from util.decorator import role_option, user_option
 from util.emojis import Emojis
+from util.misc import split_to_fields
 from util.sql import SQL
 from ext.modmail import get_modmail_blacklist
 from whistle import EventDispatcher
@@ -106,8 +107,8 @@ class AdminCmds(di.Extension):
     async def starpowder_getlist(self, ctx: di.SlashContext):
         embed = di.Embed(
             title="Sternstaub 'Bestenliste'",
-            description=StarPowder().gettable_starpowder(),
         )
+        embed.add_fields(*split_to_fields(StarPowder().gettable_starpowder(), 42))
         await ctx.send(embed=embed)
 
     config_cmds = admin_cmds.group(name="config", description="Role/Channel... Config")

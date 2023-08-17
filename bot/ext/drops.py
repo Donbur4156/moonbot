@@ -356,9 +356,7 @@ class StarPowder:
         return self.sql.execute(stmt="SELECT * FROM starpowder ORDER BY amount DESC").data_all
     
     def gettable_starpowder(self):
-        return "\n".join(
-            [f'{e}. {s[1]} - <@{s[0]}>' for e, s in enumerate(self.getlist_starpowder(), start=1)])
-
+        return [f'{e}. {s[1]} - <@{s[0]}>' for e, s in enumerate(self.getlist_starpowder(), start=1)]
 
 class BoostColResponse(di.Extension):
     def __init__(self, client: di.Client, **kwargs) -> None:
