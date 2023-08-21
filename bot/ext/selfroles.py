@@ -101,7 +101,7 @@ class SelfRoles(di.Extension):
         await self.selfroles_comp(ctx)
     
     @component_callback(re.compile(r"gender_[a-z]+"))
-    async def selfroles_comp_ping(self, ctx: di.ComponentContext):
+    async def selfroles_comp_gender(self, ctx: di.ComponentContext):
         await self.selfroles_comp(ctx)
     
     async def selfroles_comp(self, ctx: di.ComponentContext):
