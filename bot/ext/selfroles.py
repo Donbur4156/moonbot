@@ -65,6 +65,19 @@ class SelfRoles(di.Extension):
         await channel.send(embed=embed, components=di.ActionRow(*buttons_from_list(buttons_list)))
         await ctx.send(f"Ping Selfrole Embed wurde im Channel {channel.mention} erstellt.")
 
+    @selfroles_cmds.subcommand(sub_cmd_name="gender", sub_cmd_description="Erstellt selfrole Post für Geschlechter Rollen.")
+    @channel_option()
+    async def selfroles_gender(self, ctx: di.SlashContext, channel: di.TYPE_GUILD_CHANNEL):
+        text = f"**Geschlechter:** *Wähle dein Geschlecht aus.*"
+        buttons_list = [
+            ["Männlich", Emojis.male, "gender_male"],
+            ["Weiblich", Emojis.female, "gender_female"],
+            ["Divers", Emojis.divers, "gender_div"],
+        ]
+        embed = di.Embed(description=text, color=Colors.BLUE_MODI)
+        await channel.send(embed=embed, components=di.ActionRow(*buttons_from_list(buttons_list)))
+        await ctx.send(f"Geschlechter Selfrole Embed wurde im Channel {channel.mention} erstellt.")
+
     '''
     @component_callback("country_ger")
     @component_callback("country_aut")
@@ -75,12 +88,19 @@ class SelfRoles(di.Extension):
     @component_callback("ping_umf")
     @component_callback("ping_giv")
     @component_callback("ping_tlk")
+    @component_callback("gender_male")
+    @component_callback("gender_female")
+    @component_callback("gender_div")
     '''
     @component_callback(re.compile(r"country_[a-z]+"))
     async def selfroles_comp_country(self, ctx: di.ComponentContext):
         await self.selfroles_comp(ctx)
     
     @component_callback(re.compile(r"ping_[a-z]+"))
+    async def selfroles_comp_ping(self, ctx: di.ComponentContext):
+        await self.selfroles_comp(ctx)
+    
+    @component_callback(re.compile(r"gender_[a-z]+"))
     async def selfroles_comp_ping(self, ctx: di.ComponentContext):
         await self.selfroles_comp(ctx)
     

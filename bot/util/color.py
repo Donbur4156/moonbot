@@ -15,6 +15,7 @@ class Colors(Color, Enum):
     YELLOW_GOLD = 0xFAE500
     BLURPLE = 0x5865F2
     BLUE = 0x0B27F4
+    BLUE_MODI = 0x3B1FB8
     PINK = 0xf47fff
     MAGENTA_BRIGHT = 0xFF00DD
     MAGENTA = 0xFF1493

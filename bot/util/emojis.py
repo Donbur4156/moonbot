@@ -90,6 +90,9 @@ class Emojis:
     spam = PartialEmoji(name="Spam", id=913420142669598731)
     utility_4 = PartialEmoji(name="utility4", id=1121147727343001780, animated=True)
 
+    male = PartialEmoji(name="♂️")
+    female = PartialEmoji(name="♀️")
+    divers = PartialEmoji(name="⚧")
 
     def get_all():
         return {att: val for att, val in Emojis.__dict__.items() if type(val) == PartialEmoji}
