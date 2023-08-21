@@ -66,7 +66,7 @@ class EventClass(di.Extension):
         self._logger.info(f"USERCTX/add default roles/{ctx.target.username} ({ctx.target.id}) Teammember: {ctx.member.id}")
 
     async def add_default_roles(self, member: di.Member):
-        await member.add_roles(roles=[903715839545598022, 905466661237301268, 913534417123815455])
+        await member.add_roles(roles=[903715839545598022, 905466661237301268, 913534417123815455, 1143226806732853371])
 
     # @listen()
     async def on_guild_member_update(self, event: MemberUpdate):
