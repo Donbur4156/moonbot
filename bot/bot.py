@@ -42,6 +42,7 @@ util_kwargs = {
     "logger": moon_logger,
 }
 extensions = [
+    "dev",
     "events",
     "drops",
     # "statusreward",
