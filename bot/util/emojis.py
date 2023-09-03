@@ -37,7 +37,7 @@ class Emojis:
     page = PartialEmoji(name="📃")
     moonfamily = PartialEmoji(name="MoonFamily", id=1069373465527853056)
     aww = PartialEmoji(name="aww", id=982424711243890738, animated=True)
-    rose = PartialEmoji(name="rose~1", id=990574819663810560) #TODO:
+    rose = PartialEmoji(name="rose~1", id=990574819663810560)
     cap = PartialEmoji(name="cap", id=990574871975170098)
     rose2 = PartialEmoji(name="rose2", id=990574818120318986)
     money = PartialEmoji(name="money", id=990574898395111434)
@@ -45,7 +45,7 @@ class Emojis:
     purpleheart = PartialEmoji(name="purpleheart", id=990575124535185448)
     greenheart = PartialEmoji(name="greenheart", id=990575154864226444)
     baseballbat = PartialEmoji(name="baseballbat", id=990575184266289222)
-    mask = PartialEmoji(name="mask~1", id=990575216944115733) #TODO:
+    mask = PartialEmoji(name="mask~1", id=990575216944115733)
     blue = PartialEmoji(name="🔵")
     pink = PartialEmoji(name="💗")
     violet = PartialEmoji(name="🟣")

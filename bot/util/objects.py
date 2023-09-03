@@ -1,5 +1,3 @@
-import logging
-
 import config as c
 import interactions as di
 from util.json import get_role_from_json
@@ -13,7 +11,7 @@ class DcUser:
             member: di.Member = None
             ) -> None:
         self.bot = bot
-        self.member = None
+        self.member = member
         if dc_id: 
             self.dc_id = int(dc_id)
         elif ctx: 
@@ -23,6 +21,8 @@ class DcUser:
             self.member = member
             self.dc_id = int(member.id)
         else: raise Exception("dcuser needs dc_id or a ctx Object for id!")
+        if not bot and self.member:
+            self.bot = self.member.client
         self.mention = f"<@!{self.dc_id}>"
         self.giveaway_plus: bool = False
         self.wlc_msg: di.Message = None #TODO: store in database

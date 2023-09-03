@@ -1,11 +1,9 @@
 import logging
 import random
-from types import NoneType
 
 import config as c
 import interactions as di
 from configs import Configs
-from deepdiff import DeepDiff
 from ext.welcomemsgs import read_txt
 from interactions import (ContextMenuContext, OrTrigger, Task, TimeTrigger,
                           listen, user_context_menu)
@@ -68,10 +66,8 @@ class EventClass(di.Extension):
     async def add_default_roles(self, member: di.Member):
         await member.add_roles(roles=[903715839545598022, 905466661237301268, 913534417123815455, 1143226806732853371])
 
-    # @listen()
+    @listen()
     async def on_guild_member_update(self, event: MemberUpdate):
-        diffs = DeepDiff(event.before, event.after, exclude_paths="root.top_role", ignore_type_in_groups=[str, int, NoneType])
-        self._logger.debug(f"EVENT/MEMBERUPDATE/{event.after.id}; Diff: {diffs}")
         if (int(event.after.id) in self.new_members
             and event.before.pending 
             and not event.after.pending):
@@ -90,8 +86,10 @@ class EventClass(di.Extension):
         channel = await self._config.get_channel("chat")
         dcuser.wlc_msg = await channel.send(self.gen_wlc_msg(member.mention))
         self.joined_member.update({int(member.id): dcuser})
-        # self.add_new_member(int(member.id))
-        await self.add_default_roles(member)
+        if member.pending:
+            self.add_new_member(int(member.id))
+        else:
+            await self.add_default_roles(member)
 
     @listen()
     async def on_guild_member_remove(self, event: MemberRemove):
