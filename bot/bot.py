@@ -1,15 +1,12 @@
-import logging
-
-import aiocron
 import config as c
 import interactions as di
 import nest_asyncio
-from configs import Configs, config_setup
-from interactions.api.models.flags import Intents
+from configs import Configs
+from interactions import Activity, ActivityType, Intents
+from util.logger import create_logger
 from whistle import EventDispatcher
 
 nest_asyncio.apply()
-from util.emojis import Emojis
 
 '''
 Abkürzungen:
@@ -21,62 +18,52 @@ Abkürzungen:
 
 # Bot Konstruktor
 TOKEN = c.token
-pres = di.PresenceActivity(
-    type=di.PresenceActivityType.GAME,
-    name="discord.gg/moonfamily",
+SENTRY_TOKEN = c.sentry_token
+SENTRY_ENV = c.sentry_env
+
+di_logger = create_logger(file_name=c.logdir + "interactions.log", log_name="interactions_logger", log_level=c.logginglevel_di)
+moon_logger = create_logger(file_name=c.logdir + "Moon_Bot_LOGS.log", log_name="moon_logger", log_level=c.logginglevel_moon)
+
+pres = Activity(
+    type=ActivityType.GAME,
+    name="ModMail Support",
 )
-bot = di.Client(token=TOKEN, intents=Intents.ALL | Intents.GUILD_MESSAGE_CONTENT | Intents.GUILD_VOICE_STATES, disable_sync=c.sync, presence=di.ClientPresence(activities=[pres]))
-logging.basicConfig(filename=c.logdir + c.logfilename, level=c.logginglevel, format='%(levelname)s - %(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
-bot.dispatcher = EventDispatcher()
-config: Configs = config_setup(bot)
-bot.load("interactions.ext.persistence", cipher_key=c.cipher_key)
-bot.load("ext.drops")
-bot.load("ext.statusreward")
-bot.load("ext.modmail")
-bot.load("ext.msgreward")
-bot.load("ext.modcommands")
-bot.load("ext.milestones")
-bot.load("ext.schedules")
-bot.load("ext.selfroles")
-bot.load("ext.giveaways")
+intents = Intents.ALL | Intents.MESSAGE_CONTENT | Intents.GUILD_VOICE_STATES
+client = di.Client(token=TOKEN, intents=intents, activity=pres, 
+                   logger=di_logger, send_command_tracebacks=False)
 
+dispatcher = EventDispatcher()
+config: Configs = Configs(client=client, dispatcher=dispatcher)
 
-@bot.event
-async def on_start():
-    logging.info("Interactions are online!")
+util_kwargs = {
+    "_client": client,
+    "dispatcher": dispatcher,
+    "config": config,
+    "logger": moon_logger,
+}
+extensions = [
+    "dev",
+    "events",
+    "drops",
+    # "statusreward",
+    "modmail",
+    "msgreward",
+    "modcommands",
+    "milestones",
+    "schedules",
+    "selfroles",
+    "giveaways",
+    "welcomemsgs",
+]
 
-
-@bot.event
-async def on_guild_member_add(member: di.Member):
-    logging.info(f"EVENT/Member Join/{member.name} ({member.id})")
-    text = f"Herzlich Willkommen auf **Moon Family 🌙** {member.mention}! {Emojis.welcome} {Emojis.dance} {Emojis.crone}"
-    channel = await config.get_channel("chat")
-    await channel.send(text)
-    await member.add_role(role=903715839545598022, guild_id=member.guild_id)
-    await member.add_role(role=905466661237301268, guild_id=member.guild_id)
-    await member.add_role(role=913534417123815455, guild_id=member.guild_id)
-    # TODO: Events als Class -> Leave Event als Abbruchbedingung
-    # TODO: add_role Zeitversetzt
-    # TODO: Welcome Message automatisch löschen bei Leave
-
-
-@aiocron.crontab('0 */6 * * *')
-async def create_vote_message():
-    text = f"Hey! Du kannst voten! {Emojis.vote_yes}\n\n" \
-        f"Wenn du aktiv für den Server stimmst, bekommst und behältst du die <@&939557486501969951> Rolle!\n" \
-        f"**Voten:** https://discords.com/servers/moonfamily\n\n" \
-        f"<@&1075849079638196395> Rolle für höhere Gewinnchancen bei Giveaways:\n" \
-        f"**Voten:** https://top.gg/de/servers/903713782650527744/vote\n\n" \
-        f"Vielen Dank und viel Spaß! {Emojis.sleepy} {Emojis.crone} {Emojis.anime}"
-    url = "https://cdn.discordapp.com/attachments/1009413427485216798/1082984742355468398/vote1.png"
-    embed = di.Embed(
-        title=f"Voten und Unterstützer werden {Emojis.minecraft}",
-        description=text,
-        image=di.EmbedImageStruct(url=url)
-    )
-    channel = await config.get_channel("chat")
-    await channel.send(embeds=embed)
+def load_extensions(client: di.Client, extensions: list[str], **load_kwargs):
+    client.load_extension('interactions.ext.sentry', token=SENTRY_TOKEN, environment=SENTRY_ENV)
+    for ext in extensions:
+        client.load_extension(name=f"ext.{ext}", **load_kwargs)
 
 
 if __name__ == "__main__":
-    bot.start()
+    load_extensions(client=client, extensions=extensions, **util_kwargs)
+    client.start()
+
+#TODO: Community Highlights (Nachrichten mit Stern in einem Highlight Kanal reposten)

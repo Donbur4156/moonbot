@@ -5,19 +5,26 @@ import config as c
 import interactions as di
 from configs import Configs
 from ext.drops import StarPowder
+from interactions import (component_callback, listen, slash_command,
+                          slash_option)
+from util.color import Colors
+from util.decorator import role_option, user_option
 from util.emojis import Emojis
-from util.objects import DcUser
+from util.misc import split_to_fields
+from util.sql import SQL
+from ext.modmail import get_modmail_blacklist
 from whistle import EventDispatcher
 
 
 class AdminCmds(di.Extension):
-    def __init__(self, client: di.Client) -> None:
-        self.client = client
-        self._config: Configs = client.config
-        self._dispatcher: EventDispatcher = client.dispatcher
+    def __init__(self, client: di.Client, **kwargs) -> None:
+        self._client = client
+        self._config: Configs = kwargs.get("config")
+        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
+        self._logger: logging.Logger = kwargs.get("logger")
 
-    @di.extension_listener()
-    async def on_start(self):
+    @listen()
+    async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
         await self._load_config()
         
@@ -27,26 +34,30 @@ class AdminCmds(di.Extension):
     async def _load_config(self):
         self.role_engel = await self._config.get_role("engel")
     
-    @di.extension_command(description="vergibt die Engelchen Rolle an einen User", dm_permission=False)
-    @di.option(description="@User")
-    async def engel(self, ctx: di.CommandContext, user: di.Member):
-        logging.info(f"ENGEL/add Role to {user.name} ({user.id}) by {ctx.member.name} ({ctx.member.id})")
-        await user.add_role(guild_id=ctx.guild_id, role=self.role_engel)
+    @slash_command(name="engel", description="vergibt die Engelchen Rolle an einen User", 
+                   dm_permission=False)
+    @slash_option(name="user", description="User, der die Rolle erhalten soll",
+        opt_type=di.OptionType.USER,
+        required=True,
+    )
+    async def engel(self, ctx: di.SlashContext, user: di.Member):
+        self._logger.info(f"ENGEL/add Role to {user.username} ({user.id}) by {ctx.member.username} ({ctx.member.id})")
+        await user.add_role(role=self.role_engel, reason="Vergabe der Engelchen Rolle")
         text = f"{Emojis.check} {user.mention} ist nun ein Engelchen! {Emojis.bfly}"
         await ctx.send(text)
 
-    @di.extension_command(name="admin", description="Commands für Admins", dm_permission=False)
-    async def admin(self, ctx: di.CommandContext):
-        pass
+    admin_cmds = di.SlashCommand(name="admin", description="Commands für Admins", dm_permission=False)
 
-    @admin.subcommand(description="Alle verfügbaren Commands")
-    async def commands(self, ctx: di.CommandContext):
-        text = "**Alle verfügbaren Admin Commands:**"
+    @admin_cmds.subcommand(sub_cmd_name="commands", sub_cmd_description="Alle verfügbaren Commands")
+    async def commands(self, ctx: di.SlashContext):
+        text = "**Alle verfügbaren Admin Commands:**" #TODO: Ergänzen des Texts
         await ctx.send(text)
 
-    @admin.subcommand(description="Generiert die Self Role Message")
-    @di.option(description="Channel, in dem die Nachricht gepostet werden soll")
-    async def role_event(self, ctx:di.CommandContext, channel: di.Channel = None):
+    @admin_cmds.subcommand(sub_cmd_name="role_event", sub_cmd_description="Generiert die Self Role Message")
+    @slash_option(name="channel", description="Channel, in dem die Nachricht gepostet werden soll",
+        opt_type=di.OptionType.CHANNEL,
+    )
+    async def role_event(self, ctx: di.SlashContext, channel: di.TYPE_MESSAGEABLE_CHANNEL = None):
         channel = channel or ctx.channel
         jub_role = await self._config.get_role("jub_role")
         text = f":alarm_clock: **|** __**2022**__\n\n" \
@@ -65,41 +76,45 @@ class AdminCmds(di.Extension):
         await channel.send(content=text, components=button)
         await ctx.send(f"Der Post wurde erfolgreich in {channel.mention} erstellt.", ephemeral=True)
 
-    @di.extension_component("self_role_jub")
+    @component_callback("self_role_jub")
     async def self_role_jub(self, ctx: di.ComponentContext):
         jub_role = await self._config.get_role("jub_role")
         await ctx.member.add_role(role=jub_role)
         text = f"Du hast dir erfolgreich die {jub_role.mention} Rolle für dein Profil gegeben!\nViel Spaß! {Emojis.sleepy} :tada:"
         await ctx.send(text, ephemeral=True)
 
-    @admin.group(description="Sternenstaub Commands")
-    async def starpowder(self, ctx: di.CommandContext):
-        pass
-    
-    @starpowder.subcommand(name="add", description="Fügt dem User Sternenstaub hinzu")
-    @di.option(description="User, der Sternenstaub bekommen soll")
-    @di.option(description="Menge von Sternenstaub")
-    async def starpowder_add(self, ctx: di.CommandContext, user: di.Member, amount: int):
-        amount_total = StarPowder().upd_starpowder(user_id=int(user.id), amount=amount)
-        await ctx.send(f"Dem User {user.mention} wurden {amount} Sternenstaub hinzugefügt.\nDer User hat nun insgesamt {amount_total} Sternenstaub gesammelt.", ephemeral=True)
-        logging.info(f"STARPOWDER/User: {user.mention} ({user.id}); amount: {amount}; new amount: {amount_total}; Admin ID: {ctx.user.id}")
+    starpowder_cmds = admin_cmds.group(name="starpowder", description="Sternenstaub Commands")
 
-    @starpowder.subcommand(name="getlist", description="Erstellt eine Liste mit allen Usern mit Sternenstaub.")
-    async def starpowder_getlist(self, ctx: di.CommandContext):
-        starpowder_list = StarPowder().getlist_starpowder()
-        starpowder_table = "\n".join([f'{e}. {s[1]} - <@{s[0]}>' for e, s in enumerate(starpowder_list, start=1)])
+    @starpowder_cmds.subcommand(sub_cmd_name="add", sub_cmd_description="Fügt dem User Sternenstaub hinzu")
+    @slash_option(name="user", description="User, der Sternenstaub bekommen soll",
+        opt_type=di.OptionType.USER,
+        required=True,
+    )
+    @slash_option(name="amount", description="Menge von Sternenstaub",
+        opt_type=di.OptionType.INTEGER,
+        required=True,
+    )
+    async def starpowder_add(self, ctx: di.SlashContext, user: di.Member, amount: int):
+        amount_total = StarPowder().upd_starpowder(user_id=int(user.id), amount=amount)
+        text = f"Dem User {user.mention} wurden {amount} Sternenstaub hinzugefügt." \
+            f"\nDer User hat nun insgesamt {amount_total} Sternenstaub gesammelt."
+        await ctx.send(text, ephemeral=True)
+        self._logger.info(
+            f"STARPOWDER/User: {user.mention} ({user.id}); amount: {amount}; new amount: {amount_total}; Admin ID: {ctx.user.id}")
+
+    @starpowder_cmds.subcommand(
+        sub_cmd_name="getlist", sub_cmd_description="Erstellt eine Liste mit allen Usern mit Sternenstaub.")
+    async def starpowder_getlist(self, ctx: di.SlashContext):
         embed = di.Embed(
             title="Sternstaub 'Bestenliste'",
-            description=starpowder_table,
         )
-        await ctx.send(embeds=embed)
+        embed.add_fields(*split_to_fields(StarPowder().gettable_starpowder(), 42))
+        await ctx.send(embed=embed)
 
-    @admin.group(description="Role/Channel... Config")
-    async def config(self, ctx: di.CommandContext):
-        pass
+    config_cmds = admin_cmds.group(name="config", description="Role/Channel... Config")
 
-    @config.subcommand(description="Zeigt Config an")
-    async def show(self, ctx: di.CommandContext):
+    @config_cmds.subcommand(sub_cmd_name="show", sub_cmd_description="Zeigt Config an")
+    async def show(self, ctx: di.SlashContext):
         channels = [
             {"name": "Chat", "value": "chat"},
             {"name": "Mail Default", "value": "mail_def"},
@@ -114,7 +129,11 @@ class AdminCmds(di.Extension):
         roles_general = [
             {"name": "Owner", "value": "owner"},
             {"name": "Admins", "value": "admin"},
-            {"name": "Mods", "value": "mod"},
+            {"name": "Team", "value": "mod"},
+            {"name": "SrModerator", "value": "srmoderator"},
+            {"name": "Moderator", "value": "moderator"},
+            {"name": "Supporter", "value": "supporter"},
+            {"name": "Developer", "value": "developer"},
             {"name": "Eventmanager", "value": "eventmanager"},
             {"name": "Shiny Moon", "value": "moon"},
             {"name": "VIP", "value": "vip"},
@@ -124,6 +143,7 @@ class AdminCmds(di.Extension):
             {"name": "Engel", "value": "engel"},
             {"name": "Jubiläums Rolle", "value": "jub_role"},
             {"name": "Giveaway +", "value": "giveaway_plus"},
+            {"name": "Volunteers", "value": "volunteers"},
         ]
         roles_special = [
             {"name": "Boost Color Blau", "value": "boost_col_blue"},
@@ -156,133 +176,185 @@ class AdminCmds(di.Extension):
         
         embed = di.Embed(
             title="Config",
-            color=di.Color.BLACK,
-            footer=di.EmbedFooter(text="Änderungen als Admin mit /config [roles/channels/specials]")
+            color=Colors.BLACK,
+            footer=di.EmbedFooter(text="Änderungen als Admin mit /admin config [roles/channels/specials]")
         )
-        embed.add_field(name="Channel", value=channels_text)
-        embed.add_field(name="Rollen", value=roles_general_text)
-        embed.add_field(name="Rollen", value=roles_special_text)
-        embed.add_field(name="Specials", value=specials_text)
+        embed.add_fields(
+            di.EmbedField(name="Channel", value=channels_text),
+            di.EmbedField(name="Rollen", value=roles_general_text),
+            di.EmbedField(name="Rollen", value=roles_special_text),
+            di.EmbedField(name="Specials", value=specials_text),
+        )
     #TODO: Boost Icons einfügen
-        await ctx.send(embeds=embed)
+        await ctx.send(embed=embed)
 
-    @config.subcommand(description="Channel Config")
-    @di.option(description="Channel type",
+    @config_cmds.subcommand(sub_cmd_name="channels", sub_cmd_description="Channel Config")
+    @slash_option(name="type", description="Channel type",
         choices=[
-            di.Choice(name="Chat", value="chat"),
-            di.Choice(name="Mail Default", value="mail_def"),
-            di.Choice(name="Mail Log", value="mail_log"),
-            di.Choice(name="Drop Chat", value="drop_chat"),
-            di.Choice(name="Drop Log", value="drop_log"),
-            di.Choice(name="Team Chat", value="team_chat"),
-            di.Choice(name="Boost Color", value="boost_col"),
-            di.Choice(name="Reminder", value="schedule"),
-            di.Choice(name="Giveaways", value="giveaway"),
-        ])
-    @di.option(description="Channel")
-    async def channels(self, ctx: di.CommandContext, type: str, channel: di.Channel):
-        logging.info(f"CONFIG/CHANNEL/SET/{type} with {channel.name} ({channel.id}) by {ctx.member.name} ({ctx.member.id})")
+            di.SlashCommandChoice(name="Chat", value="chat"),
+            di.SlashCommandChoice(name="Mail Default", value="mail_def"),
+            di.SlashCommandChoice(name="Mail Log", value="mail_log"),
+            di.SlashCommandChoice(name="Drop Chat", value="drop_chat"),
+            di.SlashCommandChoice(name="Drop Log", value="drop_log"),
+            di.SlashCommandChoice(name="Team Chat", value="team_chat"),
+            di.SlashCommandChoice(name="Boost Color", value="boost_col"),
+            di.SlashCommandChoice(name="Reminder", value="schedule"),
+            di.SlashCommandChoice(name="Giveaways", value="giveaway"),
+        ],
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    @slash_option(name="channel", description="Channel",
+        opt_type=di.OptionType.CHANNEL,
+        required=True,
+    )
+    async def channels(self, ctx: di.SlashContext, type: str, channel: di.TYPE_GUILD_CHANNEL):
+        self._logger.info(
+            f"CONFIG/CHANNEL/SET/{type} with {channel.name} ({channel.id}) by {ctx.member.username} ({ctx.member.id})")
         self._config.set_channel(name=type, id=str(channel.id))
         await ctx.send(f"Typ: {type}\nChannel: {channel.mention}")
 
-    @config.subcommand(description="Role Config General")
-    @di.option(description="Role type",
+    @config_cmds.subcommand(sub_cmd_name="roles_general", sub_cmd_description="Role Config General")
+    @slash_option(name="type", description="Role type",
         choices=[
-            di.Choice(name="Owner", value="owner"),
-            di.Choice(name="Admins", value="admin"),
-            di.Choice(name="Mods", value="mod"),
-            di.Choice(name="Eventmanager", value="eventmanager"),
-            di.Choice(name="Shiny Moon", value="moon"),
-            di.Choice(name="VIP", value="vip"),
-            di.Choice(name="MVP", value="mvp"),
-            di.Choice(name="Premium", value="premium"),
-            di.Choice(name="Booster", value="booster"),
-            di.Choice(name="Engel", value="engel"),
-            di.Choice(name="Jubiläums Rolle", value="jub_role"),
-            di.Choice(name="Giveaway +", value="giveaway_plus"),
-        ])
-    @di.option(description="Role")
-    async def roles_general(self, ctx: di.CommandContext, type: str, role: di.Role):
-        await self.set_role(ctx, type, role)
-    
-    @config.subcommand(description="Role Config Boost Colors")
-    @di.option(description="Role type",
-        choices=[
-            di.Choice(name="Boost Color Blau", value="boost_col_blue"),
-            di.Choice(name="Boost Color Pink", value="boost_col_pink"),
-            di.Choice(name="Boost Color Lila", value="boost_col_violet"),
-            di.Choice(name="Boost Color Gelb", value="boost_col_yellow"),
-            di.Choice(name="Boost Color Grün", value="boost_col_green"),
-            di.Choice(name="Boost Color Schwarz", value="boost_col_black"),
-            di.Choice(name="Boost Color Weiß", value="boost_col_white"),
-            di.Choice(name="Boost Color Türkis", value="boost_col_cyan"),
-            di.Choice(name="Boost Color Rot", value="boost_col_red"),
-        ])
-    @di.option(description="Role")
-    async def roles_boost_colors(self, ctx: di.CommandContext, type: str, role: di.Role):
-        await self.set_role(ctx, type, role)
-    
-    @config.subcommand(description="Role Config Boost Icons")
-    @di.option(description="Role type",
-        choices=[
-            di.Choice(name="Boost Icon Rose 1", value="booost_icon_rose"),
-            di.Choice(name="Boost Icon Rose 2", value="booost_icon_rose2"),
-            di.Choice(name="Boost Icon Rose White", value="booost_icon_rosewhite"),
-            di.Choice(name="Boost Icon Cap", value="booost_icon_cap"),
-            di.Choice(name="Boost Icon Money", value="booost_icon_money"),
-            di.Choice(name="Boost Icon Heart Purple", value="booost_icon_heartpurple"),
-            di.Choice(name="Boost Icon Heart Green", value="booost_icon_heartgreen"),
-            di.Choice(name="Boost Icon Bat", value="booost_icon_bat"),
-            di.Choice(name="Boost Icon Mask", value="booost_icon_mask"),
-            di.Choice(name="Boost Icon Pepper", value="booost_icon_pepper"),
-        ])
-    @di.option(description="Role")
-    async def roles_boost_icons(self, ctx: di.CommandContext, type: str, role: di.Role):
-        await self.set_role(ctx, type, role)
-    
-    @config.subcommand(description="Role Config Pings")
-    @di.option(description="Role type",
-        choices=[
-            di.Choice(name="Land Deutschland", value="country_ger"),
-            di.Choice(name="Land Österreich", value="country_aut"),
-            di.Choice(name="Land Schweiz", value="country_swi"),
-            di.Choice(name="Land Andere", value="country_oth"),
-            di.Choice(name="Ping Updates", value="ping_upd"),
-            di.Choice(name="Ping Events", value="ping_eve"),
-            di.Choice(name="Ping Umfrage", value="ping_umf"),
-            di.Choice(name="Ping Giveaways", value="ping_giv"),
-            di.Choice(name="Ping Talk", value="ping_tlk"),
-        ])
-    @di.option(description="Role")
-    async def roles_pings(self, ctx: di.CommandContext, type: str, role: di.Role):
+            di.SlashCommandChoice(name="Shiny Moon", value="moon"),
+            di.SlashCommandChoice(name="VIP", value="vip"),
+            di.SlashCommandChoice(name="MVP", value="mvp"),
+            di.SlashCommandChoice(name="Premium", value="premium"),
+            di.SlashCommandChoice(name="Booster", value="booster"),
+            di.SlashCommandChoice(name="Engel", value="engel"),
+            di.SlashCommandChoice(name="Jubiläums Rolle", value="jub_role"),
+            di.SlashCommandChoice(name="Giveaway +", value="giveaway_plus"),
+        ],
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    @role_option()
+    async def roles_general(self, ctx: di.SlashContext, type: str, role: di.Role):
         await self.set_role(ctx, type, role)
 
-    async def set_role(self, ctx: di.CommandContext, type: str, role: di.Role):
-        logging.info(f"CONFIG/ROLE/SET/{type} with {role.name} ({role.id}) by {ctx.member.name} ({ctx.member.id})")
+    @config_cmds.subcommand(sub_cmd_name="roles_team", sub_cmd_description="Role Config Team")
+    @slash_option(name="type", description="Role type",
+        choices=[
+            di.SlashCommandChoice(name="Owner", value="owner"),
+            di.SlashCommandChoice(name="Admins", value="admin"),
+            di.SlashCommandChoice(name="SrModerator", value="srmoderator"),
+            di.SlashCommandChoice(name="Moderator", value="moderator"),
+            di.SlashCommandChoice(name="Supporter", value="supporter"),
+            di.SlashCommandChoice(name="Developer", value="developer"),
+            di.SlashCommandChoice(name="Team", value="mod"),
+            di.SlashCommandChoice(name="Eventmanager", value="eventmanager"),
+            di.SlashCommandChoice(name="Volunteers", value="volunteers"),
+        ],
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    @role_option()
+    async def roles_team(self, ctx: di.SlashContext, type: str, role: di.Role):
+        await self.set_role(ctx, type, role)
+    
+    @config_cmds.subcommand(
+            sub_cmd_name="roles_boost_colors", sub_cmd_description="Role Config Boost Colors")
+    @slash_option(name="type", description="Role type",
+        choices=[
+            di.SlashCommandChoice(name="Boost Color Blau", value="boost_col_blue"),
+            di.SlashCommandChoice(name="Boost Color Pink", value="boost_col_pink"),
+            di.SlashCommandChoice(name="Boost Color Lila", value="boost_col_violet"),
+            di.SlashCommandChoice(name="Boost Color Gelb", value="boost_col_yellow"),
+            di.SlashCommandChoice(name="Boost Color Grün", value="boost_col_green"),
+            di.SlashCommandChoice(name="Boost Color Schwarz", value="boost_col_black"),
+            di.SlashCommandChoice(name="Boost Color Weiß", value="boost_col_white"),
+            di.SlashCommandChoice(name="Boost Color Türkis", value="boost_col_cyan"),
+            di.SlashCommandChoice(name="Boost Color Rot", value="boost_col_red"),
+        ],
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    @role_option()
+    async def roles_boost_colors(self, ctx: di.SlashContext, type: str, role: di.Role):
+        await self.set_role(ctx, type, role)
+    
+    @config_cmds.subcommand(
+            sub_cmd_name="roles_boost_icons", sub_cmd_description="Role Config Boost Icons")
+    @slash_option(name="type", description="Role type",
+        choices=[
+            di.SlashCommandChoice(name="Boost Icon Rose 1", value="booost_icon_rose"),
+            di.SlashCommandChoice(name="Boost Icon Rose 2", value="booost_icon_rose2"),
+            di.SlashCommandChoice(name="Boost Icon Rose White", value="booost_icon_rosewhite"),
+            di.SlashCommandChoice(name="Boost Icon Cap", value="booost_icon_cap"),
+            di.SlashCommandChoice(name="Boost Icon Money", value="booost_icon_money"),
+            di.SlashCommandChoice(name="Boost Icon Heart Purple", value="booost_icon_heartpurple"),
+            di.SlashCommandChoice(name="Boost Icon Heart Green", value="booost_icon_heartgreen"),
+            di.SlashCommandChoice(name="Boost Icon Bat", value="booost_icon_bat"),
+            di.SlashCommandChoice(name="Boost Icon Mask", value="booost_icon_mask"),
+            di.SlashCommandChoice(name="Boost Icon Pepper", value="booost_icon_pepper"),
+        ],
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    @role_option()
+    async def roles_boost_icons(self, ctx: di.SlashContext, type: str, role: di.Role):
+        await self.set_role(ctx, type, role)
+    
+    @config_cmds.subcommand(sub_cmd_name="roles_pings", sub_cmd_description="Role Config Pings")
+    @slash_option(name="type", description="Role type",
+        choices=[
+            di.SlashCommandChoice(name="Land Deutschland", value="country_ger"),
+            di.SlashCommandChoice(name="Land Österreich", value="country_aut"),
+            di.SlashCommandChoice(name="Land Schweiz", value="country_swi"),
+            di.SlashCommandChoice(name="Land Andere", value="country_oth"),
+            di.SlashCommandChoice(name="Ping Updates", value="ping_upd"),
+            di.SlashCommandChoice(name="Ping Events", value="ping_eve"),
+            di.SlashCommandChoice(name="Ping Umfrage", value="ping_umf"),
+            di.SlashCommandChoice(name="Ping Giveaways", value="ping_giv"),
+            di.SlashCommandChoice(name="Ping Talk", value="ping_tlk"),
+            di.SlashCommandChoice(name="Männlich", value="gender_male"),
+            di.SlashCommandChoice(name="Weiblich", value="gender_female"),
+            di.SlashCommandChoice(name="Divers", value="gender_div"),
+        ],
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    @role_option()
+    async def roles_pings(self, ctx: di.SlashContext, type: str, role: di.Role):
+        await self.set_role(ctx, type, role)
+
+    async def set_role(self, ctx: di.SlashContext, type: str, role: di.Role):
+        self._logger.info(
+            f"CONFIG/ROLE/SET/{type} with {role.name} ({role.id}) by {ctx.member.username} ({ctx.member.id})")
         self._config.set_role(name=type, id=str(role.id))
         await ctx.send(f"Typ: {type}\nRolle: {role.mention}")
         
-    @config.subcommand(description="Special Config")
-    @di.option(description="type",
+    @config_cmds.subcommand(sub_cmd_name="specials", sub_cmd_description="Special Config")
+    @slash_option(name="type", description="type",
         choices=[
-            di.Choice(name="Drop Minimum", value="drop_min"),
-            di.Choice(name="Drop Maximum", value="drop_max"),
-        ])
-    @di.option(description="Special")
-    async def specials(self, ctx: di.CommandContext, type: str, special: str):
-        logging.info(f"CONFIG/SPECIAL/SET/{type} with {special} ({special}) by {ctx.member.name} ({ctx.member.id})")
+            di.SlashCommandChoice(name="Drop Minimum", value="drop_min"),
+            di.SlashCommandChoice(name="Drop Maximum", value="drop_max"),
+        ],
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    @slash_option(name="specials", description="Special",
+        opt_type=di.OptionType.STRING,
+        required=True,
+    )
+    async def specials(self, ctx: di.SlashContext, type: str, special: str):
+        self._logger.info(
+            f"CONFIG/SPECIAL/SET/{type} with {special} ({special}) by {ctx.member.username} ({ctx.member.id})")
         self._config.set_special(name=type, value=special)
         await ctx.send(f"Typ: {type}\nWert: {special}")
 
 
 class ModCmds(di.Extension):
-    def __init__(self, client: di.Client) -> None:
-        self.client = client
-        self._config: Configs = client.config
-        self._dispatcher: EventDispatcher = client.dispatcher
+    def __init__(self, client: di.Client, **kwargs) -> None:
+        self._client = client
+        self._config: Configs = kwargs.get("config")
+        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
+        self._logger: logging.Logger = kwargs.get("logger")
+        self._SQL = SQL(database=c.database)
 
-    @di.extension_listener()
-    async def on_start(self):
+    @listen()
+    async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
         await self._load_config()
 
@@ -292,21 +364,45 @@ class ModCmds(di.Extension):
     async def _load_config(self):
         self.role_engel = await self._config.get_role("engel")
 
-    @di.extension_command(name="mod", description="Commands für Mods", dm_permission=False)
-    async def mod(self, ctx: di.CommandContext):
-        pass
+    mod_cmds = di.SlashCommand(name="mod", description="Commands für Mods", dm_permission=False)
 
-    @mod.subcommand(description="Alle verfügbaren Commands")
-    async def commands(self, ctx: di.CommandContext):
+    @mod_cmds.subcommand(sub_cmd_name="commands", sub_cmd_description="Alle verfügbaren Commands")
+    async def commands(self, ctx: di.SlashContext):
         text = "**Alle verfügbaren Mod Commands:**"
         await ctx.send(text)
 
-    @mod.subcommand(description="test")
-    async def test(self, ctx: di.CommandContext):
+    @mod_cmds.subcommand(sub_cmd_name="test", sub_cmd_description="test")
+    async def test(self, ctx: di.SlashContext):
         text = f"Hier gibt es aktuell nichts zu sehen."
         await ctx.send(text)
+
+    @mod_cmds.subcommand(sub_cmd_name="remove_blacklist", sub_cmd_description="Entfernt einen User von der Modmail Blacklist")
+    @user_option()
+    async def remove_blacklist(self, ctx: di.SlashContext, user: di.Member):
+        blocked_user = [u[0] for u in self._SQL.execute(stmt="SELECT * FROM tickets_blacklist").data_all]
+        if int(user.id) in blocked_user:
+            self._SQL.execute(stmt="DELETE FROM tickets_blacklist WHERE user_id=?", var=(int(user.id),))
+            self._dispatcher.dispatch("storage_update")
+            await ctx.send(f"> Der User {user.mention} wurde von der Ticket Blacklist gelöscht.")
+            return True
+        await ctx.send(f"> Der User {user.mention} ist **nicht** auf der Ticket Blacklist.")
+
+    @mod_cmds.subcommand(sub_cmd_name="get_blacklist", sub_cmd_description="Erstellt eine Liste mit Usern, die für Modmail gesperrt sind")
+    async def get_blacklist(self, ctx: di.SlashContext):
+        blocked_user = get_modmail_blacklist()
+        if not blocked_user:
+            await ctx.send("> Aktuell sind keine User für den Modmail Support gesperrt.")
+            return False
+        mentions = "\n".join([f'<@{user}>' for user in blocked_user])
+        await ctx.send(
+            embed=di.Embed(
+                title="Modmail Blacklist",
+                description=f"Für den Modmail Support sind folgende User gesperrt:\n{mentions}",
+                color=Colors.ORANGE,
+            ),
+        )
         
 
-def setup(client: di.Client):
-    AdminCmds(client)
-    ModCmds(client)
+def setup(client: di.Client, **kwargs):
+    AdminCmds(client, **kwargs)
+    ModCmds(client, **kwargs)

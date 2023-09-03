@@ -1,52 +1,45 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 
 import config as c
 import interactions as di
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
+from interactions import listen, slash_command
+from interactions.api.events import MemberAdd, MemberRemove
 from util.emojis import Emojis
 from util.sql import SQL
 
-'''
-Meilensteinarten:
- - Geburtstage
- - Mitgliedszahlen
- (- Events)
-'''
-
 
 class Milestones(di.Extension):
-    def __init__(self, client: di.Client) -> None:
+    def __init__(self, client: di.Client, **kwargs) -> None:
+        self._client = client
+        self._config: Configs = kwargs.get("config")
+        self._logger: logging.Logger = kwargs.get("logger")
         self._SQL = SQL(database=c.database)
-        self._config: Configs = client.config
-        self.client = client
         self.member_count = 0
         self._schedule = AsyncIOScheduler(timezone="Europe/Berlin")
 
-    @di.extension_listener()
-    async def on_start(self):
+    @listen()
+    async def on_startup(self):
         self.generate_member_ms()
         self.generate_birthday_ms()
         self._schedule.start()
+        guild = self._client.get_guild(guild_id=c.serverid)
+        self.member_count = guild.member_count if guild else 0
 
-    @di.extension_listener()
-    async def on_guild_create(self, guild: di.Guild):
-        if int(guild.id) == c.serverid:
-            self.member_count = guild.member_count
-
-    @di.extension_listener()
-    async def on_guild_member_add(self, member: di.Member):
+    @listen()
+    async def on_guild_member_add(self, event: MemberAdd):
         self.member_count += 1
         if self.check_next_member_ms():
             await self.reach_new_member_ms()
 
-    @di.extension_listener()
-    async def on_guild_member_remove(self, member: di.Member):
+    @listen()
+    async def on_guild_member_remove(self, event: MemberRemove):
         self.member_count -= 1
 
-    @di.extension_command(name="meilensteine")
-    async def cmd_milestone(self, ctx: di.CommandContext):
+    @slash_command(name="meilensteine", description="zeigt die Meilensteine der Moon Family")
+    async def cmd_milestone(self, ctx: di.SlashContext):
         milestones = self.member_ms_reached + self.birthday_ms
         milestones.sort(key=lambda x: x.dc_timestamp)
         next = self.member_ms_next
@@ -57,12 +50,13 @@ class Milestones(di.Extension):
             title=":hindu_temple: | Moon Family Meilensteine",
             description=text
         )
-        await ctx.send(embeds=embed)
+        await ctx.send(embed=embed)
 
     def generate_member_ms(self):
         stmt = "SELECT name, count, timestamp FROM milestones WHERE type='members' ORDER BY count"
         member_ms = self._SQL.execute(stmt=stmt).data_all
-        self.member_ms = [MilestoneMembers(name=ms[0], membercount=ms[1], dc_timestamp=ms[2]) for ms in member_ms]
+        self.member_ms = [MilestoneMembers(name=ms[0], membercount=ms[1], dc_timestamp=ms[2]) 
+                          for ms in member_ms]
         self.member_ms_next = list(filter(lambda x: (not x.dc_timestamp), self.member_ms))[0]
         self.member_ms_reached = list(filter(lambda x: x.dc_timestamp, self.member_ms))
 
@@ -77,7 +71,8 @@ class Milestones(di.Extension):
     def generate_birthday_ms(self):
         self.birthday_ms: list[MilestoneBirthday] = []
         init_dc_timestamp = self._config.get_special(name="birthday_timestamp")
-        self.birthday_ms.append(MilestoneBirthday(name="Servergründung", dc_timestamp=init_dc_timestamp))
+        self.birthday_ms.append(
+            MilestoneBirthday(name="Servergründung", dc_timestamp=init_dc_timestamp))
         dc_datetime = datetime.fromtimestamp(init_dc_timestamp)
         year_count = 0
         while True:
@@ -85,18 +80,23 @@ class Milestones(di.Extension):
             dc_datetime = dc_datetime.replace(year=dc_datetime.year+1)
             if dc_datetime > datetime.now():
                 break
-            self.birthday_ms.append(MilestoneBirthday(name=f"{year_count}. Geburtstag", dc_timestamp=int(dc_datetime.timestamp())))
-        self.birthday_ms_next = MilestoneBirthday(name=f"{year_count}. Geburtstag", dc_timestamp=int(dc_datetime.timestamp()))
+            self.birthday_ms.append(
+                MilestoneBirthday(name=f"{year_count}. Geburtstag", 
+                                  dc_timestamp=int(dc_datetime.timestamp())))
+        self.birthday_ms_next = MilestoneBirthday(
+            name=f"{year_count}. Geburtstag", dc_timestamp=int(dc_datetime.timestamp()))
         self._schedule.add_job(self.publish_birthday_ms, 'date', run_date=dc_datetime)
 
     async def publish_member_ms(self):
         channel = await self._config.get_channel(name="chat")
-        await channel.send(f"Wir haben einen neuen Meilenstein erreicht:\n{self.member_ms_next.get_text()}")
-        logging.info(f"MILESTONES/new member Milestone: {self.member_ms_next.membercount}")
+        await channel.send(
+            f"Wir haben einen neuen Meilenstein erreicht:\n{self.member_ms_next.get_text()}")
+        self._logger.info(f"MILESTONES/new member Milestone: {self.member_ms_next.membercount}")
     
     async def publish_birthday_ms(self):
         channel = await self._config.get_channel(name="chat")
-        await channel.send(f"Herzlichen Glückwunsch Moon Family zum {self.birthday_ms_next.get_text()}")
+        await channel.send(
+            f"Herzlichen Glückwunsch Moon Family zum {self.birthday_ms_next.get_text()}")
         self.generate_birthday_ms()
 
 
@@ -139,5 +139,5 @@ class MilestoneBirthday():
         return f"{self.name}: {self.get_time_formated()}"
 
 
-def setup(client: di.Client):
-    Milestones(client)
+def setup(client: di.Client, **kwargs):
+    Milestones(client, **kwargs)

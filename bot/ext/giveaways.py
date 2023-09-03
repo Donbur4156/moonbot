@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timezone
+from typing import Union
 
 import config as c
 import dateparser
@@ -10,28 +11,31 @@ import interactions as di
 from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
+from interactions import SlashCommand, component_callback, listen
+from util.color import Colors
 from util.emojis import Emojis
+from util.misc import disable_components, fetch_message
 from util.objects import DcUser
 from util.sql import SQL
 from whistle import EventDispatcher
 
 
 class Giveaways(di.Extension):
-    def __init__(self, client: di.Client) -> None:
-        self.client: di.Client = client
-        self.config: Configs = client.config
-        self.dispatcher: EventDispatcher = client.dispatcher
+    def __init__(self, client: di.Client, **kwargs) -> None:
+        self._client: di.Client = client
+        self._config: Configs = kwargs.get("config")
+        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
+        self._logger: logging.Logger = kwargs.get("logger")
         self.sql = SQL(database=c.database)
         self.giveaways: dict[int, Giveaway] = {}
         self.giveaways_running: dict[int, Giveaway] = {}
         self.schedule = AsyncIOScheduler(timezone="Europe/Berlin")
         self._sched_activ: dict[int, dict[str, str]] = {}
         self.permitted_roles: set[int] = []
-
    
-    @di.extension_listener
-    async def on_start(self):
-        self.dispatcher.add_listener("config_update", self._run_load_config)
+    @listen()
+    async def on_startup(self):
+        self._dispatcher.add_listener("config_update", self._run_load_config)
         self.get_permitted_roles()
         await self.get_running_giveaways()
 
@@ -40,25 +44,29 @@ class Giveaways(di.Extension):
 
     def get_permitted_roles(self):
         self.permitted_roles = {
-            self.config.get_roleid("admin"),
-            self.config.get_roleid("owner"),
-            self.config.get_roleid("eventmanager"),
+            self._config.get_roleid("admin"),
+            self._config.get_roleid("owner"),
+            self._config.get_roleid("eventmanager"),
         }
 
     async def check_perms_control(self, ctx: di.ComponentContext) -> bool:
-        if not self.permitted_roles.intersection(set(ctx.member.roles)):
-            await ctx.send("> Du bist hierzu nicht berechtigt!", ephemeral=True)
-            return False
-        return True
+        if any([ctx.member.has_role(role) for role in self.permitted_roles if role]):
+            return True
+        await ctx.send("> Du bist hierzu nicht berechtigt!", ephemeral=True)
+        return False
     
     async def get_running_giveaways(self):
-        stmt = "SELECT * FROM giveaways WHERE closed=0"
-        data = self.sql.execute(stmt=stmt).data_all
-        self.giveaways = {d[0]:Giveaway(client=self.client, data=d) for d in data}
+        data = self.sql.execute(
+            stmt = "SELECT * FROM giveaways WHERE closed=0"
+        ).data_all
+        self.giveaways = {
+            d[0]:Giveaway(client=self._client, config=self._config, data=d) for d in data}
         for g in self.giveaways.values():
             if not g.post_message_id: continue
             datetime = await g.parse_datetime_fromnow()
-            if not datetime: continue
+            if not datetime:
+                g.close()
+                continue
             if not self.add_schedule(g): continue
             self.giveaways_running.update({g.post_message_id: g})
         self.schedule.start()
@@ -67,206 +75,232 @@ class Giveaways(di.Extension):
         if giveaway.end_time < datetime.now(tz=timezone.utc):
             giveaway.close()
             return False
-        giveaway.job = self.schedule.add_job(self.run_drawing, 'date', run_date=giveaway.end_time, kwargs={'giveaway': giveaway})
+        giveaway.job = self.schedule.add_job(
+            self.run_drawing, 'date', run_date=giveaway.end_time, kwargs={'giveaway': giveaway})
         return True
 
+    giveaways_cmds = SlashCommand(
+        name="giveaways", description="Commands für das Giveaway System", dm_permission=False)
 
-    @di.extension_command(name="giveaways", description="Commands für das Giveaway System", dm_permission=False)
-    async def giveaways_cmds(self, ctx: di.CommandContext):
-        pass
-
-    @giveaways_cmds.subcommand(name="generate", description="generiert ein neues Giveaway")
-    async def giveaways_generate(self, ctx: di.CommandContext):
+    @giveaways_cmds.subcommand(sub_cmd_name="generate", 
+                               sub_cmd_description="generiert ein neues Giveaway")
+    async def giveaways_generate(self, ctx: di.SlashContext):
         if not await self.check_perms_control(ctx): return False
-        modal = di.Modal(custom_id="give_generate", title="Erstelle ein Giveaway",
-            components=[
-                di.TextInput(
-                    style=di.TextStyleType.SHORT,
-                    label="Dauer",
-                    custom_id="duration",
-                    min_length=2,
-                    placeholder="bspw. '1 Minute', '5 Stunden', '3 Tage'",
-                ),
-                di.TextInput(
-                    style=di.TextStyleType.SHORT,
-                    label="Anzahl an Gewinnern",
-                    custom_id="winner_amount",
-                    min_length=1,
-                    max_length=2,
-                    value="1",
-                ),
-                di.TextInput(
-                    style=di.TextStyleType.SHORT,
-                    label="Preis",
-                    custom_id="price",
-                    min_length=1,
-                    max_length=128,
-                    placeholder="Name des Preises"
-                ),
-                di.TextInput(
-                    style=di.TextStyleType.PARAGRAPH,
-                    label="Beschreibung",
-                    custom_id="description",
-                    placeholder="Beschreibung des Preises",
-                ),
-            ])
-        await ctx.popup(modal=modal)
+        modal = di.Modal(
+            di.ShortText(
+                label="Dauer",
+                custom_id="duration",
+                min_length=2,
+                placeholder="bspw. '1 Minute', '5 Stunden', '3 Tage'",
+            ),
+            di.ShortText(
+                label="Anzahl an Gewinnern",
+                custom_id="winner_amount",
+                min_length=1,
+                max_length=2,
+                value="1",
+            ),
+            di.ShortText(
+                label="Preis",
+                custom_id="price",
+                min_length=1,
+                max_length=128,
+                placeholder="Name des Preises"
+            ),
+            di.ParagraphText(
+                label="Beschreibung",
+                custom_id="description",
+                placeholder="Beschreibung des Preises",
+            ),
+            custom_id="give_generate", title="Erstelle ein Giveaway",
+            )
+        await ctx.send_modal(modal)
 
-    @di.extension_modal("give_generate")
-    async def modal_givegenerate(self, ctx: di.CommandContext, duration: str, winner_amount: str, price: str, description: str):
-        data = [None, None, price, description, duration, int(winner_amount), None, None, False]
-        giveaway = Giveaway(client=self.client, data=data)
+        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+
+        duration = modal_ctx.responses["duration"]
+        winner_amount = int(modal_ctx.responses["winner_amount"])
+        price = modal_ctx.responses["price"]
+        description = modal_ctx.responses["description"]
+
+        data = [None, None, price, description, duration, winner_amount, 
+                None, None, False, int(modal_ctx.member.id)]
+        giveaway = Giveaway(client=self._client, config=self._config, data=data)
         msg = await self.send_control_embed(ctx, giveaway)
         giveaway.id = int(msg.id)
-        giveaway.ctr_channel_id = int(msg.channel_id)
+        giveaway.ctr_channel_id = int(msg.channel.id)
         giveaway.sql_store()
         self.giveaways.update({giveaway.id:giveaway})
-        await ctx.send(f"> {Emojis.check} Das Giveaway wurde **erfolgreich** erstellt.", ephemeral=True)
-        logging.info(f"GIVEAWAYS/generate/ id: {giveaway.id}, price: {giveaway.price}, duration: {giveaway.duration}, winner_amount: {giveaway.winner_amount}, by {ctx.user.id}")
-
-    async def send_control_embed(self, ctx: di.CommandContext, giveaway: Giveaway):
-        embed, components = self.get_giveaway_control(giveaway)
-        return await ctx.send(embeds=embed, components=components)
-
-    async def edit_control_embed(self, ctx: di.CommandContext, giveaway: Giveaway):
-        embed, components = self.get_giveaway_control(giveaway)
-        return await ctx.edit(embeds=embed, components=components)
+        await modal_ctx.send(
+            f"> {Emojis.check} Das Giveaway wurde **erfolgreich** erstellt.", ephemeral=True)
+        self._logger.info(
+            f"GIVEAWAYS/generate/ id: {giveaway.id}, price: {giveaway.price}, duration: " \
+            f"{giveaway.duration}, winner_amount: {giveaway.winner_amount}, by {ctx.user.id}")
 
 
-    @di.extension_component("set_price")
+    async def send_control_embed(self, ctx: di.InteractionContext, giveaway: Giveaway, edit: bool = False):
+        func = ctx.message.edit if edit else ctx.send
+        return await func(**self.get_giveaway_control(giveaway))
+
+
+    @component_callback("set_price")
     async def change_price(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
-        modal = di.Modal(custom_id="mod_set_price", title="Preis",
-            components=[
-                di.TextInput(
-                    style=di.TextStyleType.SHORT,
-                    label="Preis",
-                    custom_id="price",
-                    min_length=1,
-                    max_length=128,
-                    value=giveaway.price,
+        modal = di.Modal(
+            di.ShortText(
+                label="Preis",
+                custom_id="price",
+                min_length=1,
+                max_length=128,
+                value=giveaway.price,
                 ),
-            ])
-        await ctx.popup(modal=modal)
+            custom_id="mod_set_price",
+            title="Preis",
+        )
+        await ctx.send_modal(modal)
 
-    @di.extension_modal("mod_set_price")
-    async def mod_change_price(self, ctx: di.CommandContext, price: str):
+        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+
+        price = modal_ctx.responses["price"]
+
         giveaway = self.get_giveaway(ctx)
         giveaway.change_price(price)
-        await self.edit_control_embed(ctx, giveaway)
-        await ctx.send(f"> Du hast den Preis erfolgreich zu **{giveaway.price}** geändert. {Emojis.vote_yes}", ephemeral=True)
-        logging.info(f"GIVEAWAYS/change price/id: {giveaway.id}, new: {giveaway.price} by {ctx.user.id}")
+        await self.send_control_embed(ctx, giveaway, edit=True)
+        await modal_ctx.send(
+            f"> Du hast den Preis erfolgreich zu **{giveaway.price}** geändert. {Emojis.vote_yes}", 
+            ephemeral=True)
+        self._logger.info(
+            f"GIVEAWAYS/change price/id: {giveaway.id}, new: {giveaway.price} by {ctx.user.id}")
 
 
-    @di.extension_component("set_description")
+    @component_callback("set_description")
     async def change_description(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
-        modal = di.Modal(custom_id="mod_set_description", title="Beschreibung",
-            components=[
-                di.TextInput(
-                    style=di.TextStyleType.SHORT,
-                    label="Beschreibung",
-                    custom_id="description",
-                    min_length=1,
-                    max_length=128,
-                    value=giveaway.description,
-                ),
-            ])
-        await ctx.popup(modal=modal)
+        modal = di.Modal(
+            di.ParagraphText(
+                label="Beschreibung",
+                custom_id="description",
+                min_length=1,
+                max_length=1024,
+                value=giveaway.description,
+            ),
+            custom_id="mod_set_description", 
+            title="Beschreibung",
+        )
+        await ctx.send_modal(modal)
 
-    @di.extension_modal("mod_set_description")
-    async def mod_change_description(self, ctx: di.CommandContext, description: str):
+        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+
+        description = modal_ctx.responses["description"]
+
         giveaway = self.get_giveaway(ctx)
         giveaway.change_description(description)
-        await self.edit_control_embed(ctx, giveaway)
-        await ctx.send(f"> Du hast die Beschreibung erfolgreich aktualisiert. {Emojis.vote_yes}", ephemeral=True)
-        logging.info(f"GIVEAWAYS/change description/id: {giveaway.id}, new: {giveaway.description} by {ctx.user.id}")
+        await self.send_control_embed(ctx, giveaway, edit=True)
+        await modal_ctx.send(
+            f"> Du hast die Beschreibung erfolgreich aktualisiert. {Emojis.vote_yes}", 
+            ephemeral=True)
+        self._logger.info(
+            f"GIVEAWAYS/change description/id: {giveaway.id}, new: {giveaway.description} by {ctx.user.id}")
 
 
-    @di.extension_component("set_duration")
+    @component_callback("set_duration")
     async def change_duration(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
-        modal = di.Modal(custom_id="mod_set_duration", title="Dauer",
-            components=[
-                di.TextInput(
-                    style=di.TextStyleType.SHORT,
-                    label="Dauer",
-                    custom_id="duration",
-                    min_length=1,
-                    max_length=128,
-                    value=giveaway.duration,
-                ),
-            ])
-        await ctx.popup(modal=modal)
+        modal = di.Modal(
+            di.ShortText(
+                label="Dauer",
+                custom_id="duration",
+                min_length=1,
+                max_length=32,
+                value=giveaway.duration,
+            ),
+            custom_id="mod_set_duration", 
+            title="Dauer",
+        )
+        await ctx.send_modal(modal)
 
-    @di.extension_modal("mod_set_duration")
-    async def mod_change_duration(self, ctx: di.CommandContext, duration: str):
+        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+
+        duration = modal_ctx.responses["duration"]
+
         giveaway = self.get_giveaway(ctx)
         giveaway.change_duration(duration)
-        await self.edit_control_embed(ctx, giveaway)
-        await ctx.send(f"> Du hast die Dauer des Giveaways auf **{giveaway.duration}** geändert. {Emojis.vote_yes}", ephemeral=True)
-        logging.info(f"GIVEAWAYS/change duration/id: {giveaway.id}, new: {giveaway.duration} by {ctx.user.id}")
+        await self.send_control_embed(ctx, giveaway, edit=True)
+        await modal_ctx.send(
+            f"> Du hast die Dauer des Giveaways auf **{giveaway.duration}** geändert. {Emojis.vote_yes}", 
+            ephemeral=True)
+        self._logger.info(
+            f"GIVEAWAYS/change duration/id: {giveaway.id}, new: {giveaway.duration} by {ctx.user.id}")
 
 
-    @di.extension_component("set_winner_amount")
+    @component_callback("set_winner_amount")
     async def change_winner_amount(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
-        modal = di.Modal(custom_id="mod_set_winner_amount", title="Anzahl Gewinner",
-            components=[
-                di.TextInput(
-                    style=di.TextStyleType.SHORT,
-                    label="Anzahl Gewinner",
-                    custom_id="winner_amount",
-                    min_length=1,
-                    max_length=128,
-                    value=giveaway.winner_amount,
-                ),
-            ])
-        await ctx.popup(modal=modal)
+        modal = di.Modal(
+            di.ShortText(
+                label="Anzahl Gewinner",
+                custom_id="winner_amount",
+                min_length=1,
+                max_length=2,
+                value=giveaway.winner_amount,
+            ),
+            custom_id="mod_set_winner_amount", 
+            title="Anzahl Gewinner",
+        )
+        await ctx.send_modal(modal)
 
-    @di.extension_modal("mod_set_winner_amount")
-    async def mod_change_winner_amount(self, ctx: di.CommandContext, winner_amount: str):
+        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+
+        winner_amount = int(modal_ctx.responses["winner_amount"])
+
         giveaway = self.get_giveaway(ctx)
         giveaway.change_winner_amount(int(winner_amount))
-        await self.edit_control_embed(ctx, giveaway)
-        await ctx.send(f"> Du hast die Anzahl der Gewinner auf **{giveaway.winner_amount}** geändert. {Emojis.vote_yes}", ephemeral=True)
-        logging.info(f"GIVEAWAYS/change winneramount/id: {giveaway.id}, new: {giveaway.winner_amount} by {ctx.user.id}")
+        await self.send_control_embed(ctx, giveaway, edit=True)
+        await modal_ctx.send(
+            f"> Du hast die Anzahl der Gewinner auf **{giveaway.winner_amount}** geändert. {Emojis.vote_yes}", 
+            ephemeral=True)
+        self._logger.info(
+            f"GIVEAWAYS/change winneramount/id: {giveaway.id}, new: {giveaway.winner_amount} by {ctx.user.id}")
 
 
-    @di.extension_component("start")
-    async def start_giveaway(self, ctx: di.CommandContext):
+    @component_callback("start")
+    async def start_giveaway(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
         if not giveaway.start_able():
-            await ctx.send("> Das Giveaway konnte nicht gestartet werden. Möglicherweise fehlen Angaben oder die Dauer konnte nicht übersetzt werden.", ephemeral=True)
+            await ctx.send(
+                "> Das Giveaway konnte nicht gestartet werden. Möglicherweise fehlen Angaben oder die Dauer konnte nicht übersetzt werden.", 
+                ephemeral=True)
             return False
 
         giveaway.set_endtime()
-        channel = await self.config.get_channel("giveaway")
-        embed, components = self.get_giveaway_post(giveaway)
-        giveaway_ping = await self.config.get_role_mention("ping_giv")
-        msg = await channel.send(content=f"{giveaway_ping}", embeds=embed, components=components, allowed_mentions={"parse": ["roles"]})
+        channel = await self._config.get_channel("giveaway")
+        giveaway_ping = await self._config.get_role_mention("ping_giv")
+        msg = await channel.send(
+            content=f"{giveaway_ping}", allowed_mentions={"parse": ["roles"]}, 
+            **self.get_giveaway_post(giveaway))
         giveaway.set_message(msg)
         self.add_schedule(giveaway)
-        embed, components = self.get_giveaway_ctrl_run(giveaway)
-        await ctx.edit(embeds=embed, components=components)
+        await ctx.edit_origin(**self.get_giveaway_ctrl_run(giveaway))
         self.giveaways_running.update({giveaway.post_message_id:giveaway})
-        logging.info(f"GIVEAWAYS/start/id: {giveaway.id} by {ctx.user.id}")
+        self._logger.info(f"GIVEAWAYS/start/id: {giveaway.id} by {ctx.user.id}")
         return True
 
 
-    @di.extension_component("stop")
+    @component_callback("stop")
     async def stop_giveaway(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
         try:
             giveaway_message = await giveaway.get_post_message()
-        except di.LibraryException:
-            await ctx.send("> Die Nachricht mit dem Giveaway konnte nicht gefunden werden. Eine mögliche Auslosung wird abgebrochen.", ephemeral=True)
+        except di.errors.LibraryException:
+            await ctx.send(
+                "> Die Nachricht mit dem Giveaway konnte nicht gefunden werden. Eine mögliche Auslosung wird abgebrochen.", 
+                ephemeral=True)
         await giveaway_message.delete()
         self.giveaways.pop(giveaway.id)
         self.giveaways_running.pop(giveaway.post_message_id)
@@ -274,11 +308,11 @@ class Giveaways(di.Extension):
         giveaway.close()
         embed = self.get_giveaway_ctrl_end(giveaway)
         embed.title = "Giveaway abgebrochen!"
-        await ctx.edit(embeds=embed, components=None)
-        logging.info(f"GIVEAWAYS/stop/id: {giveaway.id} by {ctx.user.id}")
+        await ctx.edit_origin(embed=embed, components=[])
+        self._logger.info(f"GIVEAWAYS/stop/id: {giveaway.id} by {ctx.user.id}")
 
 
-    @di.extension_component("end")
+    @component_callback("end")
     async def end_giveaway(self, ctx: di.ComponentContext):
         if not await self.check_perms_control(ctx): return False
         giveaway = self.get_giveaway(ctx)
@@ -287,7 +321,7 @@ class Giveaways(di.Extension):
             giveaway.remove_schedule()
             self.giveaways_running.pop(giveaway.post_message_id)
             giveaway.close()
-        logging.info(f"GIVEAWAYS/end early/id: {giveaway.id} by {ctx.user.id}")
+        self._logger.info(f"GIVEAWAYS/end early/id: {giveaway.id} by {ctx.user.id}")
 
 
     async def run_drawing(self, giveaway: Giveaway):
@@ -295,67 +329,85 @@ class Giveaways(di.Extension):
 
         msg = await giveaway.get_post_message()
         embed = self.get_giveaway_finished(giveaway)
-        await msg.edit(embeds=embed, components=None)
+        await msg.edit(embed=embed, components=[])
         
         if winners:
-            channel = await self.config.get_channel("giveaway")
-            text = f"> Herzlichen Glückwunsch {giveaway.get_winner_text()}, {'ihr habt' if len(winners) > 1 else 'du hast'} **{giveaway.price}** gewonnen! " \
+            channel = await self._config.get_channel("giveaway")
+            text = f"> Herzlichen Glückwunsch {giveaway.get_winner_text()}, " \
+                f"{'ihr habt' if len(winners) > 1 else 'du hast'} **{giveaway.price}** gewonnen! " \
                 f"{Emojis.give} {Emojis.crone} {Emojis.moonfamily}"
             await channel.send(text)
 
         msg_ctr = await giveaway.get_ctr_message()
         embed = self.get_giveaway_ctrl_end(giveaway)
-        await msg_ctr.edit(embeds=embed, components=None)
-        logging.info(f"GIVEAWAYS/draw/id: {giveaway.id}, winners: {giveaway.get_winner_ids()}")
+        await msg_ctr.edit(embed=embed, components=[])
+        self._logger.info(f"GIVEAWAYS/draw/id: {giveaway.id}, winners: {giveaway.get_winner_ids()}")
 
 
-    @di.extension_component("giveaway_entry")
+    @component_callback("giveaway_entry")
     async def giveaway_entry(self, ctx: di.ComponentContext):
         giveaway = self.get_giveaway(ctx)
         if not giveaway:
-            await ctx.message.disable_all_components()
+            await disable_components(ctx.message)
             await ctx.send("> Dieses Gewinnspiel ist bereits abgelaufen.", ephemeral=True)
             return False
         dcuser = DcUser(member=ctx.member)
-        dcuser.giveaway_plus = self.config.get_roleid("giveaway_plus") in dcuser.member.roles
+        dcuser.giveaway_plus = dcuser.member.has_role(self._config.get_roleid("giveaway_plus"))
         giveaway.add_entry(dcuser)
-        embed = self.get_giveaway_post(giveaway)[0]
-        await ctx.edit(embeds = embed)
-        give_role = await self.config.get_role("giveaway_plus")
-        await ctx.send(f"> {Emojis.check} Du hast erfolgreich an dem Giveaway teilgenommen! Mit der {give_role.mention} Rolle erhältst du doppelte Gewinnchance.", ephemeral=True)
+        embed = self.get_giveaway_post(giveaway).get("embed")
+        await ctx.message.edit(embed=embed)
+        give_role = await self._config.get_role("giveaway_plus")
+        text = f"> {Emojis.check} Du hast erfolgreich an dem Giveaway teilgenommen! " \
+            f"Mit der {give_role.mention} Rolle erhältst du doppelte Gewinnchance."
+        await ctx.send(text, ephemeral=True)
 
 
-    def get_giveaway(self, ctx: di.CommandContext) -> Giveaway:
-        return self.giveaways.get(int(ctx.message.id)) or self.giveaways_running.get(int(ctx.message.id))
+    def get_giveaway(self, ctx: di.SlashContext) -> Giveaway:
+        id = int(ctx.message.id)
+        return self.giveaways.get(id) or self.giveaways_running.get(id)
 
-    def get_giveaway_control(self, giveaway: Giveaway) -> tuple[di.Embed, di.Component]:
+    def get_giveaway_control(self, giveaway: Giveaway) -> dict[str, Union[di.Embed, di.BaseComponent]]:
         description = f"Preis: **{giveaway.price}**\nBeschreibung:```{giveaway.description}```" \
             f"Dauer: **{giveaway.duration}**\nAnzahl Gewinner: **{giveaway.winner_amount}**"
         embed = di.Embed(title="Giveaway Einstellungen", description=description)
 
-        but_price = di.Button(style=di.ButtonStyle.SECONDARY, label="Preis", emoji=Emojis.money, custom_id="set_price")
-        but_description = di.Button(style=di.ButtonStyle.SECONDARY, label="Beschreibung", emoji=Emojis.page, custom_id="set_description")
-        but_duration = di.Button(style=di.ButtonStyle.SECONDARY, label="Dauer", emoji=Emojis.time_is_up, custom_id="set_duration")
-        but_winner_amount = di.Button(style=di.ButtonStyle.SECONDARY, label="Anzahl Gewinner", emoji=Emojis.crone, custom_id="set_winner_amount")
-        but_start = di.Button(style=di.ButtonStyle.SUCCESS, label="Start", emoji=Emojis.online, custom_id="start")
+        but_price = di.Button(
+            style=di.ButtonStyle.SECONDARY, label="Preis", 
+            emoji=Emojis.money, custom_id="set_price")
+        but_description = di.Button(
+            style=di.ButtonStyle.SECONDARY, label="Beschreibung", 
+            emoji=Emojis.page, custom_id="set_description")
+        but_duration = di.Button(
+            style=di.ButtonStyle.SECONDARY, label="Dauer", 
+            emoji=Emojis.time_is_up, custom_id="set_duration")
+        but_winner_amount = di.Button(
+            style=di.ButtonStyle.SECONDARY, label="Anzahl Gewinner", 
+            emoji=Emojis.crone, custom_id="set_winner_amount")
+        but_start = di.Button(
+            style=di.ButtonStyle.SUCCESS, label="Start", 
+            emoji=Emojis.online, custom_id="start")
         components = [
-            di.ActionRow(components=[but_price, but_description, but_duration, but_winner_amount]),
-            di.ActionRow(components=[but_start]),
+            di.ActionRow(but_price, but_description, but_duration, but_winner_amount),
+            di.ActionRow(but_start),
         ]
 
-        return embed, components
+        return {"embed": embed, "components": components}
     
-    def get_giveaway_ctrl_run(self, giveaway: Giveaway) -> tuple[di.Embed, di.Component]:
+    def get_giveaway_ctrl_run(self, giveaway: Giveaway) -> dict[str, Union[di.Embed, di.BaseComponent]]:
         description = f"Preis: **{giveaway.price}**\nBeschreibung: ```{giveaway.description}```" \
             f"Dauer: **{giveaway.duration}**\nGewinner: **{giveaway.winner_amount}**"
         embed = di.Embed(title="Giveaway frühzeitig beenden", description=description)
 
-        but_stop = di.Button(style=di.ButtonStyle.DANGER, emoji=Emojis.offline, label="Stop (ohne Auslosung)", custom_id="stop")
-        but_end = di.Button(style=di.ButtonStyle.SECONDARY, emoji=Emojis.arrow_r, label="Auslosung (vorzeitig)", custom_id="end")
+        but_stop = di.Button(
+            style=di.ButtonStyle.DANGER, emoji=Emojis.offline, 
+            label="Stop (ohne Auslosung)", custom_id="stop")
+        but_end = di.Button(
+            style=di.ButtonStyle.SECONDARY, emoji=Emojis.arrow_r, 
+            label="Auslosung (vorzeitig)", custom_id="end")
 
         components = [but_stop, but_end]
 
-        return embed, components
+        return {"embed": embed, "components": components}
     
     def get_giveaway_ctrl_end(self, giveaway: Giveaway) -> di.Embed:
         description = f"Preis: **{giveaway.price}**\nBeschreibung: ```{giveaway.description}```" \
@@ -364,33 +416,44 @@ class Giveaways(di.Extension):
 
         return embed
 
-    def get_giveaway_post(self, giveaway: Giveaway) -> tuple[di.Embed, di.Component]:
+    def get_giveaway_post(self, giveaway: Giveaway) -> dict[str, Union[di.Embed, di.BaseComponent]]:
         time_end = giveaway.get_endtime_unix()
-        description = f"```{giveaway.description}```\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nEinträge: **{len(giveaway.entries)}**\n" \
+        description = f"```{giveaway.description}```\n" \
+            f"Endet: <t:{time_end}:R> (<t:{time_end}:F>)\n" \
+            f"Host: {giveaway.get_hoster()}\n\n" \
+            f"Einträge: **{len(giveaway.entries)}**\n" \
             f"Gewinner: **{giveaway.winner_amount}**"
-        footer = di.EmbedFooter(text=f"Du willst doppelte Gewinnchance? Vote für Moon Family {Emojis.crescent_moon} und erhalte die Giveaway + Rolle!")
+        footer = di.EmbedFooter(
+            text=f"Du willst doppelte Gewinnchance? Vote für Moon Family {Emojis.crescent_moon} und erhalte die Giveaway + Rolle!")
 
-        embed = di.Embed(title=f"{Emojis.give} {giveaway.price} {Emojis.give}", description=description, color=0x740fd9, footer=footer)
+        embed = di.Embed(
+            title=f"{Emojis.give} {giveaway.price} {Emojis.give}", description=description, 
+            color=Colors.VIOLET_DARK, footer=footer)
         button = di.Button(
             style=di.ButtonStyle.SECONDARY, label="Teilnehmen",
             emoji=Emojis.give, custom_id="giveaway_entry")
         
-        return embed, button
+        return {"embed": embed, "components": button}
     
     def get_giveaway_finished(self, giveaway: Giveaway) -> di.Embed:
         time_end = giveaway.get_endtime_unix()
-        description = f"```{giveaway.description}```\nEndet: <t:{time_end}:R> (<t:{time_end}:F>)\nEinträge: **{len(giveaway.entries)}**\n" \
+        description = f"```{giveaway.description}```\n" \
+            f"Endet: <t:{time_end}:R> (<t:{time_end}:F>)\n" \
+            f"Host: {giveaway.get_hoster()}\n\n" \
+            f"Einträge: **{len(giveaway.entries)}**\n" \
             f"Gewinner: {giveaway.get_winner_text()}"
 
-        embed = di.Embed(title=f"{Emojis.star} {giveaway.price} {Emojis.star}", description=description, color=0xe69c12)
+        embed = di.Embed(
+            title=f"{Emojis.star} {giveaway.price} {Emojis.star}", 
+            description=description, color=Colors.ORANGE_GAMBOGE)
 
         return embed
 
 
 class Giveaway:
-    def __init__(self, client: di.Client, id: int = None, data: list = None) -> None:
-        self.client = client
-        self.config: Configs = client.config
+    def __init__(self, client: di.Client, config: Configs, id: int = None, data: list = None) -> None:
+        self._client = client
+        self._config = config
         self.id = id
         self.sql = SQL(database=c.database)
         self.entries: dict[int, DcUser] = {}
@@ -417,6 +480,7 @@ class Giveaway:
         self.post_message_id: int = data[6]
         self.post_channel_id: int = data[7]
         self.closed: int = data[8]
+        self.host_id: int = data[9]
         if self.id: self.get_entries()
 
     def remove_schedule(self):
@@ -428,8 +492,10 @@ class Giveaway:
         return self.sql.execute(stmt=stmt, var=var).data_single
     
     def sql_store(self):
-        stmt = "INSERT INTO giveaways (control_message_id, control_channel_id, price, description, duration, winner_amount) VALUES (?,?,?,?,?,?)"
-        var = (self.id, self.ctr_channel_id, self.price, self.description, self.duration, self.winner_amount)
+        stmt = "INSERT INTO giveaways (control_message_id, control_channel_id, price, " \
+            "description, duration, winner_amount, host_id) VALUES (?,?,?,?,?,?,?)"
+        var = (self.id, self.ctr_channel_id, self.price, self.description, 
+               self.duration, self.winner_amount, self.host_id)
         self.sql.execute(stmt=stmt, var=var)
 
     def parse_datetime(self) -> datetime:
@@ -451,18 +517,21 @@ class Giveaway:
         return int(self.end_time.timestamp())
 
     async def get_post_message(self) -> di.Message:
-        return await di.get(self.client, obj=di.Message, object_id=self.post_message_id, parent_id=self.post_channel_id)
+        return await fetch_message(
+            client=self._client, channel_id=self.post_channel_id, message_id=self.post_message_id)
     
     async def get_ctr_message(self) -> di.Message:
-        return await di.get(self.client, obj=di.Message, object_id=self.id, parent_id=self.ctr_channel_id)
+        return await fetch_message(
+            client=self._client, channel_id=self.ctr_channel_id, message_id=self.id)
 
     def start_able(self) -> bool:
-        return bool(self.price and self.duration and self.winner_amount and self.parse_datetime())
+        return all([self.price, self.duration, self.winner_amount, self.parse_datetime()])
     
     def sql_change_att(self, att, value):
-        stmt = f"UPDATE giveaways SET {att}=? WHERE control_message_id=?"
-        var = (value, self.id,)
-        self.sql.execute(stmt=stmt, var=var)
+        self.sql.execute(
+            stmt=f"UPDATE giveaways SET {att}=? WHERE control_message_id=?",
+            var=(value, self.id,)
+        )
 
     def change_price(self, price):
         self.price = price
@@ -486,27 +555,31 @@ class Giveaway:
 
     def set_message(self, msg: di.Message):
         self.post_message_id = int(msg.id)
-        self.post_channel_id = int(msg.channel_id)
-        stmt = "UPDATE giveaways SET post_message_id=?, post_channel_id=? WHERE control_message_id=?"
-        var = (self.post_message_id, self.post_channel_id, self.id,)
-        self.sql.execute(stmt=stmt, var=var)
+        self.post_channel_id = int(msg.channel.id)
+        self.sql.execute(
+            stmt = "UPDATE giveaways SET post_message_id=?, post_channel_id=? WHERE control_message_id=?",
+            var = (self.post_message_id, self.post_channel_id, self.id,)
+        )
 
     def add_entry(self, dcuser: DcUser):
         if dcuser.dc_id in self.entries.keys():
             self.entries[dcuser.dc_id] = dcuser
-            stmt = "UPDATE giveaway_entries SET giveaway_plus=? WHERE giveaway_id=? AND user_id=?"
-            var = (dcuser.giveaway_plus, self.id, dcuser.dc_id,)
-            self.sql.execute(stmt=stmt, var=var)
+            self.sql.execute(
+                stmt = "UPDATE giveaway_entries SET giveaway_plus=? WHERE giveaway_id=? AND user_id=?",
+                var = (dcuser.giveaway_plus, self.id, dcuser.dc_id,)
+            )
             return False
         self.entries.update({dcuser.dc_id: dcuser})
-        stmt = "INSERT INTO giveaway_entries(giveaway_id, user_id, time, giveaway_plus) VALUES (?,?,?,?)"
-        var = (self.id, dcuser.dc_id, int(datetime.now(tz=timezone.utc).timestamp()), dcuser.giveaway_plus,)
-        self.sql.execute(stmt=stmt, var=var)
+        self.sql.execute(
+            stmt = "INSERT INTO giveaway_entries(giveaway_id, user_id, time, giveaway_plus) VALUES (?,?,?,?)",
+            var = (self.id, dcuser.dc_id, int(datetime.now(tz=timezone.utc).timestamp()), dcuser.giveaway_plus,)
+        )
 
     def get_entries(self) -> dict[int, DcUser]:
-        stmt = "SELECT * FROM giveaway_entries WHERE giveaway_id=?"
-        var = (self.id,)
-        entries = self.sql.execute(stmt=stmt, var=var).data_all
+        entries = self.sql.execute(
+            stmt = "SELECT * FROM giveaway_entries WHERE giveaway_id=?",
+            var = (self.id,)
+        ).data_all
         for e in entries:
             dcuser = DcUser(dc_id=e[1])
             dcuser.giveaway_plus = e[3]
@@ -530,6 +603,8 @@ class Giveaway:
     def get_winner_ids(self) -> list[int]:
         return [u.dc_id for u in self.winners]
 
+    def get_hoster(self):
+        return f"<@{self.host_id}>" if self.host_id else ""
 
-def setup(client: di.Client):
-    Giveaways(client)
+def setup(client: di.Client, **kwargs):
+    Giveaways(client, **kwargs)
