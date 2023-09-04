@@ -125,6 +125,7 @@ class AdminCmds(di.Extension):
             {"name": "Boost Color", "value": "boost_col"},
             {"name": "Reminder", "value": "schedule"},
             {"name": "Giveaways", "value": "giveaway"},
+            {"name": "Umfragen", "value": "polls"},
         ]
         roles_general = [
             {"name": "Owner", "value": "owner"},
@@ -200,6 +201,7 @@ class AdminCmds(di.Extension):
             di.SlashCommandChoice(name="Boost Color", value="boost_col"),
             di.SlashCommandChoice(name="Reminder", value="schedule"),
             di.SlashCommandChoice(name="Giveaways", value="giveaway"),
+            di.SlashCommandChoice(name="Umfragen", value="polls"),
         ],
         opt_type=di.OptionType.STRING,
         required=True,
