@@ -238,11 +238,12 @@ class Polls(Extension):
         if not await self.check_perms_control(ctx): return False
         poll = self.get_poll(ctx)
         if not poll.start_able():
-            await ctx.send("> Die Umfrage konnte nicht gestartet werden. Möglicherweise fehlen Angaben oder die Dauer konnte nicht übersetzt werden.", ephemeral=True)
-            return False
+            return await ctx.send("> Die Umfrage konnte nicht gestartet werden. Möglicherweise fehlen Angaben oder die Dauer konnte nicht übersetzt werden.", ephemeral=True)
 
         poll.set_endtime()
         channel = await self._config.get_channel("polls")
+        if not channel:
+            return await ctx.send("Es wurde noch kein Channel für Umfragen festgelegt.")
         poll_ping = await self._config.get_role_mention("ping_umf")
         msg = await channel.send(content=f"{poll_ping}", **self.get_polls_post(poll), allowed_mentions={"parse": ["roles"]})
         poll.set_message(msg)
