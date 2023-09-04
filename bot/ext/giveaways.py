@@ -116,7 +116,10 @@ class Giveaways(di.Extension):
             )
         await ctx.send_modal(modal)
 
-        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+        try:
+            modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+        except:
+            return False
 
         duration = modal_ctx.responses["duration"]
         winner_amount = int(modal_ctx.responses["winner_amount"])

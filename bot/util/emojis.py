@@ -93,6 +93,8 @@ class Emojis:
     male = PartialEmoji(name="♂️")
     female = PartialEmoji(name="♀️")
     divers = PartialEmoji(name="⚧")
-
+    pepeceleb = PartialEmoji(name="pepecelebrateconfetti", id=971514780596715551)
+    arrow_rb = PartialEmoji(name="rainbowarrow", id=1078805903278620793, animated=True)
+    
     def get_all():
         return {att: val for att, val in Emojis.__dict__.items() if type(val) == PartialEmoji}

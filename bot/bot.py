@@ -53,6 +53,7 @@ extensions = [
     "schedules",
     "selfroles",
     "giveaways",
+    "polls",
     "welcomemsgs",
 ]
 
