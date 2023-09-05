@@ -527,7 +527,8 @@ class EmojiResponse(di.Extension):
                     description=f"Leider konnte unter dem angegebenen Link ``` {link} ``` kein Bild gefunden werden.\n"
                         f"Versuche es erneut mit einem anderen Link oder wende dich über Modmail an das Team.",
                     color=di.BrandColors.RED,
-                )
+                ),
+                ephemeral=check_ephemeral(modal_ctx),
             )
         image = di.File(file=file)
         emoji = await create_emoji(client=self._client, name=name, image=image)
@@ -537,7 +538,8 @@ class EmojiResponse(di.Extension):
                     description=f"Leider konnte das Emoji nicht erstellt werden.\n"
                         f"Versuche es erneut oder wende dich bei Problemen über Modmail an das Team.",
                     color=di.BrandColors.RED,
-                )
+                ),
+                ephemeral=check_ephemeral(modal_ctx),
             )
         self._logger.info(f"DROPS/CUSTOMEMOJI/create emoji: {emoji.id}")
         await disable_components(modal_ctx.message)
