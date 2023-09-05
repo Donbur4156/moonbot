@@ -334,7 +334,7 @@ class AdminCmds(di.Extension):
         opt_type=di.OptionType.STRING,
         required=True,
     )
-    @slash_option(name="specials", description="Special",
+    @slash_option(name="special", description="Special",
         opt_type=di.OptionType.STRING,
         required=True,
     )
