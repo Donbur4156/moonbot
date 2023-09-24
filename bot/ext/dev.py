@@ -33,8 +33,8 @@ class DevClass(di.Extension):
                 return
         statement_repr = repr(statement)
         if len(statement_repr) > 2000:
-            with tempfile.TemporaryFile(mode="w+") as tmp:
-                tmp.write(repr(statement))
+            with tempfile.TemporaryFile() as tmp:
+                tmp.write(bytes(repr(statement), 'utf-8'))
                 tmp.seek(0)
                 file = di.File(file=tmp.file, file_name=f"{valuestring}.txt")
                 await ctx.send(file=file)
