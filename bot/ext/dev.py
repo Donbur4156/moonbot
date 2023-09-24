@@ -1,8 +1,10 @@
 import logging
+import tempfile
+import time
 
 import interactions as di
-from interactions import SlashCommand, slash_option
 from configs import Configs
+from interactions import SlashCommand, slash_command, slash_option
 from whistle import EventDispatcher
 
 
@@ -29,7 +31,15 @@ class DevClass(di.Extension):
             except Exception as e:
                 await ctx.send(repr(e))
                 return
-        await ctx.send(repr(statement))
+        statement_repr = repr(statement)
+        if len(statement_repr) > 2000:
+            with tempfile.TemporaryFile(mode="w+") as tmp:
+                tmp.write(repr(statement))
+                tmp.seek(0)
+                file = di.File(file=tmp.file, file_name=f"{valuestring}.txt")
+                await ctx.send(file=file)
+        else:
+            await ctx.send(statement_repr)
 
 def setup(client: di.Client, **kwargs):
     DevClass(client, **kwargs)
