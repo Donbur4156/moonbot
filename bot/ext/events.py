@@ -109,6 +109,9 @@ class EventClass(di.Extension):
     async def check_new_members(self):
         for member_id in self.new_members:
             member = await self._client.fetch_member(user_id=member_id, guild_id=c.serverid)
+            if not member:
+                self._logger.info(f"CRON/cannot find member with ID: {member_id}")
+                continue
             if not member.pending:
                 await self.add_default_roles(member) 
                 self.del_new_member(member_id)
