@@ -106,13 +106,14 @@ class EventClass(di.Extension):
         if dcuser:
             await dcuser.delete_wlc_msg()
 
-    @Task.create(IntervalTrigger(minutes=2))
+    @Task.create(IntervalTrigger(minutes=1))
     async def check_new_members(self):
         if not self.tmp_membercheck:
             self.tmp_membercheck = self.new_members.copy()
-        for e in range(10):
+        for e in range(5):
             if not self.tmp_membercheck: break
             member_id = self.tmp_membercheck.pop()
+            self._logger.debug(member_id)
             member = await self._client.fetch_member(user_id=member_id, guild_id=c.serverid)
             if not member:
                 self.del_new_member(member_id)
