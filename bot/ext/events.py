@@ -22,6 +22,7 @@ class EventClass(di.Extension):
         self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
         self.joined_member: dict[int, DcUser] = {}
         self.new_members: set[int] = {}
+        self.tmp_membercheck: set[int] = {}
         self.sql = SQL(database=c.database)
 
     @listen()
@@ -107,8 +108,11 @@ class EventClass(di.Extension):
 
     @Task.create(IntervalTrigger(minutes=2))
     async def check_new_members(self):
-        member_list = self.new_members.copy()
-        for member_id in member_list:
+        if not self.tmp_membercheck:
+            self.tmp_membercheck = self.new_members.copy()
+        for e in range(10):
+            if not self.tmp_membercheck: break
+            member_id = self.tmp_membercheck.pop()
             member = await self._client.fetch_member(user_id=member_id, guild_id=c.serverid)
             if not member:
                 self.del_new_member(member_id)
