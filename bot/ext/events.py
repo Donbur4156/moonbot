@@ -107,7 +107,8 @@ class EventClass(di.Extension):
 
     @Task.create(IntervalTrigger(minutes=2))
     async def check_new_members(self):
-        for member_id in self.new_members:
+        member_list = self.new_members.copy()
+        for member_id in member_list:
             member = await self._client.fetch_member(user_id=member_id, guild_id=c.serverid)
             if not member:
                 self.del_new_member(member_id)
