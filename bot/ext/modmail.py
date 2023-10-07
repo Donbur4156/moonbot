@@ -12,9 +12,9 @@ from util.color import Colors
 from util.decorator import user_option
 from util.emojis import Emojis
 from util.filehandling import download
+from util.misc import has_any_role
 from util.objects import DcUser
 from util.sql import SQL
-from util.misc import has_any_role
 from whistle import EventDispatcher
 
 

@@ -1,6 +1,8 @@
 import config as c
 import interactions as di
 from util.json import get_role_from_json
+from util.misc import fetch_message
+from util.sql import SQL
 
 
 class DcUser:
@@ -26,6 +28,14 @@ class DcUser:
         self.mention = f"<@!{self.dc_id}>"
         self.giveaway_plus: bool = False
         self.wlc_msg: di.Message = None #TODO: store in database
+
+    async def get_wlc_msg(self):
+        if self.wlc_msg: return self.wlc_msg
+        data = SQL(database=c.database).execute(
+            stmt="SELECT * FROM wlc_msgs WHERE user_id=?", var=(self.dc_id,)
+        )
+        if not data: return None
+        self.wlc_msg = await fetch_message(client=self.bot, channel_id=data[1], message_id=data[2])
 
     def __await__(self):
         async def closure():
