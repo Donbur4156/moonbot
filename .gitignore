@@ -4,6 +4,7 @@
 *.db
 bot/logs/*
 config.ini
+*.txt
 
 
 

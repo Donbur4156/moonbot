@@ -8,6 +8,7 @@ from ext.welcomemsgs import read_txt
 from interactions import (ContextMenuContext, IntervalTrigger, OrTrigger, Task,
                           TimeTrigger, listen, user_context_menu)
 from interactions.api.events import MemberAdd, MemberRemove, MemberUpdate
+from util.color import Colors
 from util.emojis import Emojis
 from util.objects import DcUser
 from util.sql import SQL
@@ -38,12 +39,16 @@ class EventClass(di.Extension):
         self.wlc_msgs = read_txt()
 
     def gen_wlc_msg(self, member_mention: str):
-        return (
+        content = (
             random.choice(self.wlc_msgs).format(user=member_mention)
             if self.wlc_msgs else
             f"Herzlich Willkommen auf **Moon Family 🌙** {member_mention}! "
             f"{Emojis.welcome} {Emojis.dance} {Emojis.crone}"
         )
+        return {
+            "content": member_mention,
+            "embed": di.Embed(description=content, color=Colors.GREEN_WARM)
+        }
 
     def get_new_members(self):
         self.new_members = {
@@ -89,7 +94,7 @@ class EventClass(di.Extension):
         self._logger.info(f"EVENT/Member Join/{member.username} ({member.id})")
         dcuser = DcUser(member=member)
         channel = await self._config.get_channel("chat")
-        dcuser.wlc_msg = await channel.send(self.gen_wlc_msg(member.mention))
+        dcuser.wlc_msg = await channel.send(**self.gen_wlc_msg(member.mention))
         self.joined_member.update({int(member.id): dcuser})
         if member.pending:
             self.add_new_member(int(member.id))
