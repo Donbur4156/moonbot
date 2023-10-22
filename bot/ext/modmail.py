@@ -64,7 +64,7 @@ class Modmail(di.Extension):
     @slash_command(name="open_ticket", description="Öffnet ein neues Ticket mit einem User", dm_permission=False)
     @user_option()
     async def open_ticket(self, ctx: di.SlashContext, user: di.Member):
-        channel = await self._create_channel(member=user)
+        channel = await self._create_channel(member=user, prefix="mod-")
         if not channel: await ctx.send("Ticket konnte nicht erstellt werden.")
         try:
             embed_user = di.Embed(
@@ -163,14 +163,14 @@ class Modmail(di.Extension):
         index = self._storage_channel.index(channel_id)
         return self._storage_user[index]
 
-    async def _create_channel(self, msg: di.Message = None, member: di.Member = None) -> di.TYPE_GUILD_CHANNEL:
+    async def _create_channel(self, msg: di.Message = None, member: di.Member = None, prefix: str = "") -> di.TYPE_GUILD_CHANNEL:
         member_id = msg.author.id if msg else member.id
         dcuser = await DcUser(bot=self._client, dc_id=int(member_id))
         member = dcuser.member
         if not member:
             return False
         channel = await self._guild.create_text_channel(
-            name=member.user.username,
+            name=prefix + member.user.username,
             topic=f"Ticket Channel von {member.user.username}",
             permission_overwrites=self._channel_def.permission_overwrites,
             category=self._channel_def.category,
