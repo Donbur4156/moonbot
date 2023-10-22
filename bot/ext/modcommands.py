@@ -60,15 +60,16 @@ class AdminCmds(di.Extension):
     async def role_event(self, ctx: di.SlashContext, channel: di.TYPE_MESSAGEABLE_CHANNEL = None):
         channel = channel or ctx.channel
         jub_role = await self._config.get_role("jub_role")
-        text = f":alarm_clock: **|** __**2022**__\n\n" \
-            f"Das **Jahr 2022** neigt sich nun auch langsam dem Ende und wir wollen natürlich, " \
-            f"das **jeder von euch mit einer besonderen Rolle nächstes Jahr zeigen kann, das er schon seit 2022 dabei ist!**\n" \
-            f"Und da das Jahr so erfolgreich lief und wir das natürlich nächstes Jahr mindestens genau so gut hinbekommen, " \
-            f"könnt ihr euch einen Monat, also den ganzen Dezember, lang die {jub_role.mention} Rolle geben, indem ihr hier auf den Button klickt!\n\n" \
-            f"Vielen Dank und viel Spaß! {Emojis.give} {Emojis.minecraft}"
+        text = f"Liebe Mitglieder der Moon Family,\n\n" \
+            f"Wir freuen uns, euch mitteilen zu dürfen, dass unser Server bald sein 2-jähriges Bestehen feiert! " \
+            f"🎉 Um dieses besondere Ereignis gebührend zu feiern, haben wir eine exklusive " \
+            f"{jub_role.mention} Rolle vorbereitet, die ihr euch sichern könnt. " \
+            f"Schließt euch den Feierlichkeiten an und holt euch diese besondere Auszeichnung, um eure Treue zu unserem Server zu zeigen. " \
+            f"Vielen Dank an alle, die diesen Ort zu dem gemacht haben, was er heute ist. " \
+            f"Auf die nächsten Jahre voller großartiger Erlebnisse in der Moon Family! 🚀🌙💫"
 
         button = di.Button(
-            label="2022 Rolle",
+            label="2. Geburtstags Rolle",
             style=di.ButtonStyle.SUCCESS,
             custom_id="self_role_jub",
             emoji=Emojis.clock
