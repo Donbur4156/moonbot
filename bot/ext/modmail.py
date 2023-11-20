@@ -49,6 +49,12 @@ class Modmail(di.Extension):
             for role in ["owner", "admin", "srmoderator", "moderator"]
         ]
         self._perm_roles = [role for role in self._perm_roles if role]
+        self._admin_perm_roles = [
+            await self._config.get_role(role)
+            for role in ["owner", "admin"]
+        ]
+        self._admin_perm_roles = [role for role in self._admin_perm_roles if role]
+
 
     @listen()
     async def on_message_create(self, event: MessageCreate):
@@ -101,6 +107,7 @@ class Modmail(di.Extension):
             case "close": await self.callback_close(ctx)
             case "block": await self.ticket_block(ctx)
             case "volunteers": await self.open_volunteers(ctx)
+            case "admin": await self.ticket_admin(ctx)
     
     async def callback_close(self, ctx: di.ComponentContext):
         modal = di.Modal(
@@ -139,9 +146,28 @@ class Modmail(di.Extension):
         )
         await ctx.send(f"Dieses Ticket wurde durch {ctx.user.mention} für {volunteer_role.mention} freigegeben.")
 
+    async def ticket_admin(self, ctx: di.ComponentContext):
+        if not await self._check_adminperms(ctx): return False
+        allowed_ids = [role.id for role in self._admin_perm_roles]
+        allowed_ids.append(self.bot.app.id)
+
+        reason = "change to admin ticket"
+        for ow in ctx.channel.permission_overwrites:
+            if ow.id not in allowed_ids:
+                ow.allow = di.Permissions.NONE
+                ow.add_denies(di.Permissions.VIEW_CHANNEL)
+                await ctx.channel.edit_permission(overwrite=ow, reason=reason)
+        await ctx.send(f"Dieses Ticket ist nur noch für Admins freigegeben!")
+
 
     async def _check_perms(self, ctx: di.ComponentContext):
         if not has_any_role(member=ctx.member, roles=self._perm_roles):
+            await ctx.send("> Du bist hierzu nicht berechtigt!", ephemeral=True)
+            return False
+        return True
+
+    async def _check_adminperms(self, ctx: di.ComponentContext):
+        if not has_any_role(member=ctx.member, roles=self._admin_perm_roles):
             await ctx.send("> Du bist hierzu nicht berechtigt!", ephemeral=True)
             return False
         return True
@@ -197,6 +223,8 @@ class Modmail(di.Extension):
                       emoji=Emojis.spam, custom_id="tickets_block"),
             di.Button(style=di.ButtonStyle.GREEN, label="für Volunteer freigeben",
                       emoji=Emojis.utility_4, custom_id="tickets_volunteers"),
+            di.Button(style=di.ButtonStyle.GREEN, label="Admin Ticket",
+                      emoji=Emojis.security, custom_id="tickets_admin")
         ) if msg else None
         
         await channel.send(
@@ -220,6 +248,7 @@ class Modmail(di.Extension):
         user_id = int(msg.author.id)
         if user_id in self._storage_user:
             channel = await self._get_channel_byuser(user_id=user_id)
+            #TODO: delete from db if none
         else:
             if user_id in self._user_blacklist: return False
             channel = await self._create_channel(msg=msg)

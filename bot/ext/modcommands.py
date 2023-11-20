@@ -16,6 +16,7 @@ from ext.modmail import get_modmail_blacklist
 from whistle import EventDispatcher
 
 
+#TODO: Willkommensnachricht mit aktuellem Event erweitern per Admin Command
 class AdminCmds(di.Extension):
     def __init__(self, client: di.Client, **kwargs) -> None:
         self._client = client
