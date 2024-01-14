@@ -5,14 +5,15 @@ import config as c
 import interactions as di
 from configs import Configs
 from ext.drops import StarPowder
+from ext.modmail import get_modmail_blacklist
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
 from util.color import Colors
 from util.decorator import role_option, user_option
 from util.emojis import Emojis
+from util.logger import DcLog
 from util.misc import split_to_fields
 from util.sql import SQL
-from ext.modmail import get_modmail_blacklist
 from whistle import EventDispatcher
 
 
@@ -23,6 +24,7 @@ class AdminCmds(di.Extension):
         self._config: Configs = kwargs.get("config")
         self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
         self._logger: logging.Logger = kwargs.get("logger")
+        self._dclog: DcLog = kwargs.get("dc_log")
 
     @listen()
     async def on_startup(self):
@@ -43,6 +45,7 @@ class AdminCmds(di.Extension):
     )
     async def engel(self, ctx: di.SlashContext, user: di.Member):
         self._logger.info(f"ENGEL/add Role to {user.username} ({user.id}) by {ctx.member.username} ({ctx.member.id})")
+        await self._dclog.info(ctx=ctx, head="add 'Engel'-role to user", change_cat=user.mention, val_new=f"add {self.role_engel.mention}")
         await user.add_role(role=self.role_engel, reason="Vergabe der Engelchen Rolle")
         text = f"{Emojis.check} {user.mention} ist nun ein Engelchen! {Emojis.bfly}"
         await ctx.send(text)
@@ -100,6 +103,7 @@ class AdminCmds(di.Extension):
         amount_total = StarPowder().upd_starpowder(user_id=int(user.id), amount=amount)
         text = f"Dem User {user.mention} wurden {amount} Sternenstaub hinzugefügt." \
             f"\nDer User hat nun insgesamt {amount_total} Sternenstaub gesammelt."
+        await self._dclog.info(ctx=ctx, head="edit Starpowder", change_cat=user.mention, val_old=amount_total-amount, val_new=amount_total)
         await ctx.send(text, ephemeral=True)
         self._logger.info(
             f"STARPOWDER/User: {user.mention} ({user.id}); amount: {amount}; new amount: {amount_total}; Admin ID: {ctx.user.id}")
@@ -127,6 +131,7 @@ class AdminCmds(di.Extension):
             {"name": "Boost Color", "value": "boost_col"},
             {"name": "Reminder", "value": "schedule"},
             {"name": "Giveaways", "value": "giveaway"},
+            {"name": "Bot Log", "value": "bot_log"},
         ]
         roles_general = [
             {"name": "Owner", "value": "owner"},
@@ -201,6 +206,7 @@ class AdminCmds(di.Extension):
             di.SlashCommandChoice(name="Boost Color", value="boost_col"),
             di.SlashCommandChoice(name="Reminder", value="schedule"),
             di.SlashCommandChoice(name="Giveaways", value="giveaway"),
+            di.SlashCommandChoice(name="Bot Log", value="bot_log"),
         ],
         opt_type=di.OptionType.STRING,
         required=True,
@@ -210,8 +216,10 @@ class AdminCmds(di.Extension):
         required=True,
     )
     async def channels(self, ctx: di.SlashContext, type: str, channel: di.TYPE_GUILD_CHANNEL):
+        old_channel = await self._config.get_channel(name=type)
         self._logger.info(
             f"CONFIG/CHANNEL/SET/{type} with {channel.name} ({channel.id}) by {ctx.member.username} ({ctx.member.id})")
+        await self._dclog.info(ctx=ctx, head="Config: Change Channel", change_cat=type, val_old=old_channel.mention, val_new=channel.mention)
         self._config.set_channel(name=type, id=str(channel.id))
         await ctx.send(f"Typ: {type}\nChannel: {channel.mention}")
 
@@ -320,8 +328,10 @@ class AdminCmds(di.Extension):
         await self.set_role(ctx, type, role)
 
     async def set_role(self, ctx: di.SlashContext, type: str, role: di.Role):
+        old_role = await self._config.get_role(type)
         self._logger.info(
             f"CONFIG/ROLE/SET/{type} with {role.name} ({role.id}) by {ctx.member.username} ({ctx.member.id})")
+        await self._dclog.info(ctx=ctx, head="Config: Change Role", change_cat=type, val_old=old_role.mention, val_new=role.mention)
         self._config.set_role(name=type, id=str(role.id))
         await ctx.send(f"Typ: {type}\nRolle: {role.mention}")
         
@@ -339,8 +349,10 @@ class AdminCmds(di.Extension):
         required=True,
     )
     async def specials(self, ctx: di.SlashContext, type: str, special: str):
+        old_special = self._config.get_special(name=type)
         self._logger.info(
             f"CONFIG/SPECIAL/SET/{type} with {special} ({special}) by {ctx.member.username} ({ctx.member.id})")
+        await self._dclog.info(ctx=ctx, head="Config: Change Special", change_cat=type, val_old=old_special, val_new=special)
         self._config.set_special(name=type, value=special)
         await ctx.send(f"Typ: {type}\nWert: {special}")
 
@@ -352,6 +364,7 @@ class ModCmds(di.Extension):
         self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
         self._logger: logging.Logger = kwargs.get("logger")
         self._SQL = SQL(database=c.database)
+        self._dclog: DcLog = kwargs.get("dc_log")
 
     @listen()
     async def on_startup(self):
@@ -384,6 +397,7 @@ class ModCmds(di.Extension):
             self._SQL.execute(stmt="DELETE FROM tickets_blacklist WHERE user_id=?", var=(int(user.id),))
             self._dispatcher.dispatch("storage_update")
             await ctx.send(f"> Der User {user.mention} wurde von der Ticket Blacklist gelöscht.")
+            await self._dclog.warn(ctx=ctx, head="Modmail Blacklist: Remove", change_cat=user.mention, val_new="User von Blacklist gelöscht")
             return True
         await ctx.send(f"> Der User {user.mention} ist **nicht** auf der Ticket Blacklist.")
 

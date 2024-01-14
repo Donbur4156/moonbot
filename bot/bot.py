@@ -2,8 +2,8 @@ import config as c
 import interactions as di
 import nest_asyncio
 from configs import Configs
-from interactions import Activity, ActivityType, Intents
-from util.logger import create_logger
+from interactions import Activity, ActivityType, Intents, listen
+from util.logger import DcLog, create_logger
 from whistle import EventDispatcher
 
 nest_asyncio.apply()
@@ -34,12 +34,14 @@ client = di.Client(token=TOKEN, intents=intents, activity=pres,
 
 dispatcher = EventDispatcher()
 config: Configs = Configs(client=client, dispatcher=dispatcher)
+dc_logger : DcLog = DcLog(client=client, dispatcher=dispatcher, config=config)
 
 util_kwargs = {
     "_client": client,
     "dispatcher": dispatcher,
     "config": config,
     "logger": moon_logger,
+    "dc_log": dc_logger,
 }
 extensions = [
     "dev",
@@ -55,6 +57,10 @@ extensions = [
     "giveaways",
     "welcomemsgs",
 ]
+
+@listen()
+async def on_startup():
+    await dc_logger.on_startup()
 
 def load_extensions(client: di.Client, extensions: list[str], **load_kwargs):
     client.load_extension('interactions.ext.sentry', token=SENTRY_TOKEN, environment=SENTRY_ENV)
