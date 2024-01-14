@@ -217,10 +217,10 @@ class AdminCmds(di.Extension):
     )
     async def channels(self, ctx: di.SlashContext, type: str, channel: di.TYPE_GUILD_CHANNEL):
         old_channel = await self._config.get_channel(name=type)
+        self._config.set_channel(name=type, id=str(channel.id))
         self._logger.info(
             f"CONFIG/CHANNEL/SET/{type} with {channel.name} ({channel.id}) by {ctx.member.username} ({ctx.member.id})")
         await self._dclog.info(ctx=ctx, head="Config: Change Channel", change_cat=type, val_old=old_channel.mention if old_channel else None, val_new=channel.mention)
-        self._config.set_channel(name=type, id=str(channel.id))
         await ctx.send(f"Typ: {type}\nChannel: {channel.mention}")
 
     @config_cmds.subcommand(sub_cmd_name="roles_general", sub_cmd_description="Role Config General")
