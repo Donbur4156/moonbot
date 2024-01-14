@@ -219,7 +219,7 @@ class AdminCmds(di.Extension):
         old_channel = await self._config.get_channel(name=type)
         self._logger.info(
             f"CONFIG/CHANNEL/SET/{type} with {channel.name} ({channel.id}) by {ctx.member.username} ({ctx.member.id})")
-        await self._dclog.info(ctx=ctx, head="Config: Change Channel", change_cat=type, val_old=old_channel.mention, val_new=channel.mention)
+        await self._dclog.info(ctx=ctx, head="Config: Change Channel", change_cat=type, val_old=old_channel.mention if old_channel else None, val_new=channel.mention)
         self._config.set_channel(name=type, id=str(channel.id))
         await ctx.send(f"Typ: {type}\nChannel: {channel.mention}")
 
@@ -331,7 +331,7 @@ class AdminCmds(di.Extension):
         old_role = await self._config.get_role(type)
         self._logger.info(
             f"CONFIG/ROLE/SET/{type} with {role.name} ({role.id}) by {ctx.member.username} ({ctx.member.id})")
-        await self._dclog.info(ctx=ctx, head="Config: Change Role", change_cat=type, val_old=old_role.mention, val_new=role.mention)
+        await self._dclog.info(ctx=ctx, head="Config: Change Role", change_cat=type, val_old=old_role.mention if old_role else None, val_new=role.mention)
         self._config.set_role(name=type, id=str(role.id))
         await ctx.send(f"Typ: {type}\nRolle: {role.mention}")
         
