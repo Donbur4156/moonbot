@@ -491,6 +491,7 @@ class EmojiResponse(di.Extension):
         self._client = client
         self._config: Configs = kwargs.get("config")
         self._logger: logging.Logger = kwargs.get("logger")
+        self.modal_cache: list[str] = []
 
     @component_callback("customemoji_create")
     async def create_button(self, ctx: di.ComponentContext):
@@ -508,14 +509,15 @@ class EmojiResponse(di.Extension):
             title="Erstelle ein neues Server Emoji",
             custom_id="customemoji_modal",
         )
-        await ctx.send_modal(modal)
+        _modal = await ctx.send_modal(modal)
 
-        # try:
-        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(modal)
+        modal_ctx: di.ModalContext = await ctx.bot.wait_for_modal(_modal)
         name = modal_ctx.responses["name"]
         link = modal_ctx.responses["image"]
-        # except:
-        #     return
+        if modal_ctx.token in self.modal_cache:
+            self._logger.warn("doubled modal response!")
+            return
+        self.modal_cache.append(modal_ctx.token)
 
         self._logger.info("mod: %s", modal_ctx.token)
         self._logger.info("but: %s", ctx.token)
