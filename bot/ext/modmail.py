@@ -232,14 +232,6 @@ class Modmail(di.Extension):
             embed=embed, files=files[-10:], components=components,
             allowed_mentions={"parse": ["roles"] if msg else []},
         )
-
-        if msg: 
-            embed_user = di.Embed(
-                title=":scroll: Ticket geöffnet :scroll:",
-                description="Es wurde ein Ticket für dich angelegt.\nEin Moderator wird sich zeitnah um dein Anliegen kümmern.",
-                color=Colors.BLUE
-            )
-            await msg.reply(embed=embed_user)
         
         return channel
 
@@ -248,10 +240,14 @@ class Modmail(di.Extension):
         user_id = int(msg.author.id)
         if user_id in self._storage_user:
             channel = await self._get_channel_byuser(user_id=user_id)
+            await self.start_ticket(msg=msg, channel=channel)
             #TODO: delete from db if none
         else:
             if user_id in self._user_blacklist: return False
-            channel = await self._create_channel(msg=msg)
+            await self.pend_ticket(msg=msg)
+
+        
+    async def start_ticket(self, msg: di.Message, channel: di.TYPE_ALL_CHANNEL):
         if not channel: return False
         embed = di.Embed(
             description=msg.content,
@@ -261,6 +257,43 @@ class Modmail(di.Extension):
         if files:
             embed.add_field(name="Anhang:", value=f"Anzahl angehängter Bilder: **{len(files)}**")
         await channel.send(embed=embed, files=files)
+
+    async def pend_ticket(self, msg: di.Message):
+        embed = di.Embed(
+            title=":scroll: Ticket erstellen? :scroll:",
+            description=f"Möchtest du mit deinem Anliegen ein Ticket erstellen?\nMit dem Button wird ein Ticket mit der Nachricht '{msg.jump_url}' erstellt.",
+            color=Colors.BLUE
+        )
+        but_open_ticket = di.Button(
+            style=di.ButtonStyle.GREEN, label="Ticket erstellen",
+            emoji=Emojis.check, custom_id="ticket_open"
+        )
+        reply = await msg.reply(embed=embed, components=but_open_ticket)
+
+        try:
+            used_component: di.Button = await self._client.wait_for_component(components=but_open_ticket, timeout=600)
+
+        except TimeoutError:
+            but_open_ticket.disabled = True
+            embed = di.Embed(
+                title = ":scroll: Ticket nicht erstellt :scroll:",
+                description = "Es wurde kein Ticket erstellt!",
+                color=Colors.RED
+            )
+            await reply.edit(embed=embed, components=but_open_ticket)
+            return False
+
+        embed_user = di.Embed(
+            title=":scroll: Ticket erstellt :scroll:",
+            description="Es wurde ein Ticket für dich erstellt.\nEin Moderator wird sich zeitnah um dein Anliegen kümmern.",
+            color=Colors.GREEN
+        )
+        await reply.edit(components=[])
+        await used_component.ctx.send(embed=embed_user)
+
+        channel = await self._create_channel(msg=msg)
+        await self.start_ticket(msg=msg, channel=channel)
+
 
     async def mod_react(self, msg: di.Message):
         #Mod antwortet in Channel
