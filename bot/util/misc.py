@@ -29,11 +29,11 @@ async def callback_unsupported(ctx: ComponentContext):
 def has_any_role(member: Member, roles: list[Role]) -> bool:
     return any(to_snowflake(role) in member._role_ids for role in roles)
 
-async def create_emoji(client: Client, name: str, image: File):
+async def create_emoji(client: Client, name: str, image: File, roles: list[Role] = None):
     guild = await client.fetch_guild(c.serverid)
     try:
         return await guild.create_custom_emoji(
-        name=name, imagefile=image, reason="Custom Emoji erstellt")
+        name=name, imagefile=image, reason="Custom Emoji erstellt", roles=roles)
     except di.errors.HTTPException as e:
         logging.getLogger("moon_logger").error(
             e

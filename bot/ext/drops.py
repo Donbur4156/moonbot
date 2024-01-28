@@ -533,7 +533,11 @@ class EmojiResponse(di.Extension):
                 ephemeral=check_ephemeral(modal_ctx),
             )
         image = di.File(file=file)
-        emoji = await create_emoji(client=self._client, name=name, image=image)
+        owner_role = await self._config.get_role("owner")
+        admin_role = await self._config.get_role("admin")
+        moonbot_role = await self._config.get_role("moonbot")
+        emoji = await create_emoji(client=self._client, name=name, image=image, 
+                                   roles=[owner_role, admin_role, moonbot_role])
         if not emoji:
             return await modal_ctx.send(
                 embed=di.Embed(
@@ -564,14 +568,11 @@ class EmojiResponse(di.Extension):
             label="Ablehnen",
             custom_id=f"deny_emoji_{customemoji.id}"
         )
-        owner_role = await self._config.get_role("owner")
-        admin_role = await self._config.get_role("admin")
         content = f"{owner_role.mention} {admin_role.mention}, der User {modal_ctx.user.mention} " \
             f"hat durch einen Drop das Emoji {emoji} erstellt und zur Überprüfung eingereicht.\n"
         await team_channel.send(content=content, components=di.ActionRow(but_allow, but_deny))
         self._logger.info(
             f"DROPS/CUSTOMEMOJI/send approval embed/Emoji: {emoji.id}; User: {modal_ctx.user.id}")
-        await emoji.edit(roles=[owner_role, admin_role])
 
 
     def _check_perm(self, member: di.Member):
