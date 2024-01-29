@@ -8,6 +8,7 @@ from ext.drops import StarPowder
 from ext.modmail import get_modmail_blacklist
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
+from interactions.ext.paginators import Paginator
 from util.color import Colors
 from util.decorator import role_option, user_option
 from util.emojis import Emojis
@@ -111,11 +112,16 @@ class AdminCmds(di.Extension):
     @starpowder_cmds.subcommand(
         sub_cmd_name="getlist", sub_cmd_description="Erstellt eine Liste mit allen Usern mit Sternenstaub.")
     async def starpowder_getlist(self, ctx: di.SlashContext):
-        embed = di.Embed(
-            title="Sternstaub 'Bestenliste'",
-        )
-        embed.add_fields(*split_to_fields(StarPowder().gettable_starpowder(), 42))
-        await ctx.send(embed=embed)
+        fields = split_to_fields(StarPowder().gettable_starpowder(), 42)
+        embeds = [
+            di.Embed(
+                title=f"Sternenstaub 'Bestenliste' {count}/{len(fields)}",
+                description=field.value
+            )
+            for count, field in enumerate(fields, start=1)
+        ]
+        paginator = Paginator.create_from_embeds(self._client, *embeds)
+        await paginator.send(ctx)
 
     config_cmds = admin_cmds.group(name="config", description="Role/Channel... Config")
 
