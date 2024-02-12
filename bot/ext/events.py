@@ -22,8 +22,6 @@ class EventClass(di.Extension):
         self._logger: logging.Logger = kwargs.get("logger")
         self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
         self.joined_member: dict[int, DcUser] = {}
-        self.new_members: set[int] = {}
-        self.tmp_membercheck: set[int] = {}
         self.sql = SQL(database=c.database)
 
     @listen()
@@ -32,8 +30,6 @@ class EventClass(di.Extension):
         self.create_vote_message.start()
         self.set_wlc_msgs()
         self._dispatcher.add_listener("wlcmsgs_update", self.set_wlc_msgs)
-        self.get_new_members()
-        self.check_new_members.start()
 
     def set_wlc_msgs(self, event=None):
         self.wlc_msgs = read_txt()
@@ -50,42 +46,6 @@ class EventClass(di.Extension):
             "embed": di.Embed(description=content, color=Colors.GREEN_WARM)
         }
 
-    def get_new_members(self):
-        self.new_members = {
-            member[0] 
-            for member 
-            in self.sql.execute(stmt = "SELECT user_id FROM new_members").data_all
-        }
-
-    def add_new_member(self, member_id: int):
-        self.sql.execute(stmt="INSERT INTO new_members(user_id) VALUES (?)", var=(member_id,))
-        self.new_members.add(member_id)
-
-    def del_new_member(self, member_id: int):
-        self.sql.execute(stmt="DELETE FROM new_members WHERE user_id=?", var=(member_id,))
-        self.new_members.discard(member_id)
-
-    @user_context_menu(name="add default roles", dm_permission=False, default_member_permissions=di.Permissions.MODERATE_MEMBERS)
-    async def add_default_roles_ctx(self, ctx: ContextMenuContext):
-        member = ctx.target
-        await self.add_default_roles(member) 
-        self.del_new_member(int(member.id))
-        self._logger.info(f"USERCTX/add default roles/{member.username} ({member.id}) Teammember: {ctx.member.id}")
-        await ctx.send(content=f"Dem User {member.mention} wurden die Default Rollen zugewiesen.", ephemeral=True)
-
-    async def add_default_roles(self, member: di.Member):
-        await member.add_roles(roles=[903715839545598022, 905466661237301268, 913534417123815455, 1143226806732853371])
-
-    @listen()
-    async def on_guild_member_update(self, event: MemberUpdate):
-        if (int(event.after.id) in self.new_members
-            and event.before.pending 
-            and not event.after.pending):
-            member = event.after
-            self.del_new_member(int(member.id))
-            await self.add_default_roles(member)
-            self._logger.info(f"EVENT/Member end pending/{member.username} ({member.id})")
-
 
     @listen()
     async def on_guild_member_add(self, event: MemberAdd):
@@ -96,10 +56,7 @@ class EventClass(di.Extension):
         channel = await self._config.get_channel("chat")
         dcuser.wlc_msg = await channel.send(**self.gen_wlc_msg(member.mention))
         self.joined_member.update({int(member.id): dcuser})
-        if member.pending:
-            self.add_new_member(int(member.id))
-        else:
-            await self.add_default_roles(member)
+
 
     @listen()
     async def on_guild_member_remove(self, event: MemberRemove):
@@ -107,28 +64,9 @@ class EventClass(di.Extension):
         member = event.member
         self._logger.info(f"EVENT/MEMBER Left/{member.username} ({member.id})")
         dcuser = self.joined_member.pop(int(member.id), None)
-        self.del_new_member(int(member.id))
         if dcuser:
             await dcuser.delete_wlc_msg()
 
-    @Task.create(IntervalTrigger(minutes=1))
-    async def check_new_members(self):
-        if not self.tmp_membercheck:
-            self.tmp_membercheck = self.new_members.copy()
-        for e in range(5):
-            if not self.tmp_membercheck: break
-            member_id = self.tmp_membercheck.pop()
-            self._logger.debug(member_id)
-            member = await self._client.fetch_member(user_id=member_id, guild_id=c.serverid)
-            if not member:
-                self.del_new_member(member_id)
-                self._logger.info(f"CRON/cannot find member with ID: {member_id}")
-                continue
-            if not member.pending:
-                await self.add_default_roles(member) 
-                self.del_new_member(member_id)
-                self._logger.info(f"CRON/add default roles/{member.username} ({member.id})")
-                break
 
     @Task.create(OrTrigger(
             TimeTrigger(hour=0, utc=False),
@@ -151,5 +89,86 @@ class EventClass(di.Extension):
         await channel.send(embed=embed)
 
 
+class PendingMember(di.Extension):
+    def __init__(self, client: di.Client, **kwargs) -> None:
+        self._client = client
+        self._logger: logging.Logger = kwargs.get("logger")
+        self.sql = SQL(database=c.database)
+        self.tmp_membercheck: set[int] = {}
+        self.new_members: set[int] = {}
+
+    @listen()
+    async def on_startup(self):
+        self.get_new_members()
+        # self.check_new_members.start()
+
+    def get_new_members(self):
+        self.new_members = {
+            member[0] 
+            for member 
+            in self.sql.execute(stmt = "SELECT user_id FROM new_members").data_all
+        }
+
+    # @listen()
+    async def on_guild_member_add(self, event: MemberAdd):
+        if int(event.guild.id) != c.serverid: return False
+        member = event.member
+        if member.pending:
+            self.sql.execute(stmt="INSERT INTO new_members(user_id) VALUES (?)", var=(int(member.id),))
+            self.new_members.add(int(member.id))
+        else:
+            await self.add_default_roles(member)
+
+    # @listen()
+    async def on_guild_member_remove(self, event: MemberRemove):
+        if int(event.guild.id) != c.serverid: return False
+        self.del_new_member(int(event.member.id))
+
+    def del_new_member(self, member_id: int):
+        self.sql.execute(stmt="DELETE FROM new_members WHERE user_id=?", var=(member_id,))
+        self.new_members.discard(member_id)
+    
+    # @listen()
+    async def on_guild_member_update(self, event: MemberUpdate):
+        if (int(event.after.id) in self.new_members
+            and event.before.pending 
+            and not event.after.pending):
+            member = event.after
+            self.del_new_member(int(member.id))
+            await self.add_default_roles(member)
+            self._logger.info(f"EVENT/Member end pending/{member.username} ({member.id})")
+
+
+    @Task.create(IntervalTrigger(minutes=1))
+    async def check_new_members(self):
+        if not self.tmp_membercheck:
+            self.tmp_membercheck = self.new_members.copy()
+        for e in range(5):
+            if not self.tmp_membercheck: break
+            member_id = self.tmp_membercheck.pop()
+            self._logger.debug(member_id)
+            member = await self._client.fetch_member(user_id=member_id, guild_id=c.serverid)
+            if not member:
+                self.del_new_member(member_id)
+                self._logger.info(f"CRON/cannot find member with ID: {member_id}")
+                continue
+            if not member.pending:
+                await self.add_default_roles(member) 
+                self.del_new_member(member_id)
+                self._logger.info(f"CRON/add default roles/{member.username} ({member.id})")
+                break
+
+    @user_context_menu(name="add default roles", dm_permission=False, default_member_permissions=di.Permissions.MODERATE_MEMBERS)
+    async def add_default_roles_ctx(self, ctx: ContextMenuContext):
+        member = ctx.target
+        await self.add_default_roles(member) 
+        self.del_new_member(int(member.id))
+        self._logger.info(f"USERCTX/add default roles/{member.username} ({member.id}) Teammember: {ctx.member.id}")
+        await ctx.send(content=f"Dem User {member.mention} wurden die Default Rollen zugewiesen.", ephemeral=True)
+
+    async def add_default_roles(self, member: di.Member):
+        await member.add_roles(roles=[903715839545598022, 905466661237301268, 913534417123815455, 1143226806732853371])
+
 def setup(client: di.Client, **kwargs):
     EventClass(client, **kwargs)
+    PendingMember(client, **kwargs)
