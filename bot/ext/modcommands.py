@@ -121,6 +121,7 @@ class AdminCmds(di.Extension):
             for count, field in enumerate(fields, start=1)
         ]
         paginator = Paginator.create_from_embeds(self._client, *embeds)
+        paginator.wrong_user_message = f"Diese Sternenstaub Bestenliste gehört {ctx.author.mention}"
         await paginator.send(ctx)
 
     config_cmds = admin_cmds.group(name="config", description="Role/Channel... Config")
