@@ -8,13 +8,7 @@ from configs import Configs
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
 from interactions.api.events import MessageCreate
-from util.color import Colors
-from util.decorator import user_option
-from util.emojis import Emojis
-from util.filehandling import download
-from util.misc import has_any_role
-from util.objects import DcUser
-from util.sql import SQL
+from util import Colors, user_option, Emojis, download, has_any_role, DcUser, SQL
 from whistle import EventDispatcher
 
 

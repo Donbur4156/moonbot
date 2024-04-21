@@ -7,10 +7,7 @@ import interactions as di
 from configs import Configs
 from interactions import (SlashCommand, component_callback, listen,
                           slash_command)
-from util.boostroles import BoostRoles
-from util.color import Colors
-from util.decorator import channel_option
-from util.emojis import Emojis
+from util import BoostRoles, Colors, Emojis, channel_option
 
 
 class SelfRoles(di.Extension):

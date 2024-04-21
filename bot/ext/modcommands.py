@@ -8,13 +8,8 @@ from ext.modmail import get_modmail_blacklist
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
 from interactions.ext.paginators import Paginator
-from util.color import Colors
-from util.decorator import role_option, user_option
-from util.emojis import Emojis
-from util.logger import DcLog
-from util.misc import split_to_fields
-from util.sql import SQL
-from util.starpowder import StarPowder
+from util import (SQL, Colors, DcLog, Emojis, StarPowder, role_option,
+                  split_to_fields, user_option)
 from whistle import EventDispatcher
 
 

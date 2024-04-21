@@ -26,7 +26,7 @@ async def fetch_message(client: Client, channel_id: int, message_id: int):
 async def callback_unsupported(ctx: ComponentContext):
     await ctx.send("Diese Funktion wird noch nicht unterstützt!", ephemeral=True)
 
-def has_any_role(member: Member, roles: list[Role]) -> bool:
+def has_any_role(member: Member, roles: list[Role]) -> bool: #TODO: in interactions.py?
     return any(to_snowflake(role) in member._role_ids for role in roles)
 
 async def create_emoji(client: Client, name: str, image: File, roles: list[Role] = None):

@@ -9,9 +9,7 @@ from ext.drop_list import (BoostColResponse, Drop, Drop_BoostColor, Drop_Emoji,
                            Drop_StarPowder, Drop_VIP_Rank, EmojiResponse)
 from interactions import IntervalTrigger, Task, listen, slash_option
 from interactions.api.events import MessageCreate
-from util.color import Colors
-from util.emojis import Emojis
-from util.starpowder import StarPowder
+from util import Colors, Emojis, StarPowder
 from whistle import EventDispatcher
 
 

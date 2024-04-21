@@ -6,10 +6,7 @@ import interactions as di
 from configs import Configs
 from ext.drop_list import Drop
 from interactions import component_callback
-from util.boostroles import BoostRoles
-from util.color import Colors
-from util.emojis import Emojis
-from util.misc import check_ephemeral, disable_components
+from util import BoostRoles, Colors, Emojis, check_ephemeral, disable_components
 
 
 class Drop_BoostColor(Drop):

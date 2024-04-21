@@ -3,8 +3,7 @@ import logging
 
 import config as c
 import interactions as di
-from util.objects import DcUser
-from util.sql import SQL
+from util import DcUser, SQL
 from whistle import EventDispatcher
 
 

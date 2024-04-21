@@ -1,7 +1,6 @@
 import interactions as di
 from configs import Configs
-from util.color import Colors
-from util.emojis import Emojis
+from util import Colors, Emojis
 
 
 class BoostRoles:

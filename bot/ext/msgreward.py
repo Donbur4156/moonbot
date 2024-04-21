@@ -7,11 +7,7 @@ import interactions as di
 from configs import Configs
 from interactions import Task, TimeTrigger, listen, slash_command, slash_option
 from interactions.api.events import MessageCreate
-from util.color import Colors
-from util.emojis import Emojis
-from util.json import get_roles_from_json, get_streak_from_json
-from util.objects import DcUser
-from util.sql import SQL
+from util import Colors, Emojis, get_roles_from_json, get_streak_from_json, DcUser, SQL
 from whistle import Event, EventDispatcher
 
 

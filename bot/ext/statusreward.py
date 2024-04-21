@@ -6,7 +6,7 @@ import interactions as di
 from configs import Configs
 from interactions import listen
 from interactions.api.events import PresenceUpdate
-from util.sql import SQL
+from util import SQL
 from whistle import EventDispatcher
 
 

@@ -3,9 +3,7 @@ import random
 
 import interactions as di
 from ext.drop_list import Drop
-from util.color import Colors
-from util.emojis import Emojis
-from util.starpowder import StarPowder
+from util import Colors, Emojis, StarPowder
 
 class Drop_StarPowder(Drop):
     def __init__(self, **kwargs) -> None:

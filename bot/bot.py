@@ -3,7 +3,7 @@ import interactions as di
 import nest_asyncio
 from configs import Configs
 from interactions import Activity, ActivityType, Intents, listen
-from util.logger import DcLog, create_logger
+from util import DcLog, create_logger
 from whistle import EventDispatcher
 
 nest_asyncio.apply()

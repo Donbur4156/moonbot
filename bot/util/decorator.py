@@ -1,4 +1,4 @@
-from interactions import OptionType, SlashCommandChoice, slash_option
+from interactions import OptionType, slash_option
 
 
 def role_option():

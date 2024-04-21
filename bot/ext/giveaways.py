@@ -12,11 +12,7 @@ from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
 from interactions import SlashCommand, component_callback, listen
-from util.color import Colors
-from util.emojis import Emojis
-from util.misc import disable_components, fetch_message
-from util.objects import DcUser
-from util.sql import SQL
+from util import Colors, Emojis, disable_components, fetch_message, DcUser, SQL
 from whistle import EventDispatcher
 
 

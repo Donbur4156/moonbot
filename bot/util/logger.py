@@ -4,7 +4,7 @@ from logging import INFO, FileHandler, Formatter, getLogger
 import interactions as di
 from configs import Configs
 from interactions import Timestamp
-from util.color import Colors
+from util import Colors
 from whistle import EventDispatcher
 
 

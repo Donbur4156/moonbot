@@ -1,11 +1,10 @@
 import logging
 import tempfile
-import time
 
 import interactions as di
 import config as c
 from configs import Configs
-from interactions import SlashCommand, slash_command, slash_option, listen
+from interactions import SlashCommand, slash_option, listen
 from whistle import EventDispatcher
 
 

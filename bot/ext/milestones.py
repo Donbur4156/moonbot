@@ -7,8 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
 from interactions import listen, slash_command
 from interactions.api.events import MemberAdd, MemberRemove
-from util.emojis import Emojis
-from util.sql import SQL
+from util import Emojis, SQL
 
 
 class Milestones(di.Extension):

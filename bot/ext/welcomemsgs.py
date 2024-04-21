@@ -5,7 +5,7 @@ import config as c
 import interactions as di
 from configs import Configs
 from interactions import SlashCommand, slash_option
-from util.filehandling import download
+from util import download
 from whistle import EventDispatcher
 
 

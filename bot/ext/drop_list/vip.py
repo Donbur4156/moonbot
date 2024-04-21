@@ -3,7 +3,7 @@ import logging
 import interactions as di
 from configs import Configs
 from ext.drop_list import Drop
-from util.emojis import Emojis
+from util import Emojis
 
 
 class Drop_VIP_Rank(Drop):

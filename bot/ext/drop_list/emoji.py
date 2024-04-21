@@ -6,12 +6,8 @@ import interactions as di
 from configs import Configs
 from ext.drop_list import Drop
 from interactions import component_callback
-from util.color import Colors
-from util.customs import CustomEmoji
-from util.emojis import Emojis
-from util.filehandling import download
-from util.misc import (check_ephemeral, create_emoji, disable_components,
-                       enable_component)
+from util import (Colors, CustomEmoji, Emojis, check_ephemeral, create_emoji,
+                  disable_components, download, enable_component)
 
 
 class Drop_Emoji(Drop):

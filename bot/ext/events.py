@@ -8,10 +8,7 @@ from ext.welcomemsgs import read_txt
 from interactions import (ContextMenuContext, IntervalTrigger, OrTrigger, Task,
                           TimeTrigger, listen, user_context_menu)
 from interactions.api.events import MemberAdd, MemberRemove, MemberUpdate, NewThreadCreate
-from util.color import Colors
-from util.emojis import Emojis
-from util.objects import DcUser
-from util.sql import SQL
+from util import Colors, Emojis, DcUser, SQL
 from whistle import EventDispatcher
 
 

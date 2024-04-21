@@ -1,8 +1,6 @@
 import config as c
 import interactions as di
-from util.json import get_role_from_json
-from util.misc import fetch_message
-from util.sql import SQL
+from util import get_role_from_json, fetch_message, SQL
 
 
 class DcUser:

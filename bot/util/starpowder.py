@@ -1,7 +1,7 @@
 import logging
 
 import config as c
-from util.sql import SQL
+from util import SQL
 
 
 class StarPowder:

@@ -7,9 +7,7 @@ from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
 from interactions import listen, slash_option
-from util.color import Colors
-from util.decorator import reminderid_option, time_option
-from util.sql import SQL
+from util import Colors, reminderid_option, time_option, SQL
 
 
 class SQLFUNCS:
