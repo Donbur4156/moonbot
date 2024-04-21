@@ -70,7 +70,7 @@ class EventClass(di.Extension):
 
     @listen(NewThreadCreate)
     async def create_thread(self, event: NewThreadCreate):
-        for member in (await self._config.get_role("mod")).members:
+        for member in (await self._config.get_role("moderator")).members:
             await event.thread.add_member(member)
 
 
