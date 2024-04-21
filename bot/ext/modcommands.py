@@ -4,7 +4,6 @@ import logging
 import config as c
 import interactions as di
 from configs import Configs
-from ext.drops import StarPowder
 from ext.modmail import get_modmail_blacklist
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
@@ -15,6 +14,7 @@ from util.emojis import Emojis
 from util.logger import DcLog
 from util.misc import split_to_fields
 from util.sql import SQL
+from util.starpowder import StarPowder
 from whistle import EventDispatcher
 
 
