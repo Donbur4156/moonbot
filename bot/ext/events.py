@@ -24,7 +24,7 @@ class EventClass(di.Extension):
     @listen()
     async def on_startup(self):
         self._logger.info("Interactions are online!")
-        self.create_vote_message.start()
+        # self.create_vote_message.start()
         self.set_wlc_msgs()
         self._dispatcher.add_listener("wlcmsgs_update", self.set_wlc_msgs)
 
