@@ -135,7 +135,7 @@ class SelfRoles(di.Extension):
                                sub_cmd_description="Erstellt selfrole Post für Boost Icons Rollen.")
     @channel_option()
     async def selfroles_boosticons(self, ctx: di.SlashContext, channel: di.TYPE_GUILD_CHANNEL):
-        text = f"{Emojis.aww} | __**Booster Icons:**__\n\n{Emojis.arrow_r} " \
+        text = f"{Emojis.minecraft} | __**Booster Icons:**__\n\n{Emojis.arrow_r} " \
             f"Hier könnt ihr euch ein Rollen Icon aussuchen, was hinter eurem Namen im Chat angezeigt wird.\n" \
             f"(Es wird auch immer nur 1 Icon angezeigt! Die anderen werden entfernt.)"
         components = self.boostroles.get_components_icons(tag="boost_icons_self")
@@ -152,7 +152,7 @@ class SelfRoles(di.Extension):
             await ctx.send(embed=embed, ephemeral=True)
 
     async def check_booster(self, ctx: di.ComponentContext):
-        if ctx.member.has_role(self.role_boost): 
+        if ctx.member.has_role(self.role_boost) or self._client.ext['DevClass']._is_dev(ctx.user):
             return True
 
         text = f"> Hey, um dir eine Farbe oder ein Rollenicon auszusuchen, musst du {self.role_boost.mention} sein.\n" \

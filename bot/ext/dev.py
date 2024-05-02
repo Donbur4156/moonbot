@@ -5,6 +5,7 @@ import interactions as di
 import config as c
 from configs import Configs
 from interactions import SlashCommand, slash_option, listen
+from interactions.api.events import GuildJoin
 from whistle import EventDispatcher
 
 
@@ -15,20 +16,22 @@ class DevClass(di.Extension):
         self._logger: logging.Logger = kwargs.get("logger")
         self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
 
+    def _is_dev(self, user: di.User):
+        return user.id == self.dev_user.id
+
     @listen()
     async def on_startup(self):
+        self.dev_user: di.User = await self._client.fetch_user(c.donbur)
         for guild in self._client.guilds:
             if int(guild.id) not in c.server_whitelist:
-                donbur = await self._client.fetch_user(c.donbur)
-                await donbur.send(f"Moon Bot hat den Server {guild.name} ({guild.id}) verlassen.\nDieser ist nicht auf der Whitelist.")
+                await self.dev_user.send(f"Moon Bot hat den Server {guild.name} ({guild.id}) verlassen.\nDieser ist nicht auf der Whitelist.")
                 await guild.leave()
 
-    @listen("GuildJoin")
+    @listen(GuildJoin)
     async def onguildjoin(self, event: di.events.GuildJoin):
         if not self._client.is_ready: return
         guild = event.guild
-        donbur = await self._client.fetch_user(c.donbur)
-        await donbur.send(f"Der Moon Bot ist dem Server **{guild.name}** ({guild.id}) beigetreten.")
+        await self.dev_user.send(f"Der Moon Bot ist dem Server **{guild.name}** ({guild.id}) beigetreten.")
             
 
     devCmds = SlashCommand(name="dev", description="developer Commands", scopes=[1009456838615507005])
