@@ -151,7 +151,6 @@ class AdminCmds(di.Extension):
             {"name": "Engel", "value": "engel"},
             {"name": "Jubiläums Rolle", "value": "jub_role"},
             {"name": "Giveaway +", "value": "giveaway_plus"},
-            {"name": "Volunteers", "value": "volunteers"},
         ]
         roles_special = [
             {"name": "Boost Color Blau", "value": "boost_col_blue"},
@@ -254,7 +253,6 @@ class AdminCmds(di.Extension):
             di.SlashCommandChoice(name="Developer", value="developer"),
             di.SlashCommandChoice(name="Team", value="mod"),
             di.SlashCommandChoice(name="Eventmanager", value="eventmanager"),
-            di.SlashCommandChoice(name="Volunteers", value="volunteers"),
         ],
         opt_type=di.OptionType.STRING,
         required=True,

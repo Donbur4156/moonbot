@@ -100,7 +100,6 @@ class Modmail(di.Extension):
         match callback:
             case "close": await self.callback_close(ctx)
             case "block": await self.ticket_block(ctx)
-            case "volunteers": await self.open_volunteers(ctx)
             case "admin": await self.ticket_admin(ctx)
     
     async def callback_close(self, ctx: di.ComponentContext):
@@ -122,23 +121,6 @@ class Modmail(di.Extension):
 
         reason = "Für Modmail gesperrt"
         await self.close_mail(ctx=ctx, reason=reason, blocked=True)
-
-    async def open_volunteers(self, ctx: di.ComponentContext):
-        #TODO: disable Button after using
-        if not await self._check_perms(ctx): return False
-        volunteer_role = await self._config.get_role("volunteers")
-        if not volunteer_role:
-            await ctx.send("Die Volunteer Rolle wurde noch nicht festgelegt.")
-            return False
-        await ctx.channel.add_permission(
-            target=volunteer_role,
-            allow=[
-                di.Permissions.SEND_MESSAGES,
-                di.Permissions.VIEW_CHANNEL
-            ],
-            reason="open ticket for volunteers",
-        )
-        await ctx.send(f"Dieses Ticket wurde durch {ctx.user.mention} für {volunteer_role.mention} freigegeben.")
 
     async def ticket_admin(self, ctx: di.ComponentContext):
         if not await self._check_adminperms(ctx): return False
@@ -215,8 +197,6 @@ class Modmail(di.Extension):
                       emoji=Emojis.utility_8, custom_id="tickets_close"),
             di.Button(style=di.ButtonStyle.BLUE, label="User sperren",
                       emoji=Emojis.spam, custom_id="tickets_block"),
-            di.Button(style=di.ButtonStyle.GREEN, label="für Volunteer freigeben",
-                      emoji=Emojis.utility_4, custom_id="tickets_volunteers"),
             di.Button(style=di.ButtonStyle.GREEN, label="Admin Ticket",
                       emoji=Emojis.security, custom_id="tickets_admin")
         ) if msg else None
