@@ -6,7 +6,7 @@ import uuid
 import interactions as di
 from configs import Configs
 from ext.drop_list import (BoostColResponse, Drop, Drop_BoostColor, Drop_Emoji,
-                           Drop_StarPowder, Drop_VIP_Rank, EmojiResponse)
+                           Drop_StarPowder, Drop_VIP_Rank, EmojiResponse, UniqueRoleResponse)
 from interactions import IntervalTrigger, Task, listen, slash_option
 from interactions.api.events import MessageCreate
 from util import Colors, Emojis, StarPowder
@@ -197,4 +197,5 @@ class Drops:
 def setup(client, **kwargs):
     DropsHandler(client, **kwargs)
     BoostColResponse(client, **kwargs)
+    UniqueRoleResponse(client, **kwargs)
     EmojiResponse(client, **kwargs)
