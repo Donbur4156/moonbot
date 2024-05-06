@@ -1,20 +1,15 @@
-import logging
 import tempfile
 
-import interactions as di
 import config as c
-from configs import Configs
-from interactions import SlashCommand, slash_option, listen
+import interactions as di
+from interactions import SlashCommand, listen, slash_option
 from interactions.api.events import GuildJoin
-from whistle import EventDispatcher
+from util import CustomExt
 
 
-class DevClass(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
+class DevClass(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
 
     def _is_dev(self, user: di.User):
         return user.id == self.dev_user.id

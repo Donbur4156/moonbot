@@ -1,23 +1,17 @@
 import asyncio
-import logging
 from datetime import datetime
 
-import config as c
 import interactions as di
-from configs import Configs
 from interactions import Task, TimeTrigger, listen, slash_command, slash_option
 from interactions.api.events import MessageCreate
-from util import Colors, Emojis, get_roles_from_json, get_streak_from_json, DcUser, SQL
-from whistle import Event, EventDispatcher
+from util import (Colors, CustomExt, DcUser, Emojis, get_roles_from_json,
+                  get_streak_from_json)
+from whistle import Event
 
 
-class MsgXP(di.Extension):
-    def __init__(self, client:di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self._SQL = SQL(database=c.database)
+class MsgXP(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self._streak_roles:dict[str] = get_roles_from_json()
         self._get_storage()
         self._msgtypes_subs = (
@@ -26,7 +20,6 @@ class MsgXP(di.Extension):
             di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_2,
             di.MessageType.USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_3,
         )
-    
 
     @listen()
     async def on_startup(self):
@@ -85,16 +78,16 @@ class MsgXP(di.Extension):
 
     def _add_boost(self, member_id: int):
         boost_amount = 1
-        boost_sql = self._SQL.execute(
+        boost_sql = self._sql.execute(
             stmt="SELECT amount FROM booster WHERE user_ID=?", 
             var=(member_id,)).data_single
         if boost_sql and boost_sql[0]:
             boost_amount += int(boost_sql[0])
-            self._SQL.execute(
+            self._sql.execute(
                 stmt="UPDATE booster SET amount=? WHERE user_ID=?", 
                 var=(boost_amount, member_id,))
         else:
-            self._SQL.execute(
+            self._sql.execute(
                 stmt="INSERT INTO booster (user_ID, amount) VALUES (?, ?)", 
                 var=(member_id, boost_amount,))
         return boost_amount
@@ -146,7 +139,7 @@ class MsgXP(di.Extension):
 
 
     def _get_storage(self):
-        self._storage = self._SQL.execute(stmt="SELECT * FROM msgrewards").data_all
+        self._storage = self._sql.execute(stmt="SELECT * FROM msgrewards").data_all
         self._userlist = {s[0]:User(data=s) for s in self._storage}
 
     def add_msg(self, msg: di.Message):
@@ -156,7 +149,7 @@ class MsgXP(di.Extension):
         user:User = self._userlist.get(user_id)
         if (user.last_msg + 5) > msg.timestamp.timestamp(): return False
         user.counter_msgs +=1
-        self._SQL.execute(
+        self._sql.execute(
             stmt="UPDATE msgrewards SET counter_msgs=? WHERE user_ID=?", 
             var=(user.counter_msgs, user_id,))
         user.last_msg = msg.timestamp.timestamp()
@@ -180,7 +173,7 @@ class MsgXP(di.Extension):
         streak_data = get_streak_from_json(user.counter_days)
         if streak_data:
             user.streak = streak_data
-        self._SQL.execute(
+        self._sql.execute(
             stmt="UPDATE msgrewards SET streak=?, counter_days=?, last_day=?, expired=? WHERE user_ID=?", 
             var=(user.streak, user.counter_days, user.last_day, user.expired, user_id,))
         
@@ -206,21 +199,21 @@ class MsgXP(di.Extension):
         return member.has_role(self.role_boost)
 
     def _add_user(self, user_id:int):
-        self._SQL.execute(stmt="INSERT INTO msgrewards(user_ID) VALUES (?)", var=(user_id,))
+        self._sql.execute(stmt="INSERT INTO msgrewards(user_ID) VALUES (?)", var=(user_id,))
         self._userlist[user_id] = User(data=[user_id,0,0,0,"",0])
 
     async def _reset(self):
-        self._SQL.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
+        self._sql.execute(stmt="UPDATE msgrewards SET counter_msgs=0")
         
         today = datetime.now().date()
-        user_data = self._SQL.execute(stmt="SELECT * FROM msgrewards WHERE expired=0").data_all
+        user_data = self._sql.execute(stmt="SELECT * FROM msgrewards WHERE expired=0").data_all
         user_list = [User(u) for u in user_data]
         for user in user_list:
             if not user.last_day: continue
             if (today - user.last_day_dt).days > 1:
                 dcuser = await DcUser(bot=self._client, dc_id=user.id)
                 await self._remove_roles(dcuser.member)
-                self._SQL.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user.id,))
+                self._sql.execute(stmt="UPDATE msgrewards SET expired=1 WHERE user_ID=?", var=(user.id,))
         self._get_storage()
 
     async def _remove_roles(self, member: di.Member):

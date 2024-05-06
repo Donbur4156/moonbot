@@ -1,28 +1,21 @@
 import asyncio
-import logging
 import random
 import uuid
 
 import interactions as di
-from configs import Configs
 from ext.drop_list import (BoostColResponse, Drop, Drop_BoostColor, Drop_Emoji,
                            Drop_StarPowder, Drop_VIP_Rank, EmojiResponse,
                            UniqueRoleResponse)
 from interactions import IntervalTrigger, Task, listen, slash_option
 from interactions.api.events import MessageCreate
-from util import Colors, DcLog, Emojis, StarPowder
-from whistle import EventDispatcher
+from util import Colors, CustomExt, Emojis, StarPowder
 
 
-class DropsHandler(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client: di.Client = client
-        self._config: Configs = kwargs.get("config")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
-        self._logger: logging.Logger = kwargs.get("logger")
+class DropsHandler(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self._kwargs = kwargs
         self.drops = Drops()
-        self._dclog: DcLog = kwargs.get("dc_log")
 
 
     @listen()

@@ -13,3 +13,5 @@ from .misc import (callback_unsupported, check_ephemeral, create_emoji,
                    has_any_role, split_to_fields)
 from .objects import DcUser
 from .starpowder import StarPowder
+
+from .custom_extension import CustomExt

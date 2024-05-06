@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import random
 from datetime import datetime, timezone
 from typing import Union
@@ -12,23 +11,19 @@ from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs import Configs
 from interactions import SlashCommand, component_callback, listen
-from util import Colors, Emojis, disable_components, fetch_message, DcUser, SQL
-from whistle import EventDispatcher
+from util import (SQL, Colors, CustomExt, DcUser, Emojis, disable_components,
+                  fetch_message)
 
 
-class Giveaways(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client: di.Client = client
-        self._config: Configs = kwargs.get("config")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self.sql = SQL(database=c.database)
+class Giveaways(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self.giveaways: dict[int, Giveaway] = {}
         self.giveaways_running: dict[int, Giveaway] = {}
         self.schedule = AsyncIOScheduler(timezone="Europe/Berlin")
         self._sched_activ: dict[int, dict[str, str]] = {}
         self.permitted_roles: set[int] = []
-   
+
     @listen()
     async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
@@ -52,7 +47,7 @@ class Giveaways(di.Extension):
         return False
     
     async def get_running_giveaways(self):
-        data = self.sql.execute(
+        data = self._sql.execute(
             stmt = "SELECT * FROM giveaways WHERE closed=0"
         ).data_all
         self.giveaways = {
@@ -361,7 +356,7 @@ class Giveaways(di.Extension):
         id = int(ctx.message.id)
         return self.giveaways.get(id) or self.giveaways_running.get(id)
 
-
+#TODO: ref Giveaway Class
 class Giveaway:
     def __init__(self, client: di.Client, config: Configs, id: int = None, data: list = None) -> None:
         self._client = client

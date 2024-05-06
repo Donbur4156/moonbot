@@ -3,7 +3,7 @@ import interactions as di
 import nest_asyncio
 from configs import Configs
 from interactions import Activity, ActivityType, Intents, listen
-from util import DcLog, create_logger
+from util import DcLog, create_logger, SQL
 from whistle import EventDispatcher
 
 nest_asyncio.apply()
@@ -35,6 +35,7 @@ client = di.Client(token=TOKEN, intents=intents, activity=pres,
 dispatcher = EventDispatcher()
 config: Configs = Configs(client=client, dispatcher=dispatcher)
 dc_logger : DcLog = DcLog(client=client, dispatcher=dispatcher, config=config)
+sql = SQL(database=c.database)
 
 util_kwargs = {
     "_client": client,
@@ -42,6 +43,7 @@ util_kwargs = {
     "config": config,
     "logger": moon_logger,
     "dc_log": dc_logger,
+    "sql": sql
 }
 extensions = [
     "dev",

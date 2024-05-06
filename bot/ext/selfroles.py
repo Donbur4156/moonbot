@@ -1,20 +1,16 @@
 import re
 from datetime import datetime, timedelta
-from logging import Logger
 
 import config as c
 import interactions as di
-from configs import Configs
 from interactions import (SlashCommand, component_callback, listen,
                           slash_command)
-from util import BoostRoles, Colors, Emojis, channel_option
+from util import BoostRoles, Colors, CustomExt, Emojis, channel_option
 
 
-class SelfRoles(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._logger: Logger = kwargs.get("logger")
+class SelfRoles(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self.cooldown: datetime = None
         self.boostroles = BoostRoles(**kwargs)
 

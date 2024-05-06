@@ -1,25 +1,19 @@
-import logging
 import random
 
 import config as c
 import interactions as di
-from configs import Configs
 from ext.welcomemsgs import read_txt
 from interactions import (ContextMenuContext, IntervalTrigger, OrTrigger, Task,
                           TimeTrigger, listen, user_context_menu)
-from interactions.api.events import MemberAdd, MemberRemove, MemberUpdate, NewThreadCreate
-from util import Colors, Emojis, DcUser, SQL
-from whistle import EventDispatcher
+from interactions.api.events import (MemberAdd, MemberRemove, MemberUpdate,
+                                     NewThreadCreate)
+from util import Colors, CustomExt, DcUser, Emojis
 
 
-class EventClass(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
+class EventClass(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self.joined_member: dict[int, DcUser] = {}
-        self.sql = SQL(database=c.database)
 
     @listen()
     async def on_startup(self):
@@ -92,11 +86,9 @@ class EventClass(di.Extension):
         await channel.send(embed=embed)
 
 
-class PendingMember(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._logger: logging.Logger = kwargs.get("logger")
-        self.sql = SQL(database=c.database)
+class PendingMember(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self.tmp_membercheck: set[int] = {}
         self.new_members: set[int] = {}
 
@@ -109,7 +101,7 @@ class PendingMember(di.Extension):
         self.new_members = {
             member[0] 
             for member 
-            in self.sql.execute(stmt = "SELECT user_id FROM new_members").data_all
+            in self._sql.execute(stmt = "SELECT user_id FROM new_members").data_all
         }
 
     # @listen()
@@ -117,7 +109,7 @@ class PendingMember(di.Extension):
         if int(event.guild.id) != c.serverid: return False
         member = event.member
         if member.pending:
-            self.sql.execute(stmt="INSERT INTO new_members(user_id) VALUES (?)", var=(int(member.id),))
+            self._sql.execute(stmt="INSERT INTO new_members(user_id) VALUES (?)", var=(int(member.id),))
             self.new_members.add(int(member.id))
         else:
             await self.add_default_roles(member)
@@ -128,7 +120,7 @@ class PendingMember(di.Extension):
         self.del_new_member(int(event.member.id))
 
     def del_new_member(self, member_id: int):
-        self.sql.execute(stmt="DELETE FROM new_members WHERE user_id=?", var=(member_id,))
+        self._sql.execute(stmt="DELETE FROM new_members WHERE user_id=?", var=(member_id,))
         self.new_members.discard(member_id)
     
     # @listen()

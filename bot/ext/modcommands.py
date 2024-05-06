@@ -1,26 +1,19 @@
 import asyncio
-import logging
 
-import config as c
 import interactions as di
-from configs import Configs
 from ext.modmail import get_modmail_blacklist
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
 from interactions.ext.paginators import Paginator
-from util import (SQL, Colors, DcLog, Emojis, StarPowder, role_option,
+from util import (Colors, CustomExt, Emojis, StarPowder, role_option,
                   split_to_fields, user_option)
-from whistle import EventDispatcher
 
 
 #TODO: Willkommensnachricht mit aktuellem Event erweitern per Admin Command
-class AdminCmds(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self._dclog: DcLog = kwargs.get("dc_log")
+class AdminCmds(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
+
 
     @listen()
     async def on_startup(self):
@@ -357,14 +350,9 @@ class AdminCmds(di.Extension):
         await ctx.send(f"Typ: {type}\nWert: {special}")
 
 
-class ModCmds(di.Extension):
+class ModCmds(CustomExt):
     def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self._SQL = SQL(database=c.database)
-        self._dclog: DcLog = kwargs.get("dc_log")
+        super().__init__(client, **kwargs)
 
     @listen()
     async def on_startup(self):
@@ -392,9 +380,9 @@ class ModCmds(di.Extension):
     @mod_cmds.subcommand(sub_cmd_name="remove_blacklist", sub_cmd_description="Entfernt einen User von der Modmail Blacklist")
     @user_option()
     async def remove_blacklist(self, ctx: di.SlashContext, user: di.Member):
-        blocked_user = [u[0] for u in self._SQL.execute(stmt="SELECT * FROM tickets_blacklist").data_all]
+        blocked_user = [u[0] for u in self._sql.execute(stmt="SELECT * FROM tickets_blacklist").data_all]
         if int(user.id) in blocked_user:
-            self._SQL.execute(stmt="DELETE FROM tickets_blacklist WHERE user_id=?", var=(int(user.id),))
+            self._sql.execute(stmt="DELETE FROM tickets_blacklist WHERE user_id=?", var=(int(user.id),))
             self._dispatcher.dispatch("storage_update")
             await ctx.send(f"> Der User {user.mention} wurde von der Ticket Blacklist gelöscht.")
             await self._dclog.warn(ctx=ctx, head="Modmail Blacklist: Remove", change_cat=user.mention, val_new="User von Blacklist gelöscht")

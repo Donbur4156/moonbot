@@ -1,24 +1,16 @@
 import asyncio
-import logging
 
 import config as c
 import interactions as di
-from configs import Configs
 from interactions import listen
 from interactions.api.events import PresenceUpdate
-from util import SQL
-from whistle import EventDispatcher
+from util import CustomExt
 
 
-class StatusReward(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self._SQL = SQL(database=c.database)
+class StatusReward(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self._get_storage()
-
 
     @listen()
     async def on_startup(self):
@@ -34,7 +26,7 @@ class StatusReward(di.Extension):
 
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
-        self._storage = self._SQL.execute(stmt="SELECT * FROM statusrewards").data_all
+        self._storage = self._sql.execute(stmt="SELECT * FROM statusrewards").data_all
         self._storage_user = [stor[0] for stor in self._storage]
     
     @listen(delay_until_ready=True)
@@ -50,14 +42,14 @@ class StatusReward(di.Extension):
         member = await self._guild.fetch_member(member_id=user_id)
         await member.add_role(role=self._moon_role)
         self._logger.info(f"STATUSREW/add Moon Role/{member.user.username} ({member.id})")
-        self._SQL.execute(stmt="INSERT INTO statusrewards(user_ID) VALUES(?)", var=(member.id,))
+        self._sql.execute(stmt="INSERT INTO statusrewards(user_ID) VALUES(?)", var=(member.id,))
         self._get_storage()
 
     async def remove_moonrole(self, user_id: int):
         member = await self._guild.fetch_member(member_id=user_id)
         await member.remove_role(role=self._moon_role)
         self._logger.info(f"STATUSREW/remove Moon Role/{member.user.username} ({member.id})")
-        self._SQL.execute(stmt="DELETE FROM statusrewards WHERE user_ID=?", var=(member.id,))
+        self._sql.execute(stmt="DELETE FROM statusrewards WHERE user_ID=?", var=(member.id,))
         self._get_storage()
 
     def _check_moonpres(self, event: PresenceUpdate):

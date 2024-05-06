@@ -1,18 +1,15 @@
-import logging
 from datetime import datetime
 
-import config as c
 import interactions as di
 from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from configs import Configs
 from interactions import listen, slash_option
-from util import Colors, reminderid_option, time_option, SQL
+from util import SQL, Colors, CustomExt, reminderid_option, time_option
 
 
 class SQLFUNCS:
-    def __init__(self) -> None:
-        self.sql = SQL(database=c.database)
+    def __init__(self, sql: SQL) -> None:
+        self.sql = sql
 
     def add_mention_role(self, id: int, role_id: int):
         stmt = "INSERT INTO sched_mentions(id, ment_type, ment_id) VALUES (?, 'role', ?)"
@@ -73,13 +70,11 @@ class SQLFUNCS:
     def get_sched_list(self):
         return self.sql.execute(stmt="SELECT * FROM sched_list").data_all
 
-class Schedule(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._logger: logging.Logger = kwargs.get("logger")
+class Schedule(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self._schedule = AsyncIOScheduler(timezone="Europe/Berlin")
-        self.sql = SQLFUNCS()
+        self.sql_funcs = SQLFUNCS(self._sql)
         self.add_ext_check(self._check)
 
     async def _check(self, ctx: di.InteractionContext, *args, **kwargs) -> bool:
@@ -95,7 +90,7 @@ class Schedule(di.Extension):
         self.channel = await self._config.get_channel("schedule")
         if not self.channel: return
         self._sched_activ: dict[int, dict[str, str]] = {}
-        for s in self.sql.get_sched_list():
+        for s in self.sql_funcs.get_sched_list():
             self.add_schedule(id=s[0], timestamp=s[2])
         self._schedule.start()
 
@@ -116,7 +111,7 @@ class Schedule(di.Extension):
         if not job_id: return False
         self._schedule.modify_job(job_id=job_id, next_run_time=t)
         self._sched_activ[id]['timestamp'] = timestamp
-        self.sql.mod_schedule_time(id=id, timestamp=timestamp)
+        self.sql_funcs.mod_schedule_time(id=id, timestamp=timestamp)
         return True
 
 
@@ -131,7 +126,7 @@ class Schedule(di.Extension):
         self._del_schedule(id=id)
 
     def _del_schedule(self, id:int):
-        self.sql.del_schedule(id=id)
+        self.sql_funcs.del_schedule(id=id)
         job_data = self._sched_activ.pop(id, None)
         if not job_data: return
         job_id = job_data.get("job_id", None)
@@ -144,17 +139,17 @@ class Schedule(di.Extension):
             text: str, time: str, channel: di.TYPE_GUILD_CHANNEL, 
             ment_role: di.Role, ment_user: di.Member):
         channel_id = int(channel.id) if channel else 0
-        insert_id = self.sql.add_schedule(text, time, channel_id)
-        if ment_role: self.sql.add_mention_role(id=insert_id, role_id=int(ment_role.id))
-        if ment_user: self.sql.add_mention_user(id=insert_id, user_id=int(ment_user.id))
+        insert_id = self.sql_funcs.add_schedule(text, time, channel_id)
+        if ment_role: self.sql_funcs.add_mention_role(id=insert_id, role_id=int(ment_role.id))
+        if ment_user: self.sql_funcs.add_mention_user(id=insert_id, user_id=int(ment_user.id))
         return insert_id
     
 
     async def _get_allatts_sql(self, id:int):
-        roles = self.sql.get_roles(id)
-        users = self.sql.get_users(id)
-        rem_text: str = self.sql.get_text(id)[0]
-        channel_id = self.sql.get_channel(id)[0]
+        roles = self.sql_funcs.get_roles(id)
+        users = self.sql_funcs.get_users(id)
+        rem_text: str = self.sql_funcs.get_text(id)[0]
+        channel_id = self.sql_funcs.get_channel(id)[0]
         channel = self.channel if channel_id == 0 else await self._client.fetch_channel(channel_id)
         return channel, roles, users, rem_text
     
@@ -208,7 +203,7 @@ class Schedule(di.Extension):
         required=True,
     ) #text
     async def reminder_changetext(self, ctx: di.SlashContext, id:int, text: str):
-        self.sql.mod_schedule_text(id=id, text=text)
+        self.sql_funcs.mod_schedule_text(id=id, text=text)
         await ctx.send(f"Neuer Text für Reminder {id}:\n`{text}`")
         self._logger.info(f"REMINDER/{id}/set new Text/ {text}")
 
@@ -219,7 +214,7 @@ class Schedule(di.Extension):
         required=True,
     ) #channel
     async def reminder_changechannel(self, ctx: di.SlashContext, id:int, channel: di.BaseChannel):
-        self.sql.mod_schedule_channel(id=id, channel_id=int(channel.id))
+        self.sql_funcs.mod_schedule_channel(id=id, channel_id=int(channel.id))
         await ctx.send(f"Neuer Channel für Reminder {id}:\n{channel.mention}")
         self._logger.info(f"REMINDER/{id}/set new Channel/ {channel.id}")
     
@@ -230,7 +225,7 @@ class Schedule(di.Extension):
         required=True,
     ) #role
     async def reminder_addroles(self, ctx: di.SlashContext, id: int, role: di.Role):
-        self.sql.add_mention_role(id=id, role_id=int(role.id))
+        self.sql_funcs.add_mention_role(id=id, role_id=int(role.id))
         await ctx.send(embed=di.Embed(title=f"Dem Reminder {id} wurden hinzugefügt:", description=f"**Rolle:** {role.mention}"))
         self._logger.info(f"REMINDER/{id}/add Role/ {role.id}")
 
@@ -241,7 +236,7 @@ class Schedule(di.Extension):
         required=True,
     ) #user
     async def reminder_adduser(self, ctx: di.SlashContext, id: int, user: di.User):
-        if user: self.sql.add_mention_user(id=id, user_id=int(user.id))
+        if user: self.sql_funcs.add_mention_user(id=id, user_id=int(user.id))
         await ctx.send(embed=di.Embed(title=f"Dem Reminder {id} wurden hinzugefügt:", description=f"**User:** {user.mention}\n"))
         self._logger.info(f"REMINDER/{id}/add User/ {user.id}")
         
@@ -252,7 +247,7 @@ class Schedule(di.Extension):
         required=True,
     ) #role
     async def reminder_delroles(self, ctx: di.SlashContext, id: int, role: di.Role):
-        if role: self.sql.del_mention_role(id=id, role_id=int(role.id))
+        if role: self.sql_funcs.del_mention_role(id=id, role_id=int(role.id))
         await ctx.send(embed=di.Embed(title=f"Rollen für Reminder {id} entfernt:", description=f"**Rolle:** {role.mention}"))
         self._logger.info(f"REMINDER/{id}/del Role/ {role.id}")
 
@@ -263,7 +258,7 @@ class Schedule(di.Extension):
         required=True,
     ) #user
     async def reminder_deluser(self, ctx: di.SlashContext, id: int, user: di.User):
-        if user: self.sql.del_mention_user(id=id, user_id=int(user.id))
+        if user: self.sql_funcs.del_mention_user(id=id, user_id=int(user.id))
         await ctx.send(embed=di.Embed(title=f"User für Reminder {id} entfernt:", description=f"**User:** {user.mention}"))
         self._logger.info(f"REMINDER/{id}/del User/ {user.id}")
         

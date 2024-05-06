@@ -1,20 +1,14 @@
-import logging
 import os
 
 import config as c
 import interactions as di
-from configs import Configs
 from interactions import SlashCommand, slash_option
-from util import download
-from whistle import EventDispatcher
+from util import CustomExt, download
 
 
-class WelcomeMsgs(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
-        self._logger: logging.Logger = kwargs.get("logger")
+class WelcomeMsgs(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
 
     msg_cmds = SlashCommand(name="welcomemsgs", description="Commands für die Willkommensnachrichten", dm_permission=False)
 
@@ -45,7 +39,6 @@ def read_txt():
         lines = file.readlines()
         return ["".join(line).rstrip() for line in zip(lines[::2],lines[1::2])]
 
-    
 
 def setup(client: di.Client, **kwargs):
     WelcomeMsgs(client, **kwargs)

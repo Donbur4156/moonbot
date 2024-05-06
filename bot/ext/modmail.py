@@ -1,24 +1,19 @@
 import asyncio
-import logging
 import re
 
 import config as c
 import interactions as di
-from configs import Configs
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
 from interactions.api.events import MessageCreate
-from util import Colors, user_option, Emojis, download, has_any_role, DcUser, SQL
-from whistle import EventDispatcher
+from util import (SQL, Colors, CustomExt, DcUser, Emojis, download,
+                  has_any_role, user_option)
 
 
-class Modmail(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._dispatcher: EventDispatcher = kwargs.get("dispatcher")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self._SQL = SQL(database=c.database)
+class Modmail(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
+
 
     @listen()
     async def on_startup(self):
@@ -76,7 +71,7 @@ class Modmail(di.Extension):
         except:
             await channel.delete(reason="Ticket geschlossen; User erlaubt keine DM")
             await ctx.send(f"Das Ticket konnte nicht erstellt werden, da der User {user.mention} keine DMs erlaubt.")
-            self._SQL.execute(stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
+            self._sql.execute(stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
             self._get_storage()
             return False
         await ctx.send(f"Das Ticket wurde erfolgreich erstellt. {channel.mention}")
@@ -116,7 +111,7 @@ class Modmail(di.Extension):
 
     async def ticket_block(self, ctx: di.ComponentContext):
         user_id = self._get_userid_bychannel(channel_id=int(ctx.channel.id))
-        self._SQL.execute(stmt="INSERT INTO tickets_blacklist(user_id) VALUES (?)", var=(user_id,))
+        self._sql.execute(stmt="INSERT INTO tickets_blacklist(user_id) VALUES (?)", var=(user_id,))
         self._user_blacklist.append(user_id)
 
         reason = "Für Modmail gesperrt"
@@ -150,7 +145,7 @@ class Modmail(di.Extension):
 
     def _get_storage(self):
         #Liest Speicher aus und überführt in Cache
-        self._storage = self._SQL.execute(stmt="SELECT * FROM tickets").data_all
+        self._storage = self._sql.execute(stmt="SELECT * FROM tickets").data_all
         self._storage_user: list[int] = [stor[1] for stor in self._storage]
         self._storage_channel: list[int] = [stor[2] for stor in self._storage]
         self._user_blacklist: list[int] = get_modmail_blacklist()
@@ -179,7 +174,7 @@ class Modmail(di.Extension):
             reason=f"Create Ticket Channel for {member.username}",
         )
         self._logger.info(f"MODMAIL/CREATE/{member.id}: '{member.user.username}'")
-        self._SQL.execute(
+        self._sql.execute(
             stmt="INSERT INTO tickets(user_ID, channel_ID) VALUES (?, ?)",
             var=(dcuser.dc_id, int(channel.id),))
         self._get_storage()
@@ -298,11 +293,11 @@ class Modmail(di.Extension):
             return
         user_id = self._get_userid_bychannel(channel_id=ctx.channel_id)
         dcuser = await DcUser(bot=self._client, dc_id=int(user_id))
-        self._SQL.execute(stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
+        self._sql.execute(stmt="DELETE FROM tickets WHERE channel_ID=?", var=(int(ctx.channel_id),))
         self._get_storage()
 
         if log:
-            ticket_id = self._SQL.execute(
+            ticket_id = self._sql.execute(
                 stmt="INSERT INTO tickets_closed(user_ID) VALUES (?)",
                 var=(dcuser.dc_id,)).lastrowid
             filepath = c.logdir

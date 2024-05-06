@@ -1,21 +1,16 @@
-import logging
 from datetime import datetime
 
 import config as c
 import interactions as di
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from configs import Configs
 from interactions import listen, slash_command
 from interactions.api.events import MemberAdd, MemberRemove
-from util import Emojis, SQL
+from util import SQL, CustomExt, Emojis
 
 
-class Milestones(di.Extension):
-    def __init__(self, client: di.Client, **kwargs) -> None:
-        self._client = client
-        self._config: Configs = kwargs.get("config")
-        self._logger: logging.Logger = kwargs.get("logger")
-        self._SQL = SQL(database=c.database)
+class Milestones(CustomExt):
+    def __init__(self, client, **kwargs) -> None:
+        super().__init__(client, **kwargs)
         self.member_count = 0
         self._schedule = AsyncIOScheduler(timezone="Europe/Berlin")
 
@@ -53,7 +48,7 @@ class Milestones(di.Extension):
 
     def generate_member_ms(self):
         stmt = "SELECT name, count, timestamp FROM milestones WHERE type='members' ORDER BY count"
-        member_ms = self._SQL.execute(stmt=stmt).data_all
+        member_ms = self._sql.execute(stmt=stmt).data_all
         self.member_ms = [MilestoneMembers(name=ms[0], membercount=ms[1], dc_timestamp=ms[2]) 
                           for ms in member_ms]
         self.member_ms_next = list(filter(lambda x: (not x.dc_timestamp), self.member_ms))[0]
@@ -101,7 +96,7 @@ class Milestones(di.Extension):
 
 class MilestoneMembers():
     def __init__(self, membercount: int, name: str = None, dc_timestamp: int = None) -> None:
-        self._SQL = SQL(database=c.database)
+        self._sql = SQL(database=c.database)
         self.name = name
         self.membercount = membercount
         self.dc_timestamp = dc_timestamp
@@ -120,12 +115,11 @@ class MilestoneMembers():
         self.dc_timestamp = timestamp or int(datetime.now().timestamp())
         stmt = "UPDATE milestones SET timestamp=? WHERE count=?"
         var = (self.dc_timestamp, self.membercount,)
-        self._SQL.execute(stmt=stmt, var=var)
+        self._sql.execute(stmt=stmt, var=var)
 
 
 class MilestoneBirthday():
     def __init__(self, name: str, dc_timestamp: int) -> None:
-        self._SQL = SQL(database=c.database)
         self.name = name
         self.dc_timestamp = dc_timestamp
 
