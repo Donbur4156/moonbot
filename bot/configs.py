@@ -1,4 +1,4 @@
-from configparser import ConfigParser
+from configparser import ConfigParser, SectionProxy
 
 import config as c
 import interactions as di
@@ -57,20 +57,19 @@ class Configs():
     def get_special(self, name: str) -> int:
         return self.specials.getint(name, fallback=None)
     
-    def set_role(self, name: str, id: str) -> None:
-        self.roles[name] = id
-        self._write_config()
-        self._dispatch_update()
-    
-    def set_channel(self, name: str, id: str) -> None:
-        self.channel[name] = id
+    def set_att(self, att: SectionProxy, name: str, value: str) -> None:
+        att[name] = value
         self._write_config()
         self._dispatch_update()
 
+    def set_role(self, name: str, id: str) -> None:
+        self.set_att(self.roles, name, id)
+    
+    def set_channel(self, name: str, id: str) -> None:
+        self.set_att(self.channel, name, id)
+
     def set_special(self, name: str, value: str) -> None:
-        self.specials[name] = value
-        self._write_config()
-        self._dispatch_update()
+        self.set_att(self.specials, name, value)
 
     def _dispatch_update(self):
         self._dispatcher.dispatch("config_update")
