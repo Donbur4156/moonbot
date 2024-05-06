@@ -7,8 +7,8 @@ import interactions as di
 from configs import Configs
 from ext.drop_list import Drop
 from interactions import component_callback
-from util import (Colors, CustomRole, Emojis, StarPowder, check_ephemeral,
-                  disable_components)
+from util import (Colors, CustomRole, DcLog, Emojis, StarPowder,
+                  check_ephemeral, disable_components)
 
 
 class Drop_StarPowder(Drop):
@@ -55,6 +55,7 @@ class UniqueRoleResponse(di.Extension):
         self._client = client
         self._config: Configs = kwargs.get("config")
         self._logger: logging.Logger = kwargs.get("logger")
+        self._dclog: DcLog = kwargs.get("dc_log")
 
     @component_callback("customrole_create")
     async def create_button(self, ctx:di.ComponentContext):
@@ -128,8 +129,8 @@ class UniqueRoleResponse(di.Extension):
             return False
         customrole = CustomRole(id=int(ctx.custom_id[11:]))
         guild = await ctx.client.fetch_guild(guild_id=c.serverid)
-        member = await guild.fetch_member(member_id=customrole.user_id)
-        role = await guild.fetch_role(role_id=customrole.role_id)
+        member: di.Member = await guild.fetch_member(member_id=customrole.user_id)
+        role: di.Role = await guild.fetch_role(role_id=customrole.role_id)
         await member.add_role(role=role, reason="benutzerdefinierte Rolle")
         await ctx.edit_origin(components=[])
         await ctx.message.reply(f"Dem User {member.mention} wurde die Rolle {role.mention} zugewiesen.")
@@ -138,6 +139,12 @@ class UniqueRoleResponse(di.Extension):
             color=Colors.GREEN_WARM))
         self._logger.info(
             f"DROPS/CUSTOMROLE/allow role/Role: {role.name}; User: {member.id}; Admin: {ctx.user.id}")
+        await self._dclog.info(
+            head="Custom Rolle",
+            change_cat="Rolle genehmigt",
+            val_new=f"{role.mention} --> {member.mention}",
+            ctx=ctx,
+        )
 
     @component_callback(re.compile(r"deny_role_[0-9]+"))
     async def deny_role(self, ctx: di.ComponentContext):
@@ -145,7 +152,7 @@ class UniqueRoleResponse(di.Extension):
             await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
             return False
         customrole = CustomRole(id=int(ctx.custom_id[10:]))
-        guild = await ctx.client.fetch_guild(guild_id=c.serverid)
+        guild: di.Guild = await ctx.client.fetch_guild(guild_id=c.serverid)
         member = await guild.fetch_member(member_id=customrole.user_id)
         role = await guild.fetch_role(role_id=customrole.role_id)
         await ctx.edit_origin(components=[])
@@ -159,4 +166,10 @@ class UniqueRoleResponse(di.Extension):
         StarPowder().upd_starpowder(int(member.id), amount=2000)
         self._logger.info(
             f"DROPS/CUSTOMROLE/deny role/Role: {role.name}; User: {member.id}; Admin: {ctx.user.id}")
+        await self._dclog.warn(
+            head="Custom Rolle",
+            change_cat="Rolle abgelehnt",
+            val_new=f"{role.name} --> {member.mention}",
+            ctx=ctx,
+        )
         await role.delete()

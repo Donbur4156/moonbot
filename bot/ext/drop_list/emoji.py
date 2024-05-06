@@ -6,8 +6,8 @@ import interactions as di
 from configs import Configs
 from ext.drop_list import Drop
 from interactions import component_callback
-from util import (Colors, CustomEmoji, Emojis, check_ephemeral, create_emoji,
-                  disable_components, download, enable_component)
+from util import (Colors, CustomEmoji, DcLog, Emojis, check_ephemeral,
+                  create_emoji, disable_components, download, enable_component)
 
 
 class Drop_Emoji(Drop):
@@ -50,6 +50,7 @@ class EmojiResponse(di.Extension):
         self._config: Configs = kwargs.get("config")
         self._logger: logging.Logger = kwargs.get("logger")
         self.modal_cache: list[str] = []
+        self._dclog: DcLog = kwargs.get("dc_log")
 
     @component_callback("customemoji_create")
     async def create_button(self, ctx: di.ComponentContext):
@@ -94,8 +95,8 @@ class EmojiResponse(di.Extension):
         owner_role = await self._config.get_role("owner")
         admin_role = await self._config.get_role("admin")
         moonbot_role = await self._config.get_role("moonbot")
-        emoji = await create_emoji(client=self._client, name=name, image=image, 
-                                   roles=[owner_role, admin_role, moonbot_role])
+        roles = list(filter(None, [owner_role, admin_role, moonbot_role]))
+        emoji = await create_emoji(client=self._client, name=name, image=image, roles=roles)
         if not emoji:
             return await modal_ctx.send(
                 embed=di.Embed(
@@ -156,6 +157,12 @@ class EmojiResponse(di.Extension):
         await member.send(embed=di.Embed(
             description=f"Dein Emoji {emoji} wurde genehmigt! Viel Spaß! {Emojis.check}", 
             color=Colors.GREEN_WARM))
+        await self._dclog.info(
+            head="Custom Emoji",
+            change_cat="Emoji genehmigt",
+            val_new=f"{emoji} eingereicht von {member.mention}",
+            ctx=ctx,
+        )
         chat = await self._config.get_channel("chat")
         await chat.send(
             f"Der User {member.mention} hat ein **neues Emoji** auf dem Server **hinzugefügt**: {emoji}")
@@ -180,6 +187,12 @@ class EmojiResponse(di.Extension):
             f"{Emojis.vote_no}\n\nWenn du Fragen hierzu hast, kannst du dich über diesen Chat " \
             f"an den Support wenden."
         await member.send(embed=di.Embed(description=embed_text, color=Colors.RED))
+        await self._dclog.warn(
+            head="Custom Emoji",
+            change_cat="Emoji abgelehnt",
+            val_new=f"{emoji} eingereicht von {member.mention}",
+            ctx=ctx,
+        )
         await emoji.delete(reason="Custom Emoji abgelehnt")
         channel = await self._client.fetch_channel(channel_id=customemoji.ctx_ch_id)
         msg_initial = await channel.fetch_message(message_id=customemoji.ctx_msg_id)

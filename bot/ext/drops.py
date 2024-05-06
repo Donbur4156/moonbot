@@ -6,10 +6,11 @@ import uuid
 import interactions as di
 from configs import Configs
 from ext.drop_list import (BoostColResponse, Drop, Drop_BoostColor, Drop_Emoji,
-                           Drop_StarPowder, Drop_VIP_Rank, EmojiResponse, UniqueRoleResponse)
+                           Drop_StarPowder, Drop_VIP_Rank, EmojiResponse,
+                           UniqueRoleResponse)
 from interactions import IntervalTrigger, Task, listen, slash_option
 from interactions.api.events import MessageCreate
-from util import Colors, Emojis, StarPowder
+from util import Colors, DcLog, Emojis, StarPowder
 from whistle import EventDispatcher
 
 
@@ -21,6 +22,7 @@ class DropsHandler(di.Extension):
         self._logger: logging.Logger = kwargs.get("logger")
         self._kwargs = kwargs
         self.drops = Drops()
+        self._dclog: DcLog = kwargs.get("dc_log")
 
 
     @listen()
@@ -151,6 +153,13 @@ class DropsHandler(di.Extension):
             embed.color = Colors.GREEN_WARM
             await msg.edit(embed=embed, components=[])
             await self._execute(drop=drop, ctx=but_ctx)
+
+            await self._dclog.info(
+                head="Drop geöffnet",
+                change_cat=drop.text,
+                val_new=f"geöffnet von {but_ctx.user.mention}",
+                ctx=but_ctx,
+            )
 
         except asyncio.TimeoutError:
             self._logger.info("DROPS/Drop abgelaufen")

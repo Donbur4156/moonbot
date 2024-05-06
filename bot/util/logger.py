@@ -54,9 +54,9 @@ class DcLog:
 
     async def send_embed(
             self, 
-            ctx: di.SlashContext, 
             head: str, 
             change_cat: str, 
+            ctx: di.SlashContext = None, 
             val_old: str = None, 
             val_new: str = None, 
             color: Colors = Colors.GREEN):
@@ -70,7 +70,7 @@ class DcLog:
             description=f"**{change_cat}**: {change}",
             color=color,
             timestamp=Timestamp.now(),
-            footer=di.EmbedFooter(text=f"{ctx.author.username}", icon_url=ctx.author.avatar_url),
+            footer=di.EmbedFooter(text=f"{ctx.author.username}", icon_url=ctx.author.avatar_url) if ctx else None,
         )
         await self.log_channel.send(embed=embed)
 

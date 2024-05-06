@@ -6,7 +6,8 @@ import interactions as di
 from configs import Configs
 from ext.drop_list import Drop
 from interactions import component_callback
-from util import BoostRoles, Colors, Emojis, check_ephemeral, disable_components
+from util import (BoostRoles, Colors, DcLog, Emojis, check_ephemeral,
+                  disable_components)
 
 
 class Drop_BoostColor(Drop):
@@ -40,6 +41,7 @@ class BoostColResponse(di.Extension):
         self._config: Configs = kwargs.get("config")
         self._logger: logging.Logger = kwargs.get("logger")
         self.boostroles = BoostRoles(**kwargs)
+        self._dclog: DcLog = kwargs.get("dc_log")
 
     @component_callback(re.compile(r"boost_col_drop_[0-9]+"))
     async def boost_col_response(self, ctx: di.ComponentContext):
@@ -50,3 +52,9 @@ class BoostColResponse(di.Extension):
         await disable_components(msg=ctx.message)
         await ctx.send(embed=embed, ephemeral=check_ephemeral(ctx))
         self._logger.info(f"DROPS/BOOSTCOL/add Role {role.name} to {member.id}")
+        await self._dclog.info(
+            head="Boost Color Rolle",
+            change_cat="Boost Color via DM",
+            val_new=f"{role.mention} --> {member.mention}",
+            ctx=ctx,
+        )
