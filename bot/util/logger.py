@@ -46,8 +46,8 @@ class DcLog:
     async def warn(self, **kwargs):
         await self.send_embed(color=Colors.ORANGE, **kwargs)
 
-    async def error(self):
-        pass
+    async def error(self, **kwargs):
+        await self.send_embed(color=Colors.RED, **kwargs)
 
     async def file_log(self):
         pass
@@ -75,10 +75,11 @@ class DcLog:
         await self.log_channel.send(embed=embed)
 
     async def cmd_log(self, ctx: di.SlashContext, *args, **kwargs):
-        embed = di.Embed(
-            description=f"{ctx.user.mention} hat den Command {ctx.command.mention()} ausgeführt.",
-            color=Colors.BLURPLE,
-            timestamp=Timestamp.now(),
-            footer=di.EmbedFooter(text=f"{ctx.author.username} ({ctx.author.id})", icon_url=ctx.author.avatar_url) if ctx else None,
-        )
-        await self.log_channel.send(embed=embed)
+        if type(ctx) == di.SlashContext:
+            embed = di.Embed(
+                description=f"{ctx.user.mention} hat den Command {ctx.command.mention()} ausgeführt.",
+                color=Colors.BLURPLE,
+                timestamp=Timestamp.now(),
+                footer=di.EmbedFooter(text=f"{ctx.author.username} ({ctx.author.id})", icon_url=ctx.author.avatar_url) if ctx else None,
+            )
+            await self.log_channel.send(embed=embed)
