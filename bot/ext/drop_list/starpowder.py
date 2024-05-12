@@ -1,6 +1,7 @@
 import logging
 import random
 import re
+from os import environ
 
 import config as c
 import interactions as di
@@ -89,7 +90,7 @@ class UniqueRoleResponse(di.Extension):
         name = modal_ctx.responses["name"]
         color = di.Color(int(modal_ctx.responses["color"], 16))
 
-        guild = self._client.get_guild(guild_id=c.serverid)
+        guild = self._client.get_guild(guild_id=environ.get("SERVERID"))
         new_role: di.Role = await guild.create_role(name=name, color=color)
         customrole = CustomRole(
             role_id=int(new_role.id), user_id=int(modal_ctx.user.id), state="creating")
@@ -128,7 +129,7 @@ class UniqueRoleResponse(di.Extension):
             await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
             return False
         customrole = CustomRole(id=int(ctx.custom_id[11:]))
-        guild = await ctx.client.fetch_guild(guild_id=c.serverid)
+        guild = await ctx.client.fetch_guild(guild_id=environ.get("SERVERID"))
         member: di.Member = await guild.fetch_member(member_id=customrole.user_id)
         role: di.Role = await guild.fetch_role(role_id=customrole.role_id)
         await member.add_role(role=role, reason="benutzerdefinierte Rolle")
@@ -152,7 +153,7 @@ class UniqueRoleResponse(di.Extension):
             await ctx.send(content="Du bist für diese Aktion nicht berechtigt!", ephemeral=True)
             return False
         customrole = CustomRole(id=int(ctx.custom_id[10:]))
-        guild: di.Guild = await ctx.client.fetch_guild(guild_id=c.serverid)
+        guild: di.Guild = await ctx.client.fetch_guild(guild_id=environ.get("SERVERID"))
         member = await guild.fetch_member(member_id=customrole.user_id)
         role = await guild.fetch_role(role_id=customrole.role_id)
         await ctx.edit_origin(components=[])

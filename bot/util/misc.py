@@ -1,6 +1,6 @@
 import logging
+from os import environ
 
-import config as c
 import interactions as di
 from interactions import (EMBED_FIELD_VALUE_LENGTH, Client, ComponentContext,
                           EmbedField, File, Member, Message, MessageFlags,
@@ -30,7 +30,7 @@ def has_any_role(member: Member, roles: list[Role]) -> bool: #TODO: in interacti
     return any(to_snowflake(role) in member._role_ids for role in roles)
 
 async def create_emoji(client: Client, name: str, image: File, roles: list[Role] = None):
-    guild = await client.fetch_guild(c.serverid)
+    guild = await client.fetch_guild(environ.get("SERVERID"))
     try:
         return await guild.create_custom_emoji(
         name=name, imagefile=image, reason="Custom Emoji erstellt", roles=roles)

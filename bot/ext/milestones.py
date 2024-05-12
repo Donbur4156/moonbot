@@ -1,6 +1,6 @@
 from datetime import datetime
+from os import environ
 
-import config as c
 import interactions as di
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from interactions import listen, slash_command
@@ -19,7 +19,7 @@ class Milestones(CustomExt):
         self.generate_member_ms()
         self.generate_birthday_ms()
         self._schedule.start()
-        guild = self._client.get_guild(guild_id=c.serverid)
+        guild = self._client.get_guild(guild_id=environ.get("SERVERID"))
         self.member_count = guild.member_count if guild else 0
 
     @listen()
@@ -96,7 +96,7 @@ class Milestones(CustomExt):
 
 class MilestoneMembers():
     def __init__(self, membercount: int, name: str = None, dc_timestamp: int = None) -> None:
-        self._sql = SQL(database=c.database)
+        self._sql = SQL()
         self.name = name
         self.membercount = membercount
         self.dc_timestamp = dc_timestamp

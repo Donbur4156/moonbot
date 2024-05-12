@@ -4,7 +4,6 @@ import random
 from datetime import datetime, timezone
 from typing import Union
 
-import config as c
 import dateparser
 import interactions as di
 from apscheduler.job import Job
@@ -362,7 +361,7 @@ class Giveaway:
         self._client = client
         self._config = config
         self.id = id
-        self.sql = SQL(database=c.database)
+        self.sql = SQL()
         self.entries: dict[int, DcUser] = {}
         self.winners: list[DcUser] = []
         self.end_time: datetime = None

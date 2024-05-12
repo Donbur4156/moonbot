@@ -1,9 +1,11 @@
-import config as c
+from os import environ
+
 import interactions as di
 import nest_asyncio
 from configs import Configs
+from dotenv import load_dotenv
 from interactions import Activity, ActivityType, Intents, listen
-from util import DcLog, create_logger, SQL
+from util import SQL, DcLog, create_logger
 from whistle import EventDispatcher
 
 nest_asyncio.apply()
@@ -15,14 +17,15 @@ Abkürzungen:
         c => config
         f => functions --> f_ => components
 '''
-
+load_dotenv()
 # Bot Konstruktor
-TOKEN = c.token
-SENTRY_TOKEN = c.sentry_token
-SENTRY_ENV = c.sentry_env
+TOKEN = environ["TOKEN"]
+SENTRY_TOKEN = environ.get("SENTRY_TOKEN")
+SENTRY_ENV = environ.get("SENTRY_ENV")
 
-di_logger = create_logger(file_name=c.logdir + "interactions.log", log_name="interactions_logger", log_level=c.logginglevel_di)
-moon_logger = create_logger(file_name=c.logdir + "Moon_Bot_LOGS.log", log_name="moon_logger", log_level=c.logginglevel_moon)
+LOGDIR = environ.get("LOGDIR")
+di_logger = create_logger(file_name=LOGDIR + "interactions.log", log_name="interactions_logger", log_level=environ["LOG_LVL_DI"])
+moon_logger = create_logger(file_name=LOGDIR + "Moon_Bot_LOGS.log", log_name="moon_logger", log_level=environ["LOG_LVL_MOON"])
 
 pres = Activity(
     type=ActivityType.GAME,
@@ -35,7 +38,7 @@ client = di.Client(token=TOKEN, intents=intents, activity=pres,
 dispatcher = EventDispatcher()
 config: Configs = Configs(client=client, dispatcher=dispatcher)
 dc_logger : DcLog = DcLog(client=client, dispatcher=dispatcher, config=config)
-sql = SQL(database=c.database)
+sql = SQL()
 
 util_kwargs = {
     "_client": client,

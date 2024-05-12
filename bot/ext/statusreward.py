@@ -1,6 +1,6 @@
 import asyncio
+from os import environ
 
-import config as c
 import interactions as di
 from interactions import listen
 from interactions.api.events import PresenceUpdate
@@ -16,7 +16,7 @@ class StatusReward(CustomExt):
     async def on_startup(self):
         self._dispatcher.add_listener("config_update", self._run_load_config)
         await self._load_config()
-        self._guild: di.Guild = await self._client.fetch_guild(guild_id=c.serverid)
+        self._guild: di.Guild = await self._client.fetch_guild(guild_id=environ.get("SERVERID"))
 
     def _run_load_config(self, event):
         asyncio.run(self._load_config())

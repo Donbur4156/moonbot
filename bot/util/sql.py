@@ -1,9 +1,10 @@
 import sqlite3
+from os import environ
 
 
 class SQL:
-    def __init__(self, database) -> None:
-        self._database = database
+    def __init__(self) -> None:
+        self._database = environ["DATABASE"]
 
     def execute(self, stmt: str, var: tuple = None):
         self._connect()

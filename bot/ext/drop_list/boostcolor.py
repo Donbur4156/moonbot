@@ -1,7 +1,7 @@
 import logging
 import re
+from os import environ
 
-import config as c
 import interactions as di
 from configs import Configs
 from ext.drop_list import Drop
@@ -46,7 +46,7 @@ class BoostColResponse(di.Extension):
     @component_callback(re.compile(r"boost_col_drop_[0-9]+"))
     async def boost_col_response(self, ctx: di.ComponentContext):
         id = ctx.custom_id[15:]
-        member = ctx.member or await self._client.fetch_member(guild_id=c.serverid, user_id=ctx.user.id)
+        member = ctx.member or await self._client.fetch_member(guild_id=environ.get("SERVERID"), user_id=ctx.user.id)
         role = await self.boostroles.change_color_role(member=member, id=id, reason="Drop Belohnung")
         embed = self.boostroles.get_embed_color(id)
         await disable_components(msg=ctx.message)

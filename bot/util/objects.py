@@ -1,6 +1,7 @@
-import config as c
+from os import environ
+
 import interactions as di
-from util import get_role_from_json, fetch_message, SQL
+from util import SQL, fetch_message, get_role_from_json
 
 
 class DcUser:
@@ -29,7 +30,7 @@ class DcUser:
 
     async def get_wlc_msg(self):
         if self.wlc_msg: return self.wlc_msg
-        data = SQL(database=c.database).execute(
+        data = SQL().execute(
             stmt="SELECT * FROM wlc_msgs WHERE user_id=?", var=(self.dc_id,)
         )
         if not data: return None
@@ -45,7 +46,7 @@ class DcUser:
         return closure().__await__()
 
     async def get_member_obj(self) -> None:
-        self.member = await self.bot.fetch_member(guild_id=c.serverid, user_id=self.dc_id, force=True)
+        self.member = await self.bot.fetch_member(guild_id=environ.get("SERVERID"), user_id=self.dc_id, force=True)
         return self.member
     
     def initialize(self) -> bool:

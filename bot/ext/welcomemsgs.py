@@ -1,6 +1,6 @@
 import os
+from os import environ
 
-import config as c
 import interactions as di
 from interactions import SlashCommand, slash_option
 from util import CustomExt, download
@@ -17,14 +17,14 @@ class WelcomeMsgs(CustomExt):
     async def upload(self, ctx: di.SlashContext, file: di.Attachment):
         self._logger.info(f"WLCMSGS/Upload/Admin ID: {ctx.user.id}")
         file_txt = await download(file.url)
-        with open(c.welcomemsgs, "wb") as file_:
+        with open(environ["WELCOMEMSGS"], "wb") as file_:
             file_.write(file_txt.getbuffer())
         await self.test(ctx)
         self._dispatcher.dispatch("wlcmsgs_update")
 
     @msg_cmds.subcommand(sub_cmd_name="download", sub_cmd_description="Lädt die aktuelle Datei herunter")
     async def download(self, ctx: di.SlashContext):
-        file = di.File(file=c.welcomemsgs)
+        file = di.File(file=environ["WELCOMEMSGS"])
         await ctx.send(file=file)
 
     @msg_cmds.subcommand(sub_cmd_name="test", sub_cmd_description="Gibt alle Nachrichten aus")
@@ -34,8 +34,9 @@ class WelcomeMsgs(CustomExt):
 
     
 def read_txt():
-    if not os.path.exists(c.welcomemsgs): return None
-    with open(c.welcomemsgs, "r", encoding="utf-8") as file:
+    wlc_msgs = environ["WELCOMEMSGS"]
+    if not os.path.exists(wlc_msgs): return None
+    with open(wlc_msgs, "r", encoding="utf-8") as file:
         lines = file.readlines()
         return ["".join(line).rstrip() for line in zip(lines[::2],lines[1::2])]
 

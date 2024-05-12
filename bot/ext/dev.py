@@ -1,6 +1,7 @@
+import json
 import tempfile
+from os import environ
 
-import config as c
 import interactions as di
 from interactions import SlashCommand, listen, slash_option
 from interactions.api.events import GuildJoin
@@ -16,9 +17,9 @@ class DevClass(CustomExt):
 
     @listen()
     async def on_startup(self):
-        self.dev_user: di.User = await self._client.fetch_user(c.donbur)
+        self.dev_user: di.User = await self._client.fetch_user(environ.get("DEV"))
         for guild in self._client.guilds:
-            if int(guild.id) not in c.server_whitelist:
+            if int(guild.id) not in json.loads(environ.get("SERVER_WHITELIST")):
                 await self.dev_user.send(f"Moon Bot hat den Server {guild.name} ({guild.id}) verlassen.\nDieser ist nicht auf der Whitelist.")
                 await guild.leave()
 
@@ -54,6 +55,10 @@ class DevClass(CustomExt):
                 await ctx.send(file=file)
         else:
             await ctx.send(statement_repr)
+
+    @devCmds.subcommand(sub_cmd_name="test", sub_cmd_description="Dev Test")
+    async def dev_test(self, ctx: di.SlashContext):
+        await ctx.send("Test erfolgreich")
 
 def setup(client: di.Client, **kwargs):
     DevClass(client, **kwargs)

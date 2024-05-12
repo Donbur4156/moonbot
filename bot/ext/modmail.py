@@ -1,7 +1,7 @@
 import asyncio
 import re
+from os import environ
 
-import config as c
 import interactions as di
 from interactions import (component_callback, listen, slash_command,
                           slash_option)
@@ -21,7 +21,7 @@ class Modmail(CustomExt):
         self._dispatcher.add_listener("storage_update", self._run_get_storage)
         self._get_storage()
         await self._load_config()
-        self._guild = await self._client.fetch_guild(guild_id=c.serverid)
+        self._guild = await self._client.fetch_guild(guild_id=environ.get("SERVERID"))
     
     def _run_load_config(self, event):
         asyncio.run(self._load_config())
@@ -300,12 +300,11 @@ class Modmail(CustomExt):
             ticket_id = self._sql.execute(
                 stmt="INSERT INTO tickets_closed(user_ID) VALUES (?)",
                 var=(dcuser.dc_id,)).lastrowid
-            filepath = c.logdir
             filename = f"ticket_{ticket_id}_{dcuser.dc_id}.txt"
-            with open(filepath + filename, "w", newline='', encoding="utf-8") as logfile:
+            with open(environ.get("LOGDIR") + filename, "w", newline='', encoding="utf-8") as logfile:
                 logfile.write(
                     await self.create_log_text(ctx=ctx, dcuser=dcuser, ticket_id=ticket_id, reason=reason))
-            with open(filepath + filename, "r", encoding="utf-8") as fp:
+            with open(environ.get("LOGDIR") + filename, "r", encoding="utf-8") as fp:
                 file = di.File(file=fp, file_name=filename)
                 await self._channel_log.send(file=file)
         else: ticket_id = 0
@@ -355,7 +354,7 @@ class Modmail(CustomExt):
         return [di.File(file=await download(att.url), file_name=att.filename) for att in attachments]
 
 def gen_ticket_embedfields(user_id: int):
-    tickets = SQL(database=c.database).execute(
+    tickets = SQL().execute(
         stmt="SELECT * FROM tickets_closed WHERE user_ID=?", 
         var=(user_id,)).data_all
     files = []
@@ -364,7 +363,8 @@ def gen_ticket_embedfields(user_id: int):
         ticket_ids = [str(t[0]) for t in tickets]
         tickets_lost = []
         for ticket in tickets:
-            filename = f"{c.logdir}ticket_{ticket[0]}_{ticket[1]}.txt"
+            logdir = environ.get("LOGDIR")
+            filename = f"{logdir}ticket_{ticket[0]}_{ticket[1]}.txt"
             try:
                 files.append(di.File(file=filename))
             except:
@@ -382,7 +382,7 @@ def gen_ticket_embedfields(user_id: int):
 def get_modmail_blacklist():
     return [
         int(u[0]) for u 
-        in SQL(database=c.database).execute(stmt="SELECT * FROM tickets_blacklist").data_all
+        in SQL().execute(stmt="SELECT * FROM tickets_blacklist").data_all
     ]
 
 def setup(client: di.Client, **kwargs):

@@ -1,7 +1,7 @@
 import logging
 import re
+from os import environ
 
-import config as c
 import interactions as di
 from configs import Configs
 from ext.drop_list import Drop
@@ -210,7 +210,7 @@ class EmojiResponse(di.Extension):
         return True
 
     async def delete_emoji(self, id: int):
-        guild = await self._client.fetch_guild(guild_id=c.serverid)
+        guild = await self._client.fetch_guild(guild_id=environ.get("SERVERID"))
         try:
             emoji = await guild.fetch_custom_emoji(emoji_id=id)
             await emoji.delete("neues Custom Emoji")

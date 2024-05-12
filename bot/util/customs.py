@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 
-import config as c
 from util import SQL
 
 
@@ -17,7 +16,7 @@ class CustomRole:
         else: self._get_from_database()
 
     def _create(self):
-        self.id = SQL(c.database).execute(
+        self.id = SQL().execute(
             stmt="INSERT INTO custom_roles(role_id, user_id, state) VALUES (?,?,?)",
             var=(self.role_id, self.user_id, self.state,)
         ).lastrowid
@@ -25,13 +24,13 @@ class CustomRole:
 
     def set_state(self, new_state: str):
         self.state = new_state
-        SQL(c.database).execute(
+        SQL().execute(
             stmt="UPDATE custom_roles SET state=? WHERE id=?",
             var=(new_state, self.id,)
         )
 
     def _get_from_database(self):
-        data = SQL(c.database).execute(
+        data = SQL().execute(
             stmt="SELECT role_id, user_id, state FROM custom_roles WHERE id=?",
             var=(self.id,)
         ).data_single
@@ -54,7 +53,7 @@ class CustomEmoji:
         else: self._get_from_database()
 
     def _create(self):
-        self.id = SQL(c.database).execute(
+        self.id = SQL().execute(
             stmt="INSERT INTO custom_emojis(emoji_id, user_id, state, ctx_msg_id, ctx_ch_id) VALUES (?,?,?,?,?)",
             var=(self.emoji_id, self.user_id, self.state, self.ctx_msg_id, self.ctx_ch_id)
         ).lastrowid
@@ -62,13 +61,13 @@ class CustomEmoji:
 
     def set_state(self, new_state: str):
         self.state = new_state
-        SQL(c.database).execute(
+        SQL().execute(
             stmt="UPDATE custom_emojis SET state=? WHERE id=?",
             var=(new_state, self.id,)
         )
 
     def _get_from_database(self):
-        data = SQL(c.database).execute(
+        data = SQL().execute(
             stmt="SELECT * FROM custom_emojis WHERE id=?",
             var=(self.id,)
         ).data_single

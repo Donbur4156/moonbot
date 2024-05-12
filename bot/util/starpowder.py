@@ -1,12 +1,11 @@
 import logging
 
-import config as c
 from util import SQL
 
 
 class StarPowder:
     def __init__(self) -> None:
-        self.sql = SQL(database=c.database)
+        self.sql = SQL()
 
     def upd_starpowder(self, user_id: int, amount: int):
         amount_sql = self.get_starpowder(user_id)

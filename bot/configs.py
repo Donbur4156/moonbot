@@ -1,6 +1,6 @@
 from configparser import ConfigParser, SectionProxy
+from os import environ
 
-import config as c
 import interactions as di
 from whistle import EventDispatcher
 
@@ -10,7 +10,7 @@ class Configs():
         self._client = client
         self._dispatcher = dispatcher
         self._config = ConfigParser()
-        self._filename = c.config
+        self._filename = environ["CONFIG"]
         self._read_config()
 
     def _read_config(self):
@@ -45,7 +45,7 @@ class Configs():
 
     async def get_role(self, name: str) -> di.Role:
         if id := self.get_roleid(name): 
-            guild = await self._client.fetch_guild(c.serverid)
+            guild = await self._client.fetch_guild(environ.get("SERVERID"))
             return await guild.fetch_role(id)
         return None
     

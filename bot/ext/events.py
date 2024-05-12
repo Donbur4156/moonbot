@@ -1,6 +1,6 @@
 import random
+from os import environ
 
-import config as c
 import interactions as di
 from ext.welcomemsgs import read_txt
 from interactions import (ContextMenuContext, IntervalTrigger, OrTrigger, Task,
@@ -40,7 +40,7 @@ class EventClass(CustomExt):
 
     @listen()
     async def on_guild_member_add(self, event: MemberAdd):
-        if int(event.guild.id) != c.serverid: return False
+        if int(event.guild.id) != environ.get("SERVERID"): return False
         member = event.member
         self._logger.info(f"EVENT/Member Join/{member.username} ({member.id})")
         dcuser = DcUser(member=member)
@@ -51,7 +51,7 @@ class EventClass(CustomExt):
 
     @listen()
     async def on_guild_member_remove(self, event: MemberRemove):
-        if int(event.guild.id) != c.serverid: return False
+        if int(event.guild.id) != environ.get("SERVERID"): return False
         member = event.member
         self._logger.info(f"EVENT/MEMBER Left/{member.username} ({member.id})")
         dcuser = self.joined_member.pop(int(member.id), None)
@@ -106,7 +106,7 @@ class PendingMember(CustomExt):
 
     # @listen()
     async def on_guild_member_add(self, event: MemberAdd):
-        if int(event.guild.id) != c.serverid: return False
+        if int(event.guild.id) != environ.get("SERVERID"): return False
         member = event.member
         if member.pending:
             self._sql.execute(stmt="INSERT INTO new_members(user_id) VALUES (?)", var=(int(member.id),))
@@ -116,7 +116,7 @@ class PendingMember(CustomExt):
 
     # @listen()
     async def on_guild_member_remove(self, event: MemberRemove):
-        if int(event.guild.id) != c.serverid: return False
+        if int(event.guild.id) != environ.get("SERVERID"): return False
         self.del_new_member(int(event.member.id))
 
     def del_new_member(self, member_id: int):
@@ -142,7 +142,7 @@ class PendingMember(CustomExt):
             if not self.tmp_membercheck: break
             member_id = self.tmp_membercheck.pop()
             self._logger.debug(member_id)
-            member = await self._client.fetch_member(user_id=member_id, guild_id=c.serverid)
+            member = await self._client.fetch_member(user_id=member_id, guild_id=environ.get("SERVERID"))
             if not member:
                 self.del_new_member(member_id)
                 self._logger.info(f"CRON/cannot find member with ID: {member_id}")
