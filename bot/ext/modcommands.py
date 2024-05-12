@@ -43,8 +43,39 @@ class AdminCmds(CustomExt):
 
     @admin_cmds.subcommand(sub_cmd_name="commands", sub_cmd_description="Alle verfügbaren Commands")
     async def commands(self, ctx: di.SlashContext):
-        text = "**Alle verfügbaren Admin Commands:**" #TODO: Ergänzen des Texts
-        await ctx.send(text)
+        embed = di.Embed(
+            title="Admin Commands",
+            description=f"Admin Commands verfügbar über `/admin`",
+            fields=[
+                di.EmbedField(
+                    name="**config** channels",
+                    value="Konifguration verschiedener Channels."),
+                di.EmbedField(
+                    name="**config** roles_...",
+                    value="Konfiguration verschiedener Rollen. \n[boost_colors, boost_icons, general, pings, team]"),
+                di.EmbedField(
+                    name="**config** specials",
+                    value="Konifguration verschiedener Specials."),
+                di.EmbedField(
+                    name="**config** show",
+                    value="Zeigt die aktuelle Konfiguration an."),
+                di.EmbedField(
+                    name="**role_event**",
+                    value="Erstellt ein Selfrole Embed für Event Roles.\n(Text dazu aktuell im Code eingebettet)"),
+                di.EmbedField(
+                    name="**starpowder** add",
+                    value="Fügt einem User Sternenstaub hinzu. (negative Werte ziehen ab)"),
+                di.EmbedField(
+                    name="**starpowder** getlist",
+                    value="Zeigt die aktuelle Sternenstaub 'Bestenliste' an."),
+                di.EmbedField(
+                    name="/engel  (ohne /admin)",
+                    value="Fügt einem User die Engelchen Rolle hinzu."
+                )
+            ]
+        )
+
+        await ctx.send(embed=embed)
 
     @admin_cmds.subcommand(sub_cmd_name="role_event", sub_cmd_description="Generiert die Self Role Message")
     @slash_option(name="channel", description="Channel, in dem die Nachricht gepostet werden soll",
@@ -369,8 +400,38 @@ class ModCmds(CustomExt):
 
     @mod_cmds.subcommand(sub_cmd_name="commands", sub_cmd_description="Alle verfügbaren Commands")
     async def commands(self, ctx: di.SlashContext):
-        text = "**Alle verfügbaren Mod Commands:**"
-        await ctx.send(text)
+        embed = di.Embed(
+            title="Mod Commands",
+            description=f"Alle Mod und Team Commands. \nUnter Umständen eingeschränkte Berechtigungen.",
+            fields=[
+                di.EmbedField(
+                    name="**/mod get_blacklist**",
+                    value="Erstellt eine Liste mit Usern, die für Modmail gesperrt sind."),
+                di.EmbedField(
+                    name="**/mod remove_blacklist**",
+                    value="Entfernt einen User von der Modmail Blacklist."),
+                di.EmbedField(
+                    name="**/giveaways generate**",
+                    value="Generiert ein neues Giveaway."),
+                di.EmbedField(
+                    name="**/meilensteine**",
+                    value="Zeigt die Meilensteine der Moon Family."),
+                di.EmbedField(
+                    name="**/open_ticket**",
+                    value="Öffnet ein neues Modmail Ticket mit einem User."),
+                di.EmbedField(
+                    name="**/reminder ...**",
+                    value="Erstellt oder ändert eine Erinnerungsnachricht.\n[add/del role/user; change channel/text/time; delete; show]"),
+                di.EmbedField(
+                    name="**/selfroles ...**",
+                    value="Erstellt einen Selfrole Post.\n[countrys, gender, pings, boostcolor, boosticons]"),
+                di.EmbedField(
+                    name="**/welcomemsgs ...**",
+                    value="Commands für die Willkommensnachrichten.\n[download, upload, test]"),
+            ]
+        )
+
+        await ctx.send(embed=embed)
 
     @mod_cmds.subcommand(sub_cmd_name="test", sub_cmd_description="test")
     async def test(self, ctx: di.SlashContext):
