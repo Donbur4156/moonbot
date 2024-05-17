@@ -21,6 +21,7 @@ class EventClass(CustomExt):
         # self.create_vote_message.start()
         self.set_wlc_msgs()
         self._dispatcher.add_listener("wlcmsgs_update", self.set_wlc_msgs)
+        self.main_server = await self._client.fetch_guild(environ.get("SERVERID"))
 
     def set_wlc_msgs(self, event=None):
         self.wlc_msgs = read_txt()
@@ -40,7 +41,7 @@ class EventClass(CustomExt):
 
     @listen()
     async def on_guild_member_add(self, event: MemberAdd):
-        if int(event.guild.id) != environ.get("SERVERID"): return False
+        if event.guild.id != self.main_server.id: return False
         member = event.member
         self._logger.info(f"EVENT/Member Join/{member.username} ({member.id})")
         dcuser = DcUser(member=member)
@@ -51,7 +52,7 @@ class EventClass(CustomExt):
 
     @listen()
     async def on_guild_member_remove(self, event: MemberRemove):
-        if int(event.guild.id) != environ.get("SERVERID"): return False
+        if event.guild.id != self.main_server.id: return False
         member = event.member
         self._logger.info(f"EVENT/MEMBER Left/{member.username} ({member.id})")
         dcuser = self.joined_member.pop(int(member.id), None)
@@ -96,6 +97,7 @@ class PendingMember(CustomExt):
     async def on_startup(self):
         self.get_new_members()
         # self.check_new_members.start()
+        self.main_server = await self._client.fetch_guild(environ.get("SERVERID"))
 
     def get_new_members(self):
         self.new_members = {
@@ -106,7 +108,7 @@ class PendingMember(CustomExt):
 
     # @listen()
     async def on_guild_member_add(self, event: MemberAdd):
-        if int(event.guild.id) != environ.get("SERVERID"): return False
+        if event.guild.id != self.main_server.id: return False
         member = event.member
         if member.pending:
             self._sql.execute(stmt="INSERT INTO new_members(user_id) VALUES (?)", var=(int(member.id),))
@@ -116,7 +118,7 @@ class PendingMember(CustomExt):
 
     # @listen()
     async def on_guild_member_remove(self, event: MemberRemove):
-        if int(event.guild.id) != environ.get("SERVERID"): return False
+        if event.guild.id != self.main_server.id: return False
         self.del_new_member(int(event.member.id))
 
     def del_new_member(self, member_id: int):
@@ -142,7 +144,7 @@ class PendingMember(CustomExt):
             if not self.tmp_membercheck: break
             member_id = self.tmp_membercheck.pop()
             self._logger.debug(member_id)
-            member = await self._client.fetch_member(user_id=member_id, guild_id=environ.get("SERVERID"))
+            member = await self._client.fetch_member(user_id=member_id, guild_id=self.main_server.id)
             if not member:
                 self.del_new_member(member_id)
                 self._logger.info(f"CRON/cannot find member with ID: {member_id}")

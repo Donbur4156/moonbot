@@ -158,7 +158,7 @@ class SelfRoles(CustomExt):
 
     @slash_command(name="talkping", description="Pingt die talkping Rolle", dm_permission=False)
     async def talkping(self, ctx: di.SlashContext):
-        if not ctx.member.voice or int(ctx.member.voice.guild.id) != environ.get("SERVERID"):
+        if not ctx.member.voice or int(ctx.member.voice.guild.id) != int(environ.get("SERVERID")):
             text = f"Du kannst diesen Command nur benutzen, " \
                 f"wenn du dich **in einem Voice Channel** befindest! {Emojis.load_orange}"
             embed = di.Embed(description=text, color=Colors.YELLOW)
