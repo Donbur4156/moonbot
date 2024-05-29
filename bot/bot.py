@@ -61,6 +61,7 @@ extensions = [
     "selfroles",
     "giveaways",
     "welcomemsgs",
+    "starpowder",
 ]
 
 @listen()

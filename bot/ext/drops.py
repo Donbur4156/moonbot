@@ -4,11 +4,10 @@ import uuid
 
 import interactions as di
 from ext.drop_list import (BoostColResponse, Drop, Drop_BoostColor, Drop_Emoji,
-                           Drop_StarPowder, Drop_VIP_Rank, EmojiResponse,
-                           UniqueRoleResponse)
+                           Drop_StarPowder, Drop_VIP_Rank, EmojiResponse)
 from interactions import IntervalTrigger, Task, listen, slash_option
 from interactions.api.events import MessageCreate
-from util import Colors, CustomExt, Emojis, StarPowder
+from util import Colors, CustomExt, Emojis
 
 
 class DropsHandler(CustomExt):
@@ -102,13 +101,6 @@ class DropsHandler(CustomExt):
         await ctx.send(" ".join(emojis[0:50]))
         await ctx.channel.send(" ".join(emojis[50:]))
 
-    @di.slash_command(name="sternenstaub", description="Gibt deine Sternenstaub Menge zurück")
-    async def starpowder_cmd(self, ctx: di.SlashContext):
-        amount_sql = StarPowder().get_starpowder(int(ctx.user.id))
-        text = f"Du hast bisher {amount_sql} {Emojis.starpowder} Sternenstaub eingesammelt."
-        await ctx.send(text, ephemeral=True)
-
-
     def _check_goal(self) -> bool:
         return self.count >= self._msg_goal
 
@@ -199,5 +191,4 @@ class Drops:
 def setup(client, **kwargs):
     DropsHandler(client, **kwargs)
     BoostColResponse(client, **kwargs)
-    UniqueRoleResponse(client, **kwargs)
     EmojiResponse(client, **kwargs)
