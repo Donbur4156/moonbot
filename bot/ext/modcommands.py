@@ -147,18 +147,18 @@ class AdminCmds(CustomExt):
 
     @config_cmds.subcommand(sub_cmd_name="show", sub_cmd_description="Zeigt Config an")
     async def show(self, ctx: di.SlashContext):
-        channels = [
-            {"name": "Chat", "value": "chat"},
-            {"name": "Mail Default", "value": "mail_def"},
-            {"name": "Mail Log", "value": "mail_log"},
-            {"name": "Drop Chat", "value": "drop_chat"},
-            {"name": "Drop Log", "value": "drop_log"},
-            {"name": "Team Chat", "value": "team_chat"},
-            {"name": "Boost Color", "value": "boost_col"},
-            {"name": "Reminder", "value": "schedule"},
-            {"name": "Giveaways", "value": "giveaway"},
-            {"name": "Bot Log", "value": "bot_log"},
-        ]
+        channels = {
+            "Chat": "chat",
+            "Mail Default": "mail_def",
+            "Mail Log": "mail_log",
+            "Drop Chat": "drop_chat",
+            "Drop Log": "drop_log",
+            "Team Chat": "team_chat",
+            "Boost Color": "boost_col",
+            "Reminder": "schedule",
+            "Giveaways": "giveaway",
+            "Bot Log": "bot_log",
+        }
         roles_general = [
             {"name": "Owner", "value": "owner"},
             {"name": "Admins", "value": "admin"},
@@ -200,24 +200,29 @@ class AdminCmds(CustomExt):
             {"name": "Drop Minimum", "value": "drop_min"},
             {"name": "Drop Maximum", "value": "drop_max"},
         ]
-        channels_text = "\n".join([f"{channel['name']}: {await self._config.get_channel_mention(channel['value'])}" for channel in channels])
-        roles_general_text = "\n".join([f"{role['name']}: {await self._config.get_role_mention(role['value'])}" for role in roles_general])
-        roles_special_text = "\n".join([f"{role['name']}: {await self._config.get_role_mention(role['value'])}" for role in roles_special])
-        specials_text = "\n".join([f"{special['name']}: {self._config.get_special(special['value'])}" for special in specials])
+        contents = {
+            "Channel": "\n".join([f"{n}: {await self._config.get_channel_mention(v)}" for n,v in channels.items()]),
+            "Rollen Generell": "\n".join([f"{role['name']}: {await self._config.get_role_mention(role['value'])}" for role in roles_general]),
+            "Rollen Selfroles": "\n".join([f"{role['name']}: {await self._config.get_role_mention(role['value'])}" for role in roles_special]),
+            "Specials": "\n".join([f"{special['name']}: {self._config.get_special(special['value'])}" for special in specials]),
+        }
         
-        embed = di.Embed(
-            title="Config",
+        embeds = [di.Embed(
+            title=theme,
+            description=content,
             color=Colors.BLACK,
             footer=di.EmbedFooter(text="Änderungen als Admin mit /admin config [roles/channels/specials]")
-        )
-        embed.add_fields(
-            di.EmbedField(name="Channel", value=channels_text),
-            di.EmbedField(name="Rollen", value=roles_general_text),
-            di.EmbedField(name="Rollen", value=roles_special_text),
-            di.EmbedField(name="Specials", value=specials_text),
-        )
-    #TODO: Boost Icons einfügen
-        await ctx.send(embed=embed)
+            ) for theme, content in contents.items()]
+
+        paginator = Paginator.create_from_embeds(self._client, *embeds)
+        
+        paginator.show_select_menu = True        
+        paginator.show_back_button = False
+        paginator.show_first_button = False
+        paginator.show_next_button = False
+        paginator.show_last_button = False
+
+        await paginator.send(ctx)
 
     @config_cmds.subcommand(sub_cmd_name="channels", sub_cmd_description="Channel Config")
     @slash_option(name="type", description="Channel type",
