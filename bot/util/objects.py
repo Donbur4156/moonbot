@@ -24,7 +24,6 @@ class DcUser:
         else: raise Exception("dcuser needs dc_id or a ctx Object for id!")
         if not bot and self.member:
             self.bot = self.member.client
-        self.mention = f"<@!{self.dc_id}>"
         self.giveaway_plus: bool = False
         self.wlc_msg: di.Message = None #TODO: store in database
 
@@ -40,7 +39,6 @@ class DcUser:
         async def closure():
             if not self.member and self.bot:
                 await self.get_member_obj()
-            self.initialize()
             return self
         
         return closure().__await__()
@@ -49,16 +47,6 @@ class DcUser:
         self.member = await self.bot.fetch_member(guild_id=environ.get("SERVERID"), user_id=self.dc_id, force=True)
         return self.member
     
-    def initialize(self) -> bool:
-        if not self.member:
-            return False
-        self.get_dc_tag()
-        return True
-
-
-    def get_dc_tag(self) -> str:
-        self.dc_tag = f"{self.member.user.username}#{self.member.user.discriminator}"
-        return self.dc_tag
 
     async def update_xp_role(self, streak_count):
         if old_role := get_role_from_json(role_nr=streak_count-1):
@@ -73,3 +61,7 @@ class DcUser:
             return True
         except:
             return False
+        
+    @property
+    def mention(self):
+        return f"<@!{self.dc_id}>"
